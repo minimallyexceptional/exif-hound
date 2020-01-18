@@ -1,0 +1,27 @@
+{
+  "name": "exif-hound",
+  "version": "0.0.1",
+  "description": "A simple application deisgned for the digital forensics community for tracking EXIF metadata in the real world",
+  "main": "main.js",
+  "scripts": {
+    "dev": "parcel ./src/index.html --port 8080",
+    "build": "parcel ./src/index.html ./dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Minimally Exceptional LLC",
+  "license": "ISC",
+  "dependencies": {
+    "arwes": "^1.0.0-alpha.5",
+    "blueimp-load-image": "^2.26.0",
+    "coordinate-parser": "^1.0.2",
+    "leaflet": "^1.6.0",
+    "mobx": "^5.15.2",
+    "mobx-react": "^6.1.5",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0"
+  },
+  "devDependencies": {
+    "electron": "^7.1.9",
+    "sass": "^1.25.0"
+  }
+}
