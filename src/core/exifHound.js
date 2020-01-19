@@ -26,8 +26,8 @@ export default class EXIFHound {
 
                 callback(exifImageClass);
             },
-            { meta: true } // Options
-        )
+            { meta: true, noRevoke: true } // Options
+        );
 
         if (loadingImage) {
             return;

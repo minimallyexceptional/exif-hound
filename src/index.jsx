@@ -10,5 +10,5 @@ let appStore = new ApplicationStore();
 
 ReactDOM.render(
     <App store={appStore} />,
-    document.getElementById('app')
+    document.getElementById('root')
 );

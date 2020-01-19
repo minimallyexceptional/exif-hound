@@ -1,92 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react';
-var L = require('leaflet');
-
 import { ThemeProvider, createTheme, Arwes, Row, Col, Button } from 'arwes';
 
-import EXIFHound from './core/exifHound';
+import './app.scss';
+import ApplicationStore from './appStore';
 
-let hound = new EXIFHound();
+import MapView from './components/map/MapView'
+import SidebarView from './components/sidebar/SidebarView';
+import SplashPageView from './components/splash/SplashPageView';
 
-var map = null;
+const appStore = new ApplicationStore();
 
 const App = (props) => {
-
-    let appStore = props.store;
     
-    const [mounted, setMounted] = useState(true);
-
-    console.log('IMAGES ', appStore.images);
+    const [ isSplash, setIsSplash ] = useState(true)
 
     useEffect(() => {
-        console.log('USING EFFECT')
-        init();
-    }, [mounted]);
+        setTimeout(() => {
+            setIsSplash(false);
+        }, 3000);
+    }, [isSplash]);
 
-    const init = () => {
-        map = L.map('map');
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-    }
-
-    useEffect(() => {
-        appStore.images.forEach(exifImage => {
-            map.setView([exifImage.exifData.position.latitude, exifImage.exifData.position.longitude], 13);
-            L.marker([exifImage.exifData.position.latitude, exifImage.exifData.position.longitude]).addTo(map)
-                .bindPopup('Image Taken Here!')
-                .openPopup();
-        })
-    })
-
-    const loadFile = (e) => {
-        hound.loadImage(e, (exifImage) => {
-            console.log('DATA FROM HOUND ', exifImage);
-            appStore.addImage(exifImage);
-
-            console.log(appStore.images);
+    const getTheme = () => {
+        return createTheme({
+            color: {
+                primary: { base: 'white' }
+            }
         });
-    }
-
-    const renderImages = (images) => {
-        return images.map(image =>  {
-            return (
-                <div>
-                    Latitude: {image.exifData.latitude} <br/>
-                    Longitude: {image.exifData.longitude}
-                </div>
-            );
-        });
-    }
-
-    const renderMap = () => {
-        return (
-            <div id="map"></div>
-        );
     }
 
     return (
-        <ThemeProvider theme={createTheme()}>
+        <ThemeProvider theme={getTheme()}>
             <Arwes >
-                <Row>
-                    <Col s={12} m={12}>
-                        <input onChange={loadFile} type="file" />
-                        <Button animate onClick={null}>Sniff EXIF</Button>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col s={12} m={6}>
-                        <h1>Image</h1>
-                        <div id="image">
-                            {renderImages(appStore.images)}
-                        </div>
-                    </Col>
-                    <Col s={12} m={6}>
-                        <h1>Map</h1>
-                        {renderMap()}
-                    </Col>
-                </Row>
+                <div id="app">
+                    <div className="sidebar-container">
+                        <SidebarView store={appStore} />
+                    </div>
+                    <div className="map-container">
+                        <MapView store={appStore}/>
+                    </div>
+                </div>
+                <SplashPageView shown={isSplash} />
             </Arwes>
         </ThemeProvider>
     );
