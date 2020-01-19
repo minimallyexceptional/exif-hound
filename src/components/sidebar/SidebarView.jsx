@@ -24,6 +24,11 @@ const SidebarView  = (props) => {
         })
     }
 
+    const setSelectedImage = (imageObject) => {
+        props.store.setSelectedImage(imageObject);
+        props.store.setCurrentPage(2);
+    }
+
     const renderSidebarItems = (imageArray) => {
         return imageArray.map(image => {
             return (
@@ -34,6 +39,7 @@ const SidebarView  = (props) => {
                     level={3}
                     corners={4}
                     layer='primary'
+                    onClick={() => setSelectedImage(image)}
                 >
                 <div className="sidebar-item">
                     <div className="image-thumbnail">

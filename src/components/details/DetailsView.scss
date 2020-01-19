@@ -1,0 +1,27 @@
+#details-panel {
+    height: 100%;
+    padding: 0.8rem;
+    box-sizing: border-box;
+    background-image: url('../../assets/img/background.png');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    .details-button-bar {
+        display: flex;
+        height: 50px;
+        .details-button {
+            width: 100%;
+            text-align: center;
+        }
+    }
+    .details-content {
+        box-sizing: border-box;
+        padding: 1rem;
+        overflow: auto;
+        height: calc(100% - 70px);
+
+        .details-group {
+            margin-bottom: 1rem;
+        }
+    }
+}

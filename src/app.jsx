@@ -3,44 +3,44 @@ import { observer } from 'mobx-react';
 import { ThemeProvider, createTheme, Arwes, Row, Col, Button } from 'arwes';
 
 import './app.scss';
-import ApplicationStore from './appStore';
+import ApplicationStore from './ApplicationStore';
 
-import MapView from './components/map/MapView'
-import SidebarView from './components/sidebar/SidebarView';
-import SplashPageView from './components/splash/SplashPageView';
+import SplashPage from './pages/SplashPage';
+import MapPage from './pages/MapPage';
+import DetailPage from './pages/DetailPage';
 
 const appStore = new ApplicationStore();
 
 const App = (props) => {
-    
-    const [ isSplash, setIsSplash ] = useState(true)
-
     useEffect(() => {
         setTimeout(() => {
-            setIsSplash(false);
+            appStore.setCurrentPage(1);
         }, 3000);
-    }, [isSplash]);
+    }, []);
 
     const getTheme = () => {
-        return createTheme({
-            color: {
-                primary: { base: 'white' }
-            }
-        });
+        return createTheme({});
+    }
+
+    const routePages = (pageENUM) => {
+        switch(pageENUM) {
+            case 0: 
+                return <SplashPage />
+            case 1:
+                return <MapPage store={appStore} />
+            case 2:
+                return <DetailPage store={appStore} />
+            default:
+                return <MapPage store={appStore} />
+        }
     }
 
     return (
         <ThemeProvider theme={getTheme()}>
             <Arwes >
                 <div id="app">
-                    <div className="sidebar-container">
-                        <SidebarView store={appStore} />
-                    </div>
-                    <div className="map-container">
-                        <MapView store={appStore}/>
-                    </div>
+                    {routePages(appStore.currentPage)}
                 </div>
-                <SplashPageView shown={isSplash} />
             </Arwes>
         </ThemeProvider>
     );
