@@ -33,11 +33,11 @@ const MapView  = (props) => {
     useEffect(() => {
         if (props.multiMarker) {
             props.store.images.forEach(image => {
-                if (image.getLatitude() && image.getLongitude()) {
+                if (image.GPSLatitude && image.GPSLongitude) {
                     controller.addMarkerWithPopupToMap(
-                        image.getLatitude(), 
-                        image.getLongitude(),
-                        `<img class="image-marker-popup" src=${image.getImageData()} />`,
+                        image.GPSLatitude, 
+                        image.GPSLongitude,
+                        `<img class="image-marker-popup" src=${image.ImageData} />`,
                         false,
                         true,
                         16
@@ -62,24 +62,24 @@ const MapView  = (props) => {
     }, [props.store.images.length])
 
     useEffect(() => {
-        if (props.store.selectedImage && props.store.selectedImage.getLatitude() && props.store.selectedImage.getLongitude()) {
+        if (props.store.selectedImage && props.store.selectedImage.GPSLatitude && props.store.selectedImage.GPSLongitude) {
             setNoData(false);
             controller.setView(
-                props.store.selectedImage.getLatitude(),
-                props.store.selectedImage.getLongitude(),
+                props.store.selectedImage.GPSLatitude,
+                props.store.selectedImage.GPSLongitude,
                 16
             )
         }
-        if (props.store.selectedImage && props.store.selectedImage.getLatitude() && props.store.selectedImage.getLongitude() && !props.multiMarker) {
+        if (props.store.selectedImage && props.store.selectedImage.GPSLatitude && props.store.selectedImage.GPSLongitude && !props.multiMarker) {
             setNoData(false);
             controller.reInitalizeMap();
             controller.addMarkerToMap(
-                props.store.selectedImage.getLatitude(), 
-                props.store.selectedImage.getLongitude(),
+                props.store.selectedImage.GPSLatitude, 
+                props.store.selectedImage.GPSLongitude,
                 true,
                 16
             );
-        } else if (props.store.selectedImage && !props.store.selectedImage.getLatitude() && !props.store.selectedImage.getLongitude() && !props.multiMarker) {
+        } else if (props.store.selectedImage && !props.store.selectedImage.GPSLatitude && !props.store.selectedImage.GPSLongitude && !props.multiMarker) {
             setNoData(true);
             controller.reInitalizeMap();
         }

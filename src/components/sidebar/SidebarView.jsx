@@ -46,12 +46,12 @@ const SidebarView  = (props) => {
                 >
                 <div className="sidebar-item">
                     <div className="image-thumbnail">
-                        <img src={image.getImageData()} alt=""/>
+                        <img src={image.ImageData} alt=""/>
                     </div>
                     <div className="image-data">
-                        <span className="image-stat">Time: {image.getDateTimeOriginal() || 'N/A'}</span>
-                        <span className="image-stat">Lat: {image.getLatitude() || 'N/A'}</span>
-                        <span className="image-stat">Lon: {image.getLongitude() || 'N/A'}</span>
+                        <span className="image-stat">Time: {image.DateTimeOriginal || 'N/A'}</span>
+                        <span className="image-stat">Lat: {image.GPSLatitude || 'N/A'}</span>
+                        <span className="image-stat">Lon: {image.GPSLongitude || 'N/A'}</span>
                     </div>
                 </div>
             </Frame>

@@ -33,7 +33,7 @@ const DetailPage = (props) => {
     const renderSelectedImage = (selectedImage) => {
         if (selectedImage) {
             return (
-                <Image className={'details-image'} animate resources={props.store.selectedImage.imageElement.src}>
+                <Image className={'details-image'} animate resources={props.store.selectedImage.ImageElement.src}>
                     <Button className={'details-image-navigation-button'} onClick={() => navigateToPreviousImage(props.store)}><FaChevronCircleLeft /></Button>
                     {`${props.store.images.indexOf(props.store.selectedImage) + 1}/${props.store.images.length}`}
                     <Button className={'details-image-navigation-button'} onClick={() => navigateToNextImage(props.store)}><FaChevronCircleRight /></Button>
@@ -48,7 +48,7 @@ const DetailPage = (props) => {
                 store={props.store} 
                 popup={false} 
                 initalMarker={[39.7589, -84.1916]}
-                currentMarker={[props.store.selectedImage.getLatitude(), props.store.selectedImage.getLongitude()]} 
+                currentMarker={[props.store.selectedImage.GPSLatitude, props.store.selectedImage.GPSLongitude]} 
                 multiMarker={false} 
             />
         }

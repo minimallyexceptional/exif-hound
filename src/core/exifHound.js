@@ -5,7 +5,7 @@ import EXIF from 'exif-js';
 
 export default class EXIFHound {
     constructor(store) {
-        this.imageElement = null;
+        this.ImageElement = null;
         this.exifData = null;
 
         this.imageFactory = new EXIFImageFactory();
@@ -18,7 +18,7 @@ export default class EXIFHound {
         let loadingImage = loadImage(
             event.target.files[0],
             (img, data) => {
-                this.imageElement = img;
+                this.ImageElement = img;
                 this.exifData = data.exif;
                 
                 if (data.exif) {
@@ -49,7 +49,7 @@ export default class EXIFHound {
             let loadingImage = loadImage(
                 event.target.files[i],
                 (img, data) => {
-                    this.imageElement = img;
+                    this.ImageElement = img;
                     this.exifData = data.exif;
                     
                     if (data.exif) {
