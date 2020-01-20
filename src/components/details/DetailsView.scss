@@ -24,5 +24,16 @@
         .details-group {
             margin-bottom: 1rem;
         }
+
+        .details-thumbnail {
+            margin: 0 auto;
+            max-width: 20rem;
+            max-height: 30rem;
+            img {
+                max-height: 100%;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+        }
     }
 }

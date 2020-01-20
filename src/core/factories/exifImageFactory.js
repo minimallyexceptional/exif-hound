@@ -2,6 +2,7 @@ import EXIFImage from '../types/exifImage'
 
 import GPSFormatter from '../formatters/gpsFormatter';
 import DataFormatter from "../formatters/dataFormatter";
+import { blobToDataURL } from 'blob-util';
 
 export default class EXIFImageFactory {
     constructor() {
@@ -13,7 +14,7 @@ export default class EXIFImageFactory {
     createImage(ImageElement, exifDataObject) {
         this.image = new EXIFImage();
         
-        console.log(exifDataObject);
+        console.log(exifDataObject.thumbnail);
 
         // Parsed Values
         this.latitudeString = this.parseLatitudeString(exifDataObject);
@@ -22,7 +23,10 @@ export default class EXIFImageFactory {
         // Image Values
         this.image.ImageElement = ImageElement || null;
         this.image.ImageData = ImageElement.src || null;
-        this.image.thumbnail = exifDataObject.thumbnail || null;
+        this.image.Thumbnail = exifDataObject.thumbnail || null;
+        blobToDataURL(exifDataObject.thumbnail.blob).then(res => {
+            this.image.ThumbnailData = res || null;
+        })
 
         // Time and Date
         this.image.DateTimeOriginal = exifDataObject.DateTimeOriginal || null;

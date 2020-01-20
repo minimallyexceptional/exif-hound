@@ -3,6 +3,8 @@ export default class EXIFImage {
         // Image Values
         this.ImageElement = null;
         this.ImageData = null;
+        this.Thumbnail = null;
+        this.ThumbnailData = null;
 
         // Time and Date
         this.DateTimeOriginal = null;

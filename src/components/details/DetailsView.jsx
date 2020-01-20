@@ -1,4 +1,4 @@
-import { Button, Words, Project} from 'arwes';
+import { Button, Words, Project, Image} from 'arwes';
 import React from 'react';
 import { observer } from 'mobx-react';
 
@@ -38,12 +38,27 @@ const DetailsView  = (props) => {
         })
     }
 
+    const renderThumbnail = (sourceImage) => {
+        return (
+            <Project
+                className={'details-group'}
+                animate
+                header={'Thumbnail'}
+            >
+                 <Image className="details-thumbnail"  animate resources={sourceImage} />
+            </Project>
+        )
+    }
+
+    console.log(props.store.selectedImage.ThumbnailData);
+
     return (
         <div id="details-panel">
             <div className="details-button-bar">
                 <Button className={'details-button'} onClick={clickBack}>Back</Button>
             </div>
             <div className="details-content">
+                {renderThumbnail(props.store.selectedImage.ThumbnailData)}
                 {renderDetailItems(controller.formatDetailsArray(props.store.selectedImage))}
             </div>
         </div>
