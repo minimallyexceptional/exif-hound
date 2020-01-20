@@ -1,15 +1,15 @@
 import loadImage from 'blueimp-load-image';
 
-import EXIFParser from './parsers/exifParser';
 import EXIFImageFactory from './factories/exifImageFactory';
+import EXIF from 'exif-js';
 
 export default class EXIFHound {
-    constructor() {
+    constructor(store) {
         this.imageElement = null;
         this.exifData = null;
 
-        this.exifParser = new EXIFParser();
         this.imageFactory = new EXIFImageFactory();
+        this.store = store;
 
         this.loadImage = this.loadImage.bind(this);
     }
@@ -21,10 +21,14 @@ export default class EXIFHound {
                 this.imageElement = img;
                 this.exifData = data.exif;
                 
-                let newDataObject = this.exifParser.parseExif(data.exif);
-                let exifImageClass = this.imageFactory.createImage(img, newDataObject)
-
-                callback(exifImageClass);
+                if (data.exif) {
+                    EXIF.getData(img, function() {
+                        let newDataObject = EXIF.getAllTags(this);
+                        callback(img, newDataObject);
+                    });
+                } else {
+                    alert('Image Does Not Contain EXIF data');
+                }
             },
             { meta: true, noRevoke: true } // Options
         );
@@ -35,5 +39,39 @@ export default class EXIFHound {
             throw new Error('Please upload a proper image file!');
         }
 
+    }
+
+    loadMultipleImages(event) {
+
+        var uploadedImages = [];
+
+        for (let i = 0; i < event.target.files.length; i++) {
+            let loadingImage = loadImage(
+                event.target.files[i],
+                (img, data) => {
+                    this.imageElement = img;
+                    this.exifData = data.exif;
+                    
+                    if (data.exif) {
+                        EXIF.getData(img, function() {
+                            let imageFactory = new EXIFImageFactory();
+                            
+                            let newDataObject = EXIF.getAllTags(img);
+                           
+                            let exifImage = imageFactory.createImage(img, newDataObject);
+                            
+                            this.store.addImage(exifImage);
+                        }.bind(this));
+                    } else {
+                        alert('Image Does Not Contain EXIF data');
+                    }
+                },
+                { meta: true, noRevoke: true } // Options
+            );
+    
+            if (!loadingImage) {
+                throw new Error('Please upload a proper image file!');
+            }
+        }
     }
 }

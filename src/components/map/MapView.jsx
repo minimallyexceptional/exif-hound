@@ -1,68 +1,101 @@
+import { Words, Project } from 'arwes';
 import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react';
-import L from 'leaflet';
 
 import './MapView.scss';
+import MapViewController from './MapViewController';
 
-var map = null;
+const controller = new MapViewController();
 
 const MapView  = (props) => {
-    
+
     const [isMounted, setisMounted] = useState(true);
+    const [noData, setNoData] = useState(false);
 
-    const inializeMap = () => {
-        map = L.map('map').setView([39.7589, -84.1916], 12);
-
-        L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}{r}.{ext}', {
-            attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            subdomains: 'abcd',
-            minZoom: 0,
-            maxZoom: 20,
-            ext: 'png'
-        }).addTo(map);
-    }
+    const mapRef = React.createRef();
 
     useEffect(() => {
-        inializeMap();
-        if (props.initalMarker) {
-            L.marker([props.initalMarker[0], props.initalMarker[1]]).addTo(map)
+        if (props.initalMarker[0] && props.initalMarker[1]) {
+            controller.initalizeMap('map', props.initalMarker[0], props.initalMarker[1], 12);
+            controller.addMarkerWithPopupToMap(
+                props.initalMarker[0], 
+                props.initalMarker[1], 
+                'You are here!', 
+                true,
+                true,
+                12
+            );
+        } else {
+           return;
         }
     }, [isMounted]);
 
     useEffect(() => {
-        if (props.initalMarker) {
-            map.eachLayer(function (layer) {
-                map.removeLayer(layer);
-            });
-
-            L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}{r}.{ext}', {
-                attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                subdomains: 'abcd',
-                minZoom: 0,
-                maxZoom: 20,
-                ext: 'png'
-            }).addTo(map);
-
-            map.setView([props.store.selectedImage.gps.position.latitude, props.store.selectedImage.gps.position.longitude], 16);
-            let marker = L.marker([props.store.selectedImage.gps.position.latitude, props.store.selectedImage.gps.position.longitude])
-
-            map.addLayer(marker);
-
-        } else if (!props.initalMarker) {
+        if (props.multiMarker) {
             props.store.images.forEach(image => {
-                let marker = L.marker([image.exifData.position.latitude, image.exifData.position.longitude]).addTo(map)
-                map.setView([image.exifData.position.latitude, image.exifData.position.longitude], 16);
-                
-                if (props.popup) {
-                    marker.bindPopup(`<img src=${image.getImageData()} style="height: 150px; width: 200px;" />`).openPopup();
+                if (image.getLatitude() && image.getLongitude()) {
+                    controller.addMarkerWithPopupToMap(
+                        image.getLatitude(), 
+                        image.getLongitude(),
+                        `<img class="image-marker-popup" src=${image.getImageData()} />`,
+                        false,
+                        true,
+                        16
+                    );
+                } else {
+                    return;
                 }
             })
+        } else {
+            if (props.currentMarker[0] && props.currentMarker[1]) {
+                controller.reInitalizeMap();
+                controller.addMarkerToMap(
+                    props.currentMarker[0], 
+                    props.currentMarker[1],
+                    true,
+                    16
+                );
+            } else {
+                controller.reInitalizeMap();
+            }
         }
-    }, [props.store.images.length, props.store.selectedImage])
+    }, [props.store.images.length])
 
-    return (
-        <div id="map"></div>
-    )
+    useEffect(() => {
+        if (props.store.selectedImage && props.store.selectedImage.getLatitude() && props.store.selectedImage.getLongitude()) {
+            setNoData(false);
+            controller.setView(
+                props.store.selectedImage.getLatitude(),
+                props.store.selectedImage.getLongitude(),
+                16
+            )
+        }
+        if (props.store.selectedImage && props.store.selectedImage.getLatitude() && props.store.selectedImage.getLongitude() && !props.multiMarker) {
+            setNoData(false);
+            controller.reInitalizeMap();
+            controller.addMarkerToMap(
+                props.store.selectedImage.getLatitude(), 
+                props.store.selectedImage.getLongitude(),
+                true,
+                16
+            );
+        } else if (props.store.selectedImage && !props.store.selectedImage.getLatitude() && !props.store.selectedImage.getLongitude() && !props.multiMarker) {
+            setNoData(true);
+            controller.reInitalizeMap();
+        }
+    }, [props.store.selectedImage])
+
+    useEffect(() => {
+        if (noData === true) {
+            mapRef.current.style.opacity = 0.2;
+            mapRef.current.style.pointerEvents = 'none';
+        } else {
+            mapRef.current.style.opacity = 1;
+            mapRef.current.style.pointerEvents = 'auto';
+        }
+    }, [noData]);
+
+    return <div ref={mapRef} id="map"></div>
 }
 
 export default observer(MapView);

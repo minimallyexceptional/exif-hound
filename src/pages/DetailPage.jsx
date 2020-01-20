@@ -1,21 +1,56 @@
+import { Image, Button } from 'arwes';
 import React from 'react';
 import { observer } from 'mobx-react';
+import { FaChevronCircleRight, FaChevronCircleLeft } from "react-icons/fa";
 
 import MapView from '../components/map/MapView'
-import SidebarView from '../components/sidebar/SidebarView';
 import DetailsView from '../components/details/DetailsView';
 
 const DetailPage = (props) => {
 
+    const navigateToNextImage = (store) => {
+        let currentIndex = store.images.indexOf(store.selectedImage);
+        let maxIndex = store.images.length;
+
+        if (currentIndex + 1 < maxIndex && maxIndex > 1) {
+            store.setSelectedImage(store.images[currentIndex + 1]);
+        } else if (currentIndex + 1 === maxIndex) {
+            store.setSelectedImage(store.images[0]);
+        }
+    }
+
+    const navigateToPreviousImage = (store) => {
+        let currentIndex = store.images.indexOf(store.selectedImage);
+        let maxIndex = store.images.length;
+
+        if (currentIndex - 1 > -1) {
+            store.setSelectedImage(store.images[currentIndex - 1]);
+        } else if (currentIndex === 0) {
+            store.setSelectedImage(store.images[maxIndex - 1]);
+        }
+    }
+
     const renderSelectedImage = (selectedImage) => {
         if (selectedImage) {
-            return <img src={props.store.selectedImage.imageElement.src} alt=""/>
+            return (
+                <Image className={'details-image'} animate resources={props.store.selectedImage.imageElement.src}>
+                    <Button className={'details-image-navigation-button'} onClick={() => navigateToPreviousImage(props.store)}><FaChevronCircleLeft /></Button>
+                    {`${props.store.images.indexOf(props.store.selectedImage) + 1}/${props.store.images.length}`}
+                    <Button className={'details-image-navigation-button'} onClick={() => navigateToNextImage(props.store)}><FaChevronCircleRight /></Button>
+                </Image>
+            );
         }
     }
 
     const renderMapView = (selectedImage) => {
         if (selectedImage) {
-            return <MapView store={props.store} popup={false} initalMarker={[props.store.selectedImage.gps.position.latitude, props.store.selectedImage.gps.position.longitude]} />
+            return <MapView 
+                store={props.store} 
+                popup={false} 
+                initalMarker={[39.7589, -84.1916]}
+                currentMarker={[props.store.selectedImage.getLatitude(), props.store.selectedImage.getLongitude()]} 
+                multiMarker={false} 
+            />
         }
     }
 

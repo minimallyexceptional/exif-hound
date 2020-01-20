@@ -5,11 +5,11 @@ import { observer } from 'mobx-react';
 import './SidebarView.scss';
 import EXIFHound from '../../core/exifHound';
 
-const hound = new EXIFHound();
-
 const SidebarView  = (props) => {
 
     let inputRef = React.createRef();
+
+    const hound = new EXIFHound(props.store);
 
     useEffect(() => {
     }, [props.store.images.length])
@@ -19,12 +19,14 @@ const SidebarView  = (props) => {
     }
 
     const loadImage = (e) => {
-        hound.loadImage(e, (exifImage) => {
-            props.store.addImage(exifImage);
-        })
+        hound.loadMultipleImages(e);
     }
 
     const setSelectedImage = (imageObject) => {
+        props.store.setSelectedImage(imageObject);
+    }
+
+    const navigateToSelectedImage = (imageObject) => {
         props.store.setSelectedImage(imageObject);
         props.store.setCurrentPage(2);
     }
@@ -40,15 +42,16 @@ const SidebarView  = (props) => {
                     corners={4}
                     layer='primary'
                     onClick={() => setSelectedImage(image)}
+                    onDoubleClick={() => navigateToSelectedImage(image)}
                 >
                 <div className="sidebar-item">
                     <div className="image-thumbnail">
                         <img src={image.getImageData()} alt=""/>
                     </div>
                     <div className="image-data">
-                        <span className="image-stat">Time: {image.getDateTimeOriginal()}</span>
-                        <span className="image-stat">Lat: {image.getLatitude()}</span>
-                        <span className="image-stat">Lon: {image.getLongitude()}</span>
+                        <span className="image-stat">Time: {image.getDateTimeOriginal() || 'N/A'}</span>
+                        <span className="image-stat">Lat: {image.getLatitude() || 'N/A'}</span>
+                        <span className="image-stat">Lon: {image.getLongitude() || 'N/A'}</span>
                     </div>
                 </div>
             </Frame>
@@ -59,7 +62,7 @@ const SidebarView  = (props) => {
     return (
         <div id="sidebar">
             <div className="sidebar-button-bar">
-                <input ref={inputRef} type="file" onChange={loadImage} style={{ display: 'none' }}/>
+                <input ref={inputRef} type="file" onChange={loadImage} style={{ display: 'none' }} multiple />
                 <Button className={'sidebar-button'} onClick={clickImage}>Add Image</Button>
             </div>
             <div className="sidebar-content">

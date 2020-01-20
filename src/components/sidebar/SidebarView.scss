@@ -22,6 +22,7 @@
         .sidebar-frame {
             box-sizing: border-box;
             margin-bottom: 1rem;
+            user-select: none;
 
             .sidebar-item {
                 box-sizing: border-box;
@@ -36,6 +37,7 @@
                     height: 100%;
     
                     img {
+                        pointer-events: none;
                         height: 100%;
                         width: 200px;
                     }

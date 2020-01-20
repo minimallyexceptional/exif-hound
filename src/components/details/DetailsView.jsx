@@ -1,4 +1,4 @@
-import { ThemeProvider, createTheme, Arwes, Row, Col, Button, Frame, Paragraph, Words, Content, Project} from 'arwes';
+import { Button, Words, Project} from 'arwes';
 import React from 'react';
 import { observer } from 'mobx-react';
 
@@ -23,8 +23,12 @@ const DetailsView  = (props) => {
                     header={group[0]}
                 >
                     {anim => group[1].map(item => {
-                        if (item !== undefined && item != null) {
-                            return <p><Words animate show={anim.entered}>{`${item[0]}: ${item[1]}`}</Words></p>
+                        if (item !== undefined && item !== null) {
+                        return <p>
+                                <Words animate show={anim.entered}>
+                                    {`${item[0]}: ${item[1] || 'N/A'}`}
+                                </Words>
+                            </p>
                         }
 
                         return null;

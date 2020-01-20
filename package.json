@@ -17,11 +17,13 @@
     "blob-util": "^2.0.2",
     "blueimp-load-image": "^2.26.0",
     "coordinate-parser": "^1.0.2",
+    "exif-js": "^2.3.0",
     "leaflet": "^1.6.0",
     "mobx": "^5.15.2",
     "mobx-react": "^6.1.5",
     "react": "^16.12.0",
-    "react-dom": "^16.12.0"
+    "react-dom": "^16.12.0",
+    "react-icons": "^3.8.0"
   },
   "devDependencies": {
     "@babel/core": "^7.8.3",

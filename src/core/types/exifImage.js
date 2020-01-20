@@ -1,39 +1,44 @@
-import DataFormatter from "../formatters/dataFormatter";
-import { imgSrcToBlob } from 'blob-util'
-
 export default class EXIFImage {
-    constructor(imageElement, exifDataObject) {
-        this.imageElement = imageElement;
-        this.exifData = exifDataObject;
-        this.dateTimeOriginal = exifDataObject.dateTimeOriginal;
-        this.gps = {
-            position: exifDataObject.position
-        };
+    constructor() {
+        // Image Values
+        this.imageElement = null;
+        this.imageData = null;
 
-        this.dataFormatter = new DataFormatter();
+        // Time and Date
+        this.DateTimeOriginal = null;
+        this.DateTime = null;
+        this.DateTimeDigitized = null;
+
+        // GPS
+        this.GPSLatitude = null;
+        this.GPSLongitude = null;
     }
 
     getImageElement() {
-        return this.imageElement;
+        return this.imageElement || null;
     }
 
     getImageData() {
-        return this.imageElement.src;
-    }
-
-    getExifData() {
-        return this.exifData;
+        return this.imageData || null;
     }
 
     getLatitude() {
-        return this.gps.position.latitude;
+        return this.GPSLatitude || null;
     }
 
     getLongitude() {
-        return this.gps.position.longitude;
+        return this.GPSLongitude || null;
     }
 
     getDateTimeOriginal() {
-        return this.dateTimeOriginal;
+        return this.DateTimeOriginal || null;
+    }
+    
+    getDateTime() {
+        return this.DateTime || null;
+    }
+    
+    getDateTimeDigitized() {
+        return this.DateTimeDigitized || null;
     }
 }

@@ -11,7 +11,7 @@ const MapPage = (props) => {
                 <SidebarView store={props.store} />
             </div>
             <div className="map-container">
-                <MapView store={props.store} popup={true} initalMarker={false}/>
+                <MapView store={props.store} popup={true} initalMarker={[39.7589, -84.1916]} multiMarker/>
             </div>
         </React.Fragment>
     );
