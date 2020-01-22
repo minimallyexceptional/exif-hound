@@ -14,7 +14,7 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "author": "Minimally Exceptional LLC",
-  "license": "ISC",
+  "license": "MIT",
   "build": {
     "appId": "minexp.electron.exif-hound",
     "copyright": "Copyright © 2019, Minimally Exceptional LLC",
