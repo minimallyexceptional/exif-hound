@@ -17,14 +17,6 @@ const MapView  = (props) => {
     useEffect(() => {
         if (props.initalMarker[0] && props.initalMarker[1]) {
             controller.initalizeMap('map', props.initalMarker[0], props.initalMarker[1], 12);
-            controller.addMarkerWithPopupToMap(
-                props.initalMarker[0], 
-                props.initalMarker[1], 
-                'You are here!', 
-                true,
-                true,
-                12
-            );
         } else {
            return;
         }

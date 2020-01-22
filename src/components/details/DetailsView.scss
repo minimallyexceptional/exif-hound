@@ -26,6 +26,8 @@
         }
 
         .details-thumbnail {
+            pointer-events: none;
+			user-select: none;
             margin: 0 auto;
             max-width: 20rem;
             max-height: 30rem;
