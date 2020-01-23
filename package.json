@@ -1,6 +1,6 @@
 {
   "name": "exif-hound",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A simple application deisgned for the digital forensics community for tracking EXIF metadata in the real world",
   "main": "main.js",
   "type": "module",
