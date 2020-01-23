@@ -63,7 +63,7 @@ const SidebarView  = (props) => {
         <div id="sidebar">
             <div className="sidebar-button-bar">
                 <input ref={inputRef} type="file" onChange={loadImage} style={{ display: 'none' }} multiple />
-                <Button className={'sidebar-button'} onClick={clickImage}>Add</Button>
+                <Button className={'sidebar-button'} onClick={clickImage}>Add Image</Button>
             </div>
             <div className="sidebar-content">
                 {renderSidebarItems(props.store.images)}
