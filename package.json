@@ -11,6 +11,7 @@
     "build": "parcel build ./src/index.html -d build/ --public-url ./",
     "pack": "electron-builder --dir",
     "dist": "npm run build && electron-builder",
+    "publish": "npm run build && electron-builder build --win -p always",
     "postinstall": "electron-builder install-app-deps"
   },
   "author": "Minimally Exceptional LLC",
@@ -34,6 +35,13 @@
     "files": [
       "main.js",
       "build/*"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "minimallyexceptional",
+        "repo": "exif-hound"
+      }
     ]
   },
   "dependencies": {
@@ -43,6 +51,7 @@
     "blob-util": "^2.0.2",
     "blueimp-load-image": "^2.26.0",
     "coordinate-parser": "^1.0.2",
+    "electron-updater": "^4.2.0",
     "exif-js": "^2.3.0",
     "leaflet": "^1.6.0",
     "leaflet-css": "^0.1.0",

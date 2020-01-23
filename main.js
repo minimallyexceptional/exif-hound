@@ -3,6 +3,7 @@ const electron = require('electron')
 const {app, BrowserWindow} = electron
 const path = require('path');
 const url = require('url');
+const { autoUpdater } = require("electron-updater");
 
 // Let electron reloads by itself when webpack watches changes in ./app/
 if (process.env.ELECTRON_START_URL) {
@@ -13,6 +14,8 @@ if (process.env.ELECTRON_START_URL) {
 let mainWindow
 
 app.on('ready', () => {
+
+    autoUpdater.checkForUpdatesAndNotify();
 
     let mainWindow = new BrowserWindow({
         width: 1600, 
