@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "parcel ./src/index.html --port 8080",
     "start-dev": "SET NODE_ENV=ELECTRON_START_URL=http://localhost:8080 electron .",
+    "start": "parcel ./src/index.html",
     "electron": "npm run build && electron .",
     "build": "parcel build ./src/index.html -d build/ --public-url ./",
     "pack": "electron-builder --dir",
