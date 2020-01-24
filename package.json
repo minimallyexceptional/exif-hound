@@ -11,7 +11,8 @@
     "build": "parcel build ./src/index.html -d build/ --public-url ./",
     "pack": "electron-builder --dir",
     "dist": "npm run build && electron-builder",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "deploy": "surge ./build --domain https://exif-hound.surge.sh"
   },
   "author": "Minimally Exceptional LLC",
   "license": "MIT",
