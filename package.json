@@ -1,6 +1,6 @@
 {
   "name": "exif-hound",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A simple application deisgned for the digital forensics community for tracking EXIF metadata in the real world",
   "main": "main.js",
   "type": "module",
@@ -40,7 +40,6 @@
   "dependencies": {
     "@babel/plugin-transform-runtime": "^7.8.3",
     "@babel/runtime": "^7.8.3",
-    "arwes": "^1.0.0-alpha.5",
     "blob-util": "^2.0.2",
     "blueimp-load-image": "^2.26.0",
     "coordinate-parser": "^1.0.2",
