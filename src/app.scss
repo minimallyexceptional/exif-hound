@@ -31,49 +31,96 @@
     .side-split-container {
         display: flex;
         flex-direction: column;
+        background-color: #111;
         padding: 0;
         margin: 0;
         height: 100%;
         width: 45%;
-        
-        .side-split-section {
+
+        .side-split-section-image {
+            flex-basis: 42%;
             background-color: #111;
-            min-height: 50%;
-            min-width: 50%;
+            padding: 1rem;
             display: flex;
+            align-content: center;
+            max-height: 50%;
+            overflow-y: scroll;
+
+            &::-webkit-scrollbar {
+                width: 0.5em !important;
+            }
             
+            &::-webkit-scrollbar-track {
+                background-color: #333;
+            }
+            
+            &::-webkit-scrollbar-thumb {
+                background-color: #111;
+                border: solid 1px white;
+            }
+
             .details-image {
                 box-sizing: border-box;
                 user-select: none;
+                pointer-events: none;
                 align-self: center;
                 justify-self: center;
-                min-height: 50%;
-                max-width: 100%;
+                margin: 0 auto;
+                display: block;
+                min-width: 20rem;
+                min-height: 20rem;
+            }
 
-                img {
-                    margin: 0 auto;
-                    display: block;
-                    max-width: 40rem;
-                    min-height: 30rem;
-                    max-height: 30rem;
-                    width: auto;
-                    height: auto;
+        }
+
+        .side-split-section-navigation { 
+            flex-basis: 6%;
+            background-color: #111;
+            border: solid 1px white;
+
+            .navigation-button-section {
+                color: white;
+                height: 100%;
+                display: flex;
+                justify-content: space-around;
+                align-content: center;
+                
+                .navigation-button {
+                    align-self: center;
+                    height: 1.6rem;
+                    font-size: 1rem;
+                    background-color: #111;
+                    border: solid 1px white;
+                    color: white;
+                    min-width: 3rem;
+                    min-height: 1.8rem;
+                }
+                
+                .navigation-button:hover {
+                    outline: none;
+                    background-color: white;
+                    color: #111;
                 }
 
-                .details-image-navigation-button {
-                    margin: 0.5em 5rem 0.5rem 5rem;
-                    width: 5rem;
+                .navigation-button:focus {
+                    outline: none;
+                }
+
+                .navigation-progress {
+                    user-select: none;
+                    align-self: center;
+                    color: white;
+                    font-size: 1rem;
+                    font-family: Arial, Helvetica, sans-serif;
+                    letter-spacing: 0.02rem;
                 }
             }
+        }
 
-            #map {
-                min-height: 50%;
-            }
-
-            .map-placeholder {
-                align-self: center;
-                justify-self: center
-            }
+        .side-split-section-map { 
+            flex-basis: 50%;
+            background-color: #111;
+            padding: 0.8rem;
         }
     }
 }

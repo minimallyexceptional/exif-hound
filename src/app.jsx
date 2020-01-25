@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react';
-import { ThemeProvider, createTheme, Arwes, Row, Col, Button } from 'arwes';
 
 import './app.scss';
 import ApplicationStore from './ApplicationStore';
@@ -18,10 +17,6 @@ const App = (props) => {
         }, 3000);
     }, []);
 
-    const getTheme = () => {
-        return createTheme({});
-    }
-
     const routePages = (pageENUM) => {
         switch(pageENUM) {
             case 0: 
@@ -36,13 +31,9 @@ const App = (props) => {
     }
 
     return (
-        <ThemeProvider theme={getTheme()}>
-            <Arwes >
-                <div id="app">
-                    {routePages(appStore.currentPage)}
-                </div>
-            </Arwes>
-        </ThemeProvider>
+        <div id="app">
+            {routePages(appStore.currentPage)}
+        </div>
     );
 }
 

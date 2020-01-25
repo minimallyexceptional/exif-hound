@@ -5,7 +5,7 @@ import { observer } from 'mobx-react';
 import './SidebarView.scss';
 import EXIFHound from '../../core/exifHound';
 
-const SidebarView  = (props) => {
+const SidebarView = (props) => {
 
     let inputRef = React.createRef();
 
@@ -34,27 +34,31 @@ const SidebarView  = (props) => {
     const renderSidebarItems = (imageArray) => {
         return imageArray.map(image => {
             return (
-                <Frame
-                    className={'sidebar-frame'}
-                    show={true}
-                    animate={true}
-                    level={3}
-                    corners={4}
-                    layer='primary'
+                <div
+                    className="sidebar-item"
                     onClick={() => setSelectedImage(image)}
                     onDoubleClick={() => navigateToSelectedImage(image)}
                 >
-                <div className="sidebar-item">
                     <div className="image-thumbnail">
-                        <img src={image.ImageData} alt=""/>
+                        <img src={image.ImageData} alt="" />
                     </div>
                     <div className="image-data">
-                        <span className="image-stat">Time: {image.DateTimeOriginal || 'N/A'}</span>
-                        <span className="image-stat">Lat: {image.GPSLatitude || 'N/A'}</span>
-                        <span className="image-stat">Lon: {image.GPSLongitude || 'N/A'}</span>
+                        <div className="image-datapoint">
+                            <span className="image-detail">Time</span> 
+                            <span className="image-value">{image.DateTimeOriginal || 'N/A'}</span>
+                        </div>
+
+                        <div className="image-datapoint">
+                            <span className="image-detail">Latitude</span> 
+                            <span className="image-value">{image.GPSLatitude || 'N/A'}</span>
+                        </div>
+
+                        <div className="image-datapoint">
+                            <span className="image-detail">Longitude</span> 
+                            <span className="image-value">{image.GPSLongitude || 'N/A'}</span>
+                        </div>
                     </div>
                 </div>
-            </Frame>
             )
         })
     }
@@ -63,7 +67,7 @@ const SidebarView  = (props) => {
         <div id="sidebar">
             <div className="sidebar-button-bar">
                 <input ref={inputRef} type="file" onChange={loadImage} style={{ display: 'none' }} multiple />
-                <Button className={'sidebar-button'} onClick={clickImage}>Add Image</Button>
+                <button className={'sidebar-button'} onClick={clickImage}>Add Images</button>
             </div>
             <div className="sidebar-content">
                 {renderSidebarItems(props.store.images)}

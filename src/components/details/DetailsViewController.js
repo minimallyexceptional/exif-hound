@@ -16,8 +16,7 @@ export default class DetailsViewController {
                 ['GPSLatitude', exifImage.GPSLongitude],
                 ['GPSDateStamp', exifImage.GPSDateStamp],
                 ['GPSMapDatum', exifImage.GPSMapDatum],
-                ['GPSSatellites', exifImage.GPSSatellites],
-                ['GPSImgDirectionRef', exifImage.GPSImgDirectionRef]
+                ['GPSSatellites', exifImage.GPSSatellites]
             ]],
             ['META', [
                 ['ExifVersion', exifImage.ExifVersion],

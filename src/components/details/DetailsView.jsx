@@ -1,4 +1,3 @@
-import { Button, Words, Project, Image} from 'arwes';
 import React from 'react';
 import { observer } from 'mobx-react';
 
@@ -6,7 +5,7 @@ import './DetailsView.scss';
 
 import DetailsViewController from './DetailsViewController';
 
-const DetailsView  = (props) => {
+const DetailsView = (props) => {
     const controller = new DetailsViewController();
 
     const clickBack = () => {
@@ -17,37 +16,43 @@ const DetailsView  = (props) => {
     const renderDetailItems = (detailsArray) => {
         return detailsArray.map(group => {
             return (
-                <Project
+                <div
                     className={'details-group'}
-                    animate
-                    header={group[0]}
                 >
-                    {anim => group[1].map(item => {
-                        if (item !== undefined && item !== null) {
-                        return <p>
-                                <Words animate show={anim.entered}>
-                                    {`${item[0]}: ${item[1] || 'N/A'}`}
-                                </Words>
-                            </p>
-                        }
-
-                        return null;
-                    })}
-                </Project>
+                    <div className="details-header-wrap">
+                        <h1 className="details-header">{group[0]}</h1>
+                    </div>
+                    <div className="details-group-content">
+                        {group[1].map(item => {
+                            if (item !== undefined && item !== null) {
+                                return (
+                                    <p>
+                                        <span className="details-group-detail">{`${item[0]}`}</span>
+                                        <span className="details-group-value">{`${item[1] || 'N/A'}`}</span>
+                                    </p>
+                                );
+                            }
+                            return null;
+                        })}
+                    </div>
+                </div>
             )
         })
     }
 
     const renderThumbnail = (sourceImage) => {
-        return (
-            <Project
-                className={'details-group'}
-                animate
-                header={'Thumbnail'}
-            >
-                 <Image className="details-thumbnail"  animate resources={sourceImage} />
-            </Project>
-        )
+        if (sourceImage) {
+            return (
+                <div className={'details-group'}>
+                    <div className="details-header-wrap">
+                        <h1 className="details-header">Thumbnail</h1>
+                    </div>
+                    <div className="details-group-content">
+                        <img className="details-thumbnail" src={sourceImage} />
+                    </div>
+                </div>
+            )
+        }
     }
 
     console.log(props.store.selectedImage.ThumbnailData);
@@ -55,7 +60,7 @@ const DetailsView  = (props) => {
     return (
         <div id="details-panel">
             <div className="details-button-bar">
-                <Button className={'details-button'} onClick={clickBack}>Back</Button>
+                <button className={'details-button'} onClick={clickBack}>Back</button>
             </div>
             <div className="details-content">
                 {renderThumbnail(props.store.selectedImage.ThumbnailData)}

@@ -1,4 +1,3 @@
-import { Image, Button } from 'arwes';
 import React from 'react';
 import { observer } from 'mobx-react';
 import { FaChevronCircleRight, FaChevronCircleLeft } from "react-icons/fa";
@@ -33,11 +32,7 @@ const DetailPage = (props) => {
     const renderSelectedImage = (selectedImage) => {
         if (selectedImage) {
             return (
-                <Image className={'details-image'} animate resources={props.store.selectedImage.ImageElement.src}>
-                    <Button className={'details-image-navigation-button'} onClick={() => navigateToPreviousImage(props.store)}><FaChevronCircleLeft /></Button>
-                    {`${props.store.images.indexOf(props.store.selectedImage) + 1}/${props.store.images.length}`}
-                    <Button className={'details-image-navigation-button'} onClick={() => navigateToNextImage(props.store)}><FaChevronCircleRight /></Button>
-                </Image>
+                <img className={'details-image'} src={props.store.selectedImage.ImageElement.src} />
             );
         }
     }
@@ -60,10 +55,29 @@ const DetailPage = (props) => {
                 <DetailsView store={props.store}/>
             </div>
             <div className="side-split-container">
-                <div className="side-split-section">
+                <div className="side-split-section-image">
                     {renderSelectedImage(props.store.selectedImage)}
                 </div>
-                <div className="side-split-section">
+                <div className="side-split-section-navigation">
+                    <div className="navigation-button-section">
+                        <button 
+                            className="navigation-button"
+                            onClick={() => navigateToPreviousImage(props.store)}
+                        >
+                            <FaChevronCircleLeft/>
+                        </button>
+                        <span className="navigation-progress">
+                            {`${props.store.images.indexOf(props.store.selectedImage)}/${props.store.images.length}`}
+                        </span>
+                        <button 
+                            className="navigation-button"
+                            onClick={() => navigateToNextImage(props.store)}
+                        >
+                            <FaChevronCircleRight/>
+                        </button>
+                    </div>
+                </div>
+                <div className="side-split-section-map">
                     {renderMapView(props.store.selectedImage)}
                 </div>
             </div>

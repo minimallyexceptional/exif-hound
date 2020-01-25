@@ -1,4 +1,3 @@
-import { Words, Project } from 'arwes';
 import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react';
 
