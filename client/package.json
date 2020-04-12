@@ -2,17 +2,22 @@
   "name": "exif-hound",
   "version": "0.0.1",
   "description": "A simple application deisgned for the digital forensics community for tracking EXIF metadata in the real world",
-  "main": "main.js",
+  "engineStrict": true,
+  "engines": {
+    "node": "13.12.0"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/minimallyexceptional/exif-hound.git"
+  },
   "scripts": {
     "dev": "parcel ./src/index.html --port 8080",
-    "build": "parcel ./src/index.html ./dist",
+    "build": "parcel build ./src/index.html ./dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Minimally Exceptional LLC",
   "license": "ISC",
   "dependencies": {
-    "@babel/plugin-transform-runtime": "^7.8.3",
-    "@babel/runtime": "^7.8.3",
     "arwes": "^1.0.0-alpha.5",
     "blob-util": "^2.0.2",
     "blueimp-load-image": "^2.26.0",
@@ -27,7 +32,11 @@
   },
   "devDependencies": {
     "@babel/core": "^7.8.3",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "@babel/runtime": "^7.8.3",
+    "babel-cli": "^6.26.0",
     "electron": "^7.1.9",
+    "parcel": "^1.12.4",
     "sass": "^1.25.0"
   }
 }
