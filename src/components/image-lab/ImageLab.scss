@@ -1,0 +1,132 @@
+.image-lab {
+    display: flex;
+    flex-direction: column;
+    background-color: #111;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+
+    .image-lab-back-button {
+        text-align: center;
+        align-self: center;
+        height: 1.6rem;
+        font-size: 2rem;
+        letter-spacing: 0.05rem;
+        text-transform: uppercase;
+        background-color: #111;
+        border: solid 1px white;
+        color: white;
+        min-width: 3rem;
+        min-height: 1.8rem;
+        width: 100%;
+        height: 4rem;
+    }
+    
+    .image-lab-back-button:hover {
+        outline: none;
+        background-color: white;
+        color: #111;
+    }
+
+    .image-lab-back-button:focus {
+        outline: none;
+    }
+
+    .image-lab-image {
+        display: flex;
+        align-content: center;
+        background-color: #111;
+        padding: 1rem;
+        max-height: 100%;
+        width: 100%;
+        overflow-y: scroll;
+
+        .image-lab-section {
+            display: flex;
+            flex-direction: column;
+            align-content: center;
+            align-items: center;
+            flex-basis: 33.33%;
+
+            label {
+                user-select: none;
+                font-size: 1.5rem;
+                font-family: Arial, Helvetica, sans-serif;
+                letter-spacing: 0.02rem;
+                text-transform: uppercase;
+                color: white;
+                padding: 0.5rem 1rem;
+            }
+        }
+
+        &::-webkit-scrollbar {
+            width: 0.5em !important;
+        }
+        
+        &::-webkit-scrollbar-track {
+            background-color: #333;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+            background-color: #111;
+            border: solid 1px white;
+        }
+
+        .details-image {
+            box-sizing: border-box;
+            user-select: none;
+            pointer-events: none;
+            align-self: center;
+            justify-self: center;
+            margin: 1rem;
+            display: block;
+            min-width: 20rem;
+            min-height: 20rem;
+        }
+
+    }
+
+    .image-lab-navigation { 
+        flex-basis: 6%;
+        background-color: #111;
+        border: solid 1px white;
+
+        .navigation-button-section {
+            color: white;
+            height: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-content: center;
+            
+            .navigation-button {
+                align-self: center;
+                height: 1.6rem;
+                font-size: 1rem;
+                background-color: #111;
+                border: solid 1px white;
+                color: white;
+                min-width: 3rem;
+                min-height: 1.8rem;
+            }
+            
+            .navigation-button:hover {
+                outline: none;
+                background-color: white;
+                color: #111;
+            }
+
+            .navigation-button:focus {
+                outline: none;
+            }
+
+            .navigation-progress {
+                user-select: none;
+                align-self: center;
+                color: white;
+                font-size: 1rem;
+                font-family: Arial, Helvetica, sans-serif;
+                letter-spacing: 0.02rem;
+            }
+        }
+    }
+}

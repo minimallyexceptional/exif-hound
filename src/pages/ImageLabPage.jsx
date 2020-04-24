@@ -1,16 +1,12 @@
 import React from 'react';
 import { observer } from 'mobx-react';
-import { FaChevronCircleRight, FaChevronCircleLeft } from "react-icons/fa";
 
-import ImagePreview from '../components/image-preview/ImagePreview';
-import SidebarView from '../components/sidebar/SidebarView';
+import ImageLab from '../components/image-lab/ImageLab';
 
 const ImageLabPage = (props) => {
     return (
         <React.Fragment>
-            <div className="image-lab-container">
-                <ImagePreview store={props.store}/>
-            </div>
+            <ImageLab store={props.store}/>
         </React.Fragment>
     );
 }
