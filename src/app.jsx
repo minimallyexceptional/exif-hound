@@ -7,6 +7,7 @@ import ApplicationStore from './ApplicationStore';
 import SplashPage from './pages/SplashPage';
 import MapPage from './pages/MapPage';
 import DetailPage from './pages/DetailPage';
+import ImageLabPage from './pages/ImageLabPage';
 
 const appStore = new ApplicationStore();
 
@@ -25,6 +26,8 @@ const App = (props) => {
                 return <MapPage store={appStore} />
             case 2:
                 return <DetailPage store={appStore} />
+            case 3:
+                return <ImageLabPage store={appStore} />
             default:
                 return <MapPage store={appStore} />
         }

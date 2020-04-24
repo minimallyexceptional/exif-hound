@@ -2,11 +2,9 @@ import React from 'react';
 import { observer } from 'mobx-react';
 import { FaChevronCircleRight, FaChevronCircleLeft } from "react-icons/fa";
 
-import MapView from '../components/map/MapView'
-import DetailsView from '../components/details/DetailsView';
-import ImagePreview from '../components/image-preview/ImagePreview';
+import './ImagePreview.scss'
 
-const DetailPage = (props) => {
+const ImagePreview = (props) => {
 
     const navigateToNextImage = (store) => {
         let currentIndex = store.images.indexOf(store.selectedImage);
@@ -38,31 +36,34 @@ const DetailPage = (props) => {
         }
     }
 
-    const renderMapView = (selectedImage) => {
-        if (selectedImage) {
-            return <MapView 
-                store={props.store} 
-                popup={false} 
-                initalMarker={[39.7589, -84.1916]}
-                currentMarker={[props.store.selectedImage.GPSLatitude, props.store.selectedImage.GPSLongitude]} 
-                multiMarker={false} 
-            />
-        }
-    }
-
     return (
         <React.Fragment>
-            <div className="exif-details-container">
-                <DetailsView store={props.store}/>
-            </div>
-            <div className="side-split-container">
-                <ImagePreview store={props.store}/>
-                <div className="side-split-section-map">
-                    {renderMapView(props.store.selectedImage)}
+            <div className="image-preview">
+                <div className="image-preview-image">
+                    {renderSelectedImage(props.store.selectedImage)}
+                </div>
+                <div className="image-preview-navigation">
+                    <div className="navigation-button-section">
+                        <button 
+                            className="navigation-button"
+                            onClick={() => navigateToPreviousImage(props.store)}
+                        >
+                            <FaChevronCircleLeft/>
+                        </button>
+                        <span className="navigation-progress">
+                            {`${props.store.images.indexOf(props.store.selectedImage)}/${props.store.images.length}`}
+                        </span>
+                        <button 
+                            className="navigation-button"
+                            onClick={() => navigateToNextImage(props.store)}
+                        >
+                            <FaChevronCircleRight/>
+                        </button>
+                    </div>
                 </div>
             </div>
         </React.Fragment>
     );
 }
 
-export default observer(DetailPage);
+export default observer(ImagePreview);

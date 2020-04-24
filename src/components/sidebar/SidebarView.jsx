@@ -33,7 +33,8 @@ const SidebarView = (props) => {
     }
 
     const navigateToImageComparison = (imageObject) => {
-        alert('Thumbnail Comparison Feature Coming Soon!');
+        props.store.setSelectedImage(imageObject);
+        props.store.setCurrentPage(3);
     }
 
     const removeImage = (imageObject) => {
