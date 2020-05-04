@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { observer } from 'mobx-react';
 
 import './app.scss';
@@ -17,6 +19,11 @@ const App = (props) => {
         }, 3000);
     }, []);
 
+    toast.configure({ 
+        autoClose: 80,
+        draggable: false,
+    });
+
     const routePages = (pageENUM) => {
         switch(pageENUM) {
             case 0: 
@@ -33,6 +40,11 @@ const App = (props) => {
     return (
         <div id="app">
             {routePages(appStore.currentPage)}
+            <ToastContainer  
+                position={"top-center"}
+                autoClose={2000}
+                hideProgressBar={false}
+            />
         </div>
     );
 }

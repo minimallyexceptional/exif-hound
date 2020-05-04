@@ -1,5 +1,6 @@
 import React from 'react';
-import { FaInfoCircle, FaImages, FaCopy } from 'react-icons/fa';
+import { FaCopy } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import { observer } from 'mobx-react';
 
 import './DetailsView.scss';
@@ -11,6 +12,11 @@ const DetailsView = (props) => {
 
     const detailValueRef = React.createRef();
 
+    toast.configure({ 
+        autoClose: 80,
+        draggable: false,
+    });
+
     const clickBack = () => {
         props.store.setCurrentPage(1);
         props.store.setSelectedImage(null);
@@ -18,11 +24,16 @@ const DetailsView = (props) => {
 
     const clickCopy = (currentValue) => {
         navigator.clipboard.writeText(currentValue);
+        toast(`${currentValue} copied to clipboard`, {
+            className: 'exif-hound-toast',
+            bodyClassName: "exif-hound-toast-body",
+            progressClassName: 'exif-hound-toast-progress-bar'
+        });
     }
     
-    const renderCopyIcon = (currentValue) => {
+    const renderCopyIcon = (currentItem, currentValue) => {
         return (
-            <FaCopy className={'details-group-value-copy-button'}  onClick={() => clickCopy(currentValue)}/>
+            <FaCopy className={'details-group-value-copy-button'}  onClick={() => clickCopy(currentItem, currentValue)}/>
         )
     }
 
@@ -41,7 +52,7 @@ const DetailsView = (props) => {
                                 return (
                                     <p>
                                         <span className="details-group-detail">{`${item[0]}`}</span>
-                                        <span ref={detailValueRef} className="details-group-value">{`${item[1] || 'N/A'}`}</span>{renderCopyIcon(item[1])}
+                                        <span ref={detailValueRef} className="details-group-value">{`${item[1] || 'N/A'}`}</span>{renderCopyIcon(item[0], item[1])}
                                     </p>
                                 );
                             }
