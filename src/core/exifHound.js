@@ -1,4 +1,5 @@
 import loadImage from 'blueimp-load-image';
+import { blobToDataURL } from 'blob-util';
 
 import EXIFImageFactory from './factories/exifImageFactory';
 import EXIF from 'exif-js';
@@ -12,6 +13,24 @@ export default class EXIFHound {
         this.store = store;
 
         this.loadImage = this.loadImage.bind(this);
+    }
+
+    getImage(event, callback) {
+        console.log('UPLOADING IMAGE ', event)
+        let loadingImage = loadImage(
+            event.target.files[0],
+            (img, data) => {
+                console.log(img.src)
+                callback(img.src, data);
+            },
+            { meta: true, noRevoke: true } // Options
+        );
+
+        if (loadingImage) {
+            return;
+        } else {
+            throw new Error('Please upload a proper image file!');
+        }
     }
 
     loadImage(event, callback) {
@@ -63,7 +82,11 @@ export default class EXIFHound {
                             this.store.addImage(exifImage);
                         }.bind(this));
                     } else {
-                        alert('Image Does Not Contain EXIF data');
+                        let imageFactory = new EXIFImageFactory();
+                       
+                        let blankImage = imageFactory.createImage(img,{});
+                        
+                        this.store.addImage(blankImage);
                     }
                 },
                 { meta: true, noRevoke: true } // Options

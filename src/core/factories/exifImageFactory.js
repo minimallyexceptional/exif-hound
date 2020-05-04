@@ -22,12 +22,18 @@ export default class EXIFImageFactory {
 
         // Image Values
         this.image.ImageElement = ImageElement || null;
-        this.image.ImageData = ImageElement.src || null;
+        if (exifDataObject.thumbnail) {
+            blobToDataURL(exifDataObject.thumbnail.blob).then(res => {
+                this.image.ImageData = res || ImageElement.src;
+            });
+        }
+        this.image.ImageDataURL = ImageElement.src || null;
         this.image.Thumbnail = exifDataObject.thumbnail || null;
-        blobToDataURL(exifDataObject.thumbnail.blob).then(res => {
-            this.image.ThumbnailData = res || null;
-        })
-
+        if (exifDataObject.thumbnail) {
+            blobToDataURL(exifDataObject.thumbnail.blob).then(res => {
+                this.image.ThumbnailData = res || null;
+            });
+        }
         // Time and Date
         this.image.DateTimeOriginal = exifDataObject.DateTimeOriginal || null;
         this.image.DateTime = exifDataObject.DateTime || null;

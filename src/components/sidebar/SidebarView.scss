@@ -143,6 +143,21 @@
                     min-width: 100%;
                     min-height: 1.8rem;
                 }
+
+                .image-toolbar-button--disabled {
+                    cursor: not-allowed;
+                    pointer-events: none;
+                    justify-self: flex-end;
+                    flex-basis: 33.333%;
+                    align-self: center;
+                    height: 1.6rem;
+                    font-size: 1.2rem;
+                    background-color: #111;
+                    border: solid 1px white;
+                    color: grey;
+                    min-width: 100%;
+                    min-height: 1.8rem;
+                }
                 
                 .image-toolbar-button:hover {
                     outline: none;

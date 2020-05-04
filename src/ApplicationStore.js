@@ -11,6 +11,11 @@ class ApplicationStore {
         this.setSelectedImage = (imageObject) => {
             this.selectedImage = imageObject;
         }
+
+        this.selectedImageDiff = null,
+        this.setSelectedImageDiff = (imageObject) => {
+            this.selectedImageDiff = imageObject;
+        }
         
         this.images = []
         this.addImage = (imageObject) => {
@@ -24,6 +29,8 @@ decorate(ApplicationStore, {
     setCurrentPage: action,
     selectedImage: observable,
     setSelectedImage: action,
+    selectedImageDiff: observable,
+    setSelectedImageDiff: action,
     images: observable,
     addImage: action
 })

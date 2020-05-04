@@ -28,7 +28,7 @@ const MapView  = (props) => {
                     controller.addMarkerWithPopupToMap(
                         image.GPSLatitude, 
                         image.GPSLongitude,
-                        `<img class="image-marker-popup" src=${image.ImageData} />`,
+                        `<img class="image-marker-popup" src=${image.ImageDataURL} />`,
                         false,
                         true,
                         16

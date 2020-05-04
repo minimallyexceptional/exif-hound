@@ -40,7 +40,16 @@ const SidebarView = (props) => {
     const removeImage = (imageObject) => {
         let imageIndex = props.store.images.indexOf(imageObject);
         props.store.images.splice(imageIndex, 1);
-    } 
+    }
+
+    const checkImageThumbnail = (imageObject) => {
+        console.log('IMAGE OBJECT IN CHECK ', imageObject)
+        if (imageObject.Thumbnail && imageObject.Thumbnail.hasOwnProperty('blob')) {
+            return 'image-toolbar-button';
+        } else {
+            return 'image-toolbar-button--disabled';
+        }
+    }
 
     const renderSidebarItems = (imageArray) => {
         return imageArray.map(image => {
@@ -53,7 +62,7 @@ const SidebarView = (props) => {
                         onDoubleClick={() => navigateToSelectedImage(image)}
                         onClick={() => setSelectedImage(image)}
                     >
-                        <img src={image.ImageData} alt="" />
+                        <img src={image.ImageDataURL} alt="" />
                     </div>
 
                     <div className="image-data">
@@ -79,8 +88,8 @@ const SidebarView = (props) => {
                         >
                             <FaInfoCircle />
                         </button>
-                        <button 
-                            className="image-toolbar-button"
+                        <button
+                            className={`${checkImageThumbnail(image)}`}
                             onClick={() => navigateToImageComparison(image)}
                         >
                             <FaImages />
