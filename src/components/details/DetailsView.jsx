@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaInfoCircle, FaImages, FaCopy } from 'react-icons/fa';
 import { observer } from 'mobx-react';
 
 import './DetailsView.scss';
@@ -8,9 +9,21 @@ import DetailsViewController from './DetailsViewController';
 const DetailsView = (props) => {
     const controller = new DetailsViewController();
 
+    const detailValueRef = React.createRef();
+
     const clickBack = () => {
         props.store.setCurrentPage(1);
         props.store.setSelectedImage(null);
+    }
+
+    const clickCopy = (currentValue) => {
+        navigator.clipboard.writeText(currentValue);
+    }
+    
+    const renderCopyIcon = (currentValue) => {
+        return (
+            <FaCopy className={'details-group-value-copy-button'}  onClick={() => clickCopy(currentValue)}/>
+        )
     }
 
     const renderDetailItems = (detailsArray) => {
@@ -28,7 +41,7 @@ const DetailsView = (props) => {
                                 return (
                                     <p>
                                         <span className="details-group-detail">{`${item[0]}`}</span>
-                                        <span className="details-group-value">{`${item[1] || 'N/A'}`}</span>
+                                        <span ref={detailValueRef} className="details-group-value">{`${item[1] || 'N/A'}`}</span>{renderCopyIcon(item[1])}
                                     </p>
                                 );
                             }
