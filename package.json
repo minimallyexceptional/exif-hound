@@ -57,7 +57,7 @@
   "devDependencies": {
     "@babel/core": "^7.8.3",
     "cssnano": "^4.1.10",
-    "electron": "^7.1.9",
+    "electron": "^7.2.4",
     "electron-builder": "^22.2.0",
     "sass": "^1.25.0"
   }
