@@ -16,7 +16,7 @@ const App = (props) => {
     useEffect(() => {
         setTimeout(() => {
             appStore.setCurrentPage(1);
-        }, 3000);
+        }, 2000);
     }, []);
 
     toast.configure({ 
