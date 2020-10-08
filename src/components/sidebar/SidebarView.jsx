@@ -42,11 +42,11 @@ const SidebarView = (props) => {
     } 
 
     const renderSidebarItems = (imageArray) => {
-        return imageArray.map(image => {
+        return imageArray.map((image, index) => {
             return (
                 <div
                     className="sidebar-item"
-                    key={`${image.DateTimeOriginal}-key`}
+                    key={`${image.DateTimeOriginal}-${index}-key`}
                 >
                     <div 
                         className="image-thumbnail" 
