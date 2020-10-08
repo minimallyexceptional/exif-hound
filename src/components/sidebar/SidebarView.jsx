@@ -46,6 +46,7 @@ const SidebarView = (props) => {
             return (
                 <div
                     className="sidebar-item"
+                    key={`${image.DateTimeOriginal}-key`}
                 >
                     <div 
                         className="image-thumbnail" 

@@ -50,6 +50,7 @@
     "leaflet-css": "^0.1.0",
     "mobx": "^5.15.2",
     "mobx-react": "^6.1.5",
+    "openseadragon": "^2.4.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-icons": "^3.8.0",
