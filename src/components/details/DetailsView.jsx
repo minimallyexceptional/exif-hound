@@ -79,8 +79,6 @@ const DetailsView = (props) => {
         }
     }
 
-    console.log(props.store.selectedImage.ThumbnailData);
-
     return (
         <div id="details-panel">
             <div className="details-button-bar">

@@ -4,6 +4,7 @@ import { FaChevronCircleRight, FaChevronCircleLeft } from "react-icons/fa";
 
 import MapView from '../components/map/MapView'
 import DetailsView from '../components/details/DetailsView';
+import ImageViewer from '../components/imageViewer/ImageViewer';
 
 const DetailPage = (props) => {
 
@@ -31,9 +32,7 @@ const DetailPage = (props) => {
 
     const renderSelectedImage = (selectedImage) => {
         if (selectedImage) {
-            return (
-                <img className={'details-image'} src={props.store.selectedImage.ImageElement.src} />
-            );
+            return <ImageViewer selectedImage={props.store.selectedImage.ImageElement.src} />;
         }
     }
 

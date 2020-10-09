@@ -13,9 +13,7 @@ export default class EXIFImageFactory {
     }
     createImage(ImageElement, exifDataObject) {
         this.image = new EXIFImage();
-        
-        console.log(exifDataObject.thumbnail);
-
+    
         // Parsed Values
         this.latitudeString = this.parseLatitudeString(exifDataObject);
         this.longitudeString = this.parseLongitudeString(exifDataObject);

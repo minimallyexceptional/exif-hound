@@ -38,10 +38,8 @@
     ]
   },
   "dependencies": {
-    "@analytics/google-analytics": "^0.2.2",
     "@babel/plugin-transform-runtime": "^7.8.3",
     "@babel/runtime": "^7.8.3",
-    "analytics": "^0.3.0",
     "blob-util": "^2.0.2",
     "blueimp-load-image": "^2.26.0",
     "coordinate-parser": "^1.0.2",
@@ -50,6 +48,7 @@
     "leaflet-css": "^0.1.0",
     "mobx": "^5.15.2",
     "mobx-react": "^6.1.5",
+    "openseadragon": "^2.4.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-icons": "^3.8.0",

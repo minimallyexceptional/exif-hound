@@ -23,6 +23,7 @@ const MapView  = (props) => {
 
     useEffect(() => {
         if (props.multiMarker) {
+            controller.reInitalizeMap();
             props.store.images.forEach(image => {
                 if (image.GPSLatitude && image.GPSLongitude) {
                     controller.addMarkerWithPopupToMap(
