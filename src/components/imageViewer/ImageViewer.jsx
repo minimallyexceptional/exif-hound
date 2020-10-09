@@ -26,7 +26,11 @@ const ImageViewer  = (props) => {
         }
     }, [props.selectedImage])
 
-    return <div ref={viewerRef} id="seaDragon"></div>
+    return (
+        <div className="image-viewer">
+            <div ref={viewerRef} id="seaDragon"></div>
+        </div>
+    );
 }
 
 export default observer(ImageViewer);

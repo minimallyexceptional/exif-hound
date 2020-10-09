@@ -1,0 +1,37 @@
+.navigation-button-section {
+    color: white;
+    height: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-content: center;
+    
+    .navigation-button {
+        align-self: center;
+        height: 1.6rem;
+        font-size: 1rem;
+        background-color: #111;
+        border: solid 1px white;
+        color: white;
+        min-width: 3rem;
+        min-height: 1.8rem;
+    }
+    
+    .navigation-button:hover {
+        outline: none;
+        background-color: white;
+        color: #111;
+    }
+
+    .navigation-button:focus {
+        outline: none;
+    }
+
+    .navigation-progress {
+        user-select: none;
+        align-self: center;
+        color: white;
+        font-size: 1rem;
+        font-family: Arial, Helvetica, sans-serif;
+        letter-spacing: 0.02rem;
+    }
+}

@@ -32,10 +32,11 @@ const SidebarView = (props) => {
         props.store.setCurrentPage(2);
     }
 
-    const navigateToImageComparison = (imageObject) => {
-        alert('Thumbnail Comparison Feature Coming Soon!');
+    const navigateToImageLab = (imageObject) => {
+        props.store.setSelectedImage(imageObject);
+        props.store.setCurrentPage(3);
     }
-
+    
     const removeImage = (imageObject) => {
         let imageIndex = props.store.images.indexOf(imageObject);
         props.store.images.splice(imageIndex, 1);
@@ -81,7 +82,7 @@ const SidebarView = (props) => {
                         </button>
                         <button 
                             className="image-toolbar-button"
-                            onClick={() => navigateToImageComparison(image)}
+                            onClick={() => navigateToImageLab(image)}
                         >
                             <FaImages />
                         </button>
