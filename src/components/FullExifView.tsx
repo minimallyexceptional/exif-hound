@@ -8,7 +8,7 @@ import { Panel } from './common/Panel';
 interface Props {
   image: ImageData;
   rawExif: any;
-  onClose: () => void;
+  onBack: () => void;
 }
 
 interface ExifGroup {
@@ -17,7 +17,7 @@ interface ExifGroup {
   properties: { key: string; value: string }[];
 }
 
-const FullExifView: React.FC<Props> = ({ image, rawExif, onClose }) => {
+const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
   const [copiedKeys, setCopiedKeys] = useState<Set<string>>(new Set());
 
   // Debug log the raw EXIF data
@@ -225,11 +225,11 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onClose }) => {
     <div className="flex items-center gap-2 min-w-0 px-4 py-2 border-b border-app-gray-light/10">
       <Button
         variant="ghost"
-        onClick={onClose}
+        onClick={onBack}
         className="flex items-center gap-1 text-app-accent hover:text-app-white -ml-2"
         icon={<ArrowLeft className="w-5 h-5" />}
       >
-        Details
+        Back to Details
       </Button>
       <span className="text-app-accent-dim">/</span>
       <span className="text-app-white font-medium">Data</span>

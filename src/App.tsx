@@ -11,8 +11,9 @@ import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
 import { Panel } from './components/common/Panel';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
+import ImageComparison from './components/ImageComparison';
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -24,6 +25,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isGalleryCollapsed, setIsGalleryCollapsed] = useState(false);
   const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
+  const [showImageComparison, setShowImageComparison] = useState(false);
+  const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -52,6 +55,11 @@ function App() {
 
   const toggleGallery = () => {
     setIsGalleryCollapsed(prev => !prev);
+  };
+
+  const handleShowComparison = (image: ImageData) => {
+    setComparisonImage(image);
+    setShowImageComparison(true);
   };
 
   if (isLoading) {
@@ -117,51 +125,48 @@ function App() {
 
         {/* EXIF Panel - Responsive */}
         {selectedImage && (
-          <>
-            {/* Desktop */}
-            <div className="hidden lg:block w-[400px] p-6 pl-0">
-              <Panel className="h-full overflow-hidden">
-                <ExifPanel image={selectedImage} />
-              </Panel>
-            </div>
-
-            {/* Mobile */}
-            <div className={`fixed inset-0 lg:hidden z-40 transition-transform duration-300 ${
-              isExifPanelCollapsed ? 'translate-y-full' : 'translate-y-0'
-            }`}>
+          <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
+            isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
+          }`}>
+            <div className="flex flex-col h-full">
+              {/* Panel Header */}
               <div 
-                className="absolute inset-0 bg-app-black/50 backdrop-blur-sm"
-                onClick={() => setIsExifPanelCollapsed(true)}
-              />
-              <div className="absolute inset-x-0 bottom-0 max-h-[80vh] flex flex-col">
-                <div className="flex items-center justify-between px-4 py-3 bg-app-gray border-t border-app-gray-light/30">
-                  <h3 className="text-sm font-medium text-app-white">Image Details</h3>
-                  <Button
-                    variant="ghost"
-                    className="p-1"
-                    onClick={() => setIsExifPanelCollapsed(true)}
-                    aria-label="Close panel"
-                  >
-                    <X className="w-5 h-5 text-app-white" />
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-y-auto bg-app-gray">
-                  <ExifPanel image={selectedImage} />
-                </div>
+                className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
+                  isExifPanelCollapsed 
+                    ? 'h-12 justify-center hover:bg-app-gray-light/30' 
+                    : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
+                }`}
+                onClick={() => setIsExifPanelCollapsed(prev => !prev)}
+              >
+                {!isExifPanelCollapsed && (
+                  <h2 className="font-medium text-app-white flex items-center gap-2">
+                    Details
+                  </h2>
+                )}
+                <Button
+                  variant="ghost"
+                  className="w-8 h-8 !p-0"
+                  aria-label={isExifPanelCollapsed ? "Expand details" : "Collapse details"}
+                >
+                  {isExifPanelCollapsed ? (
+                    <ChevronLeft className="w-7 h-7 text-app-white" />
+                  ) : (
+                    <ChevronRight className="w-7 h-7 text-app-white" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Panel Content */}
+              <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
+                isExifPanelCollapsed ? 'w-0' : 'w-full'
+              }`}>
+                <ExifPanel 
+                  image={selectedImage} 
+                  onShowComparison={handleShowComparison}
+                />
               </div>
             </div>
-
-            {/* Mobile Toggle Button */}
-            <div className="fixed right-4 bottom-4 lg:hidden z-40">
-              <Button
-                variant="primary"
-                onClick={() => setIsExifPanelCollapsed(false)}
-                className="shadow-lg"
-              >
-                View Details
-              </Button>
-            </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -174,6 +179,16 @@ function App() {
 
       {showSettings && (
         <Settings onClose={() => setShowSettings(false)} />
+      )}
+
+      {showImageComparison && comparisonImage && (
+        <ImageComparison
+          image={comparisonImage}
+          onClose={() => {
+            setShowImageComparison(false);
+            setComparisonImage(null);
+          }}
+        />
       )}
     </div>
   );

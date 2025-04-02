@@ -50,7 +50,11 @@ export const AppLayout: React.FC<Props> = ({
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
             <div 
-              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-app-gray-light/30 transition-colors border-b border-app-gray-light/30" 
+              className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
+                isGalleryCollapsed 
+                  ? 'h-12 justify-center hover:bg-app-gray-light/30' 
+                  : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
+              }`}
               onClick={onToggleGallery}
             >
               {!isGalleryCollapsed && (
@@ -60,15 +64,15 @@ export const AppLayout: React.FC<Props> = ({
               )}
               <Button
                 variant="ghost"
-                className="p-1"
+                className="w-8 h-8 !p-0"
                 aria-label={isGalleryCollapsed ? "Expand gallery" : "Collapse gallery"}
               >
                 {isGalleryCollapsed ? (
-                  <ChevronRight className="hidden lg:block w-5 h-5 text-app-white" />
+                  <ChevronRight className="w-7 h-7 text-app-white" />
                 ) : (
                   <>
-                    <ChevronLeft className="hidden lg:block w-5 h-5 text-app-white" />
-                    <ChevronUp className="lg:hidden w-5 h-5 text-app-white" />
+                    <ChevronLeft className="hidden lg:block w-7 h-7 text-app-white" />
+                    <ChevronUp className="lg:hidden w-7 h-7 text-app-white" />
                   </>
                 )}
               </Button>
