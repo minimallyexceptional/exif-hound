@@ -1,8 +1,162 @@
 "use strict";
 const electron = require("electron");
-const path = require("path");
-const Store = require("electron-store");
 const fs = require("fs");
+const path = require("path");
+const config = {
+  paths: {
+    userData: path.join(electron.app.getPath("appData"), "Exif-Hound"),
+    cache: path.join(electron.app.getPath("appData"), "Exif-Hound", "Cache")
+  },
+  window: {
+    width: 1200,
+    height: 800,
+    titleBarStyle: "hiddenInset",
+    backgroundColor: "#1a1a1a"
+  },
+  security: {
+    csp: [
+      "default-src 'self' exifhound:",
+      "script-src 'self' exifhound: 'unsafe-inline' 'unsafe-eval'",
+      "img-src 'self' exifhound: data: blob: https://a.tile.openstreetmap.org https://a.tile.openstreetmap.fr https://a.tile.opentopomap.org",
+      "media-src 'self' exifhound: data: blob:",
+      "connect-src 'self' exifhound: https://a.tile.openstreetmap.org https://a.tile.openstreetmap.fr https://a.tile.opentopomap.org",
+      "style-src 'self' exifhound: 'unsafe-inline'",
+      "worker-src 'self' blob:"
+    ].join("; "),
+    protocols: {
+      exifhound: {
+        scheme: "exifhound",
+        privileges: {
+          secure: true,
+          standard: true,
+          supportFetchAPI: true,
+          allowServiceWorkers: true,
+          corsEnabled: true
+        }
+      },
+      app: {
+        scheme: "app",
+        privileges: {
+          secure: true,
+          standard: true,
+          supportFetchAPI: true,
+          allowServiceWorkers: true,
+          corsEnabled: true
+        }
+      }
+    }
+  },
+  fileTypes: {
+    images: ["jpg", "jpeg", "png", "gif", "webp"]
+  }
+};
+class WindowManager {
+  constructor() {
+    this.mainWindow = null;
+  }
+  setupSession() {
+    this.customSession = electron.session.fromPartition("persist:exifhound");
+    this.customSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          "Content-Security-Policy": config.security.csp
+        }
+      });
+    });
+  }
+  createWindow() {
+    if (this.mainWindow) {
+      return this.mainWindow;
+    }
+    this.mainWindow = new electron.BrowserWindow({
+      width: config.window.width,
+      height: config.window.height,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: true,
+        preload: path.join(__dirname, "preload.js"),
+        session: this.customSession,
+        devTools: process.env.NODE_ENV === "development"
+      },
+      titleBarStyle: config.window.titleBarStyle,
+      backgroundColor: config.window.backgroundColor
+    });
+    if (process.platform === "win32") {
+      require("electron").app.setAppUserModelId("com.exifhound.app");
+    }
+    this.loadContent();
+    this.setupEventListeners();
+    return this.mainWindow;
+  }
+  loadContent() {
+    if (!this.mainWindow) return;
+    if (process.env.VITE_DEV_SERVER_URL) {
+      this.mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).catch(console.error);
+      if (process.env.OPEN_DEVTOOLS === "true") {
+        this.mainWindow.webContents.openDevTools();
+      }
+    } else {
+      this.mainWindow.loadFile(path.join(__dirname, "../dist/index.html")).catch(console.error);
+    }
+  }
+  setupEventListeners() {
+    if (!this.mainWindow) return;
+    this.mainWindow.on("closed", () => {
+      this.mainWindow = null;
+    });
+  }
+  getMainWindow() {
+    return this.mainWindow;
+  }
+  getSession() {
+    return this.customSession;
+  }
+}
+class ProtocolManager {
+  static registerSchemes() {
+    electron.protocol.registerSchemesAsPrivileged([
+      {
+        scheme: config.security.protocols.exifhound.scheme,
+        privileges: config.security.protocols.exifhound.privileges
+      },
+      {
+        scheme: config.security.protocols.app.scheme,
+        privileges: config.security.protocols.app.privileges
+      }
+    ]);
+  }
+  static setupProtocols() {
+    electron.protocol.registerFileProtocol("file", (request, callback) => {
+      const filePath = decodeURIComponent(request.url.slice("file://".length));
+      console.log("File protocol request:", filePath);
+      try {
+        if (!fs.existsSync(filePath)) {
+          console.error("File does not exist:", filePath);
+          callback({ path: "" });
+          return;
+        }
+        const stats = fs.statSync(filePath);
+        console.log("File stats:", stats);
+        callback({ path: filePath });
+      } catch (error) {
+        console.error("Error accessing file:", error);
+        callback({ path: "" });
+      }
+    });
+    electron.protocol.registerFileProtocol(config.security.protocols.exifhound.scheme, (request, callback) => {
+      const url = request.url.substr(`${config.security.protocols.exifhound.scheme}://`.length);
+      const filePath = path.normalize(`${__dirname}/../${url}`);
+      console.log("Exifhound protocol request:", filePath);
+      callback({ path: filePath });
+    });
+    electron.protocol.handle(config.security.protocols.app.scheme, async (request) => {
+      const filePath = path.join(__dirname, "..", request.url.slice(`${config.security.protocols.app.scheme}://`.length));
+      console.log("App protocol request:", filePath);
+      return new Response(fs.readFileSync(filePath));
+    });
+  }
+}
 let DataView$1 = class DataView2 {
   constructor(buffer) {
     if (bufferTypeIsUnsupported(buffer)) {
@@ -5795,118 +5949,139 @@ function hasVp8xData(vp8xChunkOffset) {
 function hasGifFileData(gifHeaderOffset) {
   return gifHeaderOffset !== void 0;
 }
-electron.protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "exifhound",
-    privileges: {
-      secure: true,
-      standard: true,
-      supportFetchAPI: true,
-      allowServiceWorkers: true,
-      corsEnabled: true
-    }
-  },
-  {
-    scheme: "app",
-    privileges: {
-      secure: true,
-      standard: true,
-      supportFetchAPI: true,
-      allowServiceWorkers: true,
-      corsEnabled: true
+class ExifProcessor {
+  static async processImage(filePath) {
+    var _a;
+    console.log("Processing image:", filePath);
+    try {
+      if (!fs.existsSync(filePath)) {
+        console.error("File does not exist:", filePath);
+        throw new Error("File does not exist");
+      }
+      const buffer = fs.readFileSync(filePath);
+      console.log("File read successfully, size:", buffer.length);
+      const tags = await ExifReader.load(buffer);
+      console.log("EXIF tags loaded:", Object.keys(tags));
+      const gpsData = this.extractGPSData(tags);
+      const cameraData = this.extractCameraData(tags);
+      const result = {
+        exif: {
+          latitude: gpsData.latitude,
+          longitude: gpsData.longitude,
+          error: gpsData.error,
+          dateTimeOriginal: ((_a = tags.DateTimeOriginal) == null ? void 0 : _a.description) || null,
+          make: cameraData.make,
+          model: cameraData.model,
+          exposureTime: cameraData.exposureTime,
+          fNumber: cameraData.fNumber,
+          iso: cameraData.iso,
+          focalLength: cameraData.focalLength
+        },
+        fileData: {
+          base64: buffer.toString("base64"),
+          mimeType: "image/jpeg",
+          fileName: filePath.split("/").pop() || "unknown"
+        }
+      };
+      console.log("Processed image data:", result);
+      return result;
+    } catch (error) {
+      console.error("Error processing image:", error);
+      return {
+        exif: {
+          latitude: null,
+          longitude: null,
+          error: "Failed to process image",
+          dateTimeOriginal: null,
+          make: null,
+          model: null,
+          exposureTime: null,
+          fNumber: null,
+          iso: null,
+          focalLength: null
+        },
+        fileData: {
+          base64: "",
+          mimeType: "image/jpeg",
+          fileName: "unknown"
+        }
+      };
     }
   }
-]);
+  static extractGPSData(tags) {
+    var _a, _b, _c, _d;
+    if (!((_a = tags.GPSLatitude) == null ? void 0 : _a.description) || !((_b = tags.GPSLongitude) == null ? void 0 : _b.description)) {
+      return { latitude: null, longitude: null, error: null };
+    }
+    try {
+      const latDesc = tags.GPSLatitude.description;
+      const lonDesc = tags.GPSLongitude.description;
+      const latRef = this.extractTagValue((_c = tags.GPSLatitudeRef) == null ? void 0 : _c.value, "N");
+      const lonRef = this.extractTagValue((_d = tags.GPSLongitudeRef) == null ? void 0 : _d.value, "E");
+      let latitude = parseFloat(latDesc);
+      let longitude = parseFloat(lonDesc);
+      if (latRef === "S") latitude = -latitude;
+      if (lonRef === "W") longitude = -longitude;
+      if (isNaN(latitude) || isNaN(longitude)) {
+        return {
+          latitude: null,
+          longitude: null,
+          error: "Invalid GPS coordinates found in image"
+        };
+      }
+      return { latitude, longitude, error: null };
+    } catch (error) {
+      console.error("Error processing GPS coordinates:", error);
+      return {
+        latitude: null,
+        longitude: null,
+        error: "Failed to process GPS coordinates"
+      };
+    }
+  }
+  static extractCameraData(tags) {
+    var _a, _b, _c, _d, _e, _f;
+    return {
+      make: this.extractTagValue((_a = tags.Make) == null ? void 0 : _a.value),
+      model: this.extractTagValue((_b = tags.Model) == null ? void 0 : _b.value),
+      exposureTime: ((_c = tags.ExposureTime) == null ? void 0 : _c.description) || null,
+      fNumber: ((_d = tags.FNumber) == null ? void 0 : _d.description) ? parseFloat(tags.FNumber.description) : null,
+      iso: this.extractTagValue((_e = tags.ISOSpeedRatings) == null ? void 0 : _e.value),
+      focalLength: ((_f = tags.FocalLength) == null ? void 0 : _f.description) ? parseFloat(tags.FocalLength.description) : null
+    };
+  }
+  static extractTagValue(value, defaultValue = null) {
+    if (!value) return defaultValue;
+    if (Array.isArray(value)) return value[0];
+    return value;
+  }
+}
+ProtocolManager.registerSchemes();
 electron.app.disableHardwareAcceleration();
 electron.app.commandLine.appendSwitch("disable-gpu");
 electron.app.commandLine.appendSwitch("disable-gpu-compositing");
 electron.app.commandLine.appendSwitch("disable-features", "NetworkService,OutOfBlinkCors");
 electron.app.commandLine.appendSwitch("disable-http-cache");
-const userDataPath = path.join(electron.app.getPath("appData"), "Exif-Hound");
-const cachePath = path.join(userDataPath, "Cache");
 try {
-  require("fs").mkdirSync(userDataPath, { recursive: true });
-  require("fs").mkdirSync(cachePath, { recursive: true });
+  if (fs.existsSync(config.paths.userData)) {
+    fs.rmSync(config.paths.userData, { recursive: true, force: true });
+  }
+  fs.mkdirSync(config.paths.userData, { recursive: true });
+  fs.mkdirSync(config.paths.cache, { recursive: true });
 } catch (error) {
-  console.error("Error creating directories:", error);
+  console.error("Error managing directories:", error);
 }
-electron.app.setPath("userData", userDataPath);
-electron.app.setPath("sessionData", userDataPath);
-electron.app.setPath("cache", cachePath);
-const store = new Store();
-let mainWindow = null;
-let customSession;
-function createWindow() {
-  mainWindow = new electron.BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"),
-      session: customSession,
-      devTools: process.env.NODE_ENV === "development"
-    },
-    titleBarStyle: "hiddenInset",
-    backgroundColor: "#1a1a1a"
-  });
-  if (process.platform === "win32") {
-    electron.app.setAppUserModelId("com.exifhound.app");
-  }
-  if (process.env.VITE_DEV_SERVER_URL) {
-    mainWindow == null ? void 0 : mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL).catch(console.error);
-    if (process.env.OPEN_DEVTOOLS === "true") {
-      mainWindow == null ? void 0 : mainWindow.webContents.openDevTools();
-    }
-  } else {
-    mainWindow == null ? void 0 : mainWindow.loadFile(path.join(__dirname, "../dist/index.html")).catch(console.error);
-  }
-  mainWindow.webContents.session.protocol.registerFileProtocol("file", (request, callback) => {
-    const filePath = decodeURIComponent(request.url.slice("file://".length));
-    try {
-      require("fs").accessSync(filePath);
-      callback({ path: filePath });
-    } catch (error) {
-      console.error("Error accessing file:", error);
-      callback({ path: "" });
-    }
-  });
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-}
+electron.app.setPath("userData", config.paths.userData);
+electron.app.setPath("sessionData", config.paths.userData);
+electron.app.setPath("cache", config.paths.cache);
+const windowManager = new WindowManager();
 electron.app.whenReady().then(() => {
-  customSession = electron.session.fromPartition("persist:exifhound");
-  customSession.protocol.registerFileProtocol("exifhound", (request, callback) => {
-    const url = request.url.substr("exifhound://".length);
-    callback({ path: path.normalize(`${__dirname}/../${url}`) });
-  });
-  electron.protocol.handle("app", async (request) => {
-    const filePath = path.join(__dirname, "..", request.url.slice("app://".length));
-    return new Response(fs.readFileSync(filePath));
-  });
-  const csp = [
-    "default-src 'self' exifhound:",
-    "script-src 'self' exifhound: 'unsafe-inline' 'unsafe-eval'",
-    "img-src 'self' exifhound: data: blob: https://a.tile.openstreetmap.org https://a.tile.openstreetmap.fr https://a.tile.opentopomap.org",
-    "media-src 'self' exifhound: data: blob:",
-    "connect-src 'self' exifhound: https://a.tile.openstreetmap.org https://a.tile.openstreetmap.fr https://a.tile.opentopomap.org",
-    "style-src 'self' exifhound: 'unsafe-inline'",
-    "worker-src 'self' blob:"
-  ].join("; ");
-  customSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": csp
-      }
-    });
-  });
-  require("fs").mkdirSync(userDataPath, { recursive: true });
-  createWindow();
+  windowManager.setupSession();
+  ProtocolManager.setupProtocols();
+  windowManager.createWindow();
   electron.app.on("activate", () => {
-    if (electron.BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+    if (windowManager.getMainWindow() === null) {
+      windowManager.createWindow();
     }
   });
 }).catch(console.error);
@@ -5917,17 +6092,18 @@ electron.app.on("window-all-closed", () => {
 });
 electron.app.on("quit", () => {
   try {
-    require("fs").rmSync(userDataPath, { recursive: true, force: true });
+    fs.rmSync(config.paths.userData, { recursive: true, force: true });
   } catch (error) {
     console.error("Error cleaning up temp directory:", error);
   }
 });
 electron.ipcMain.handle("select-files", async () => {
+  const mainWindow = windowManager.getMainWindow();
   if (!mainWindow) return [];
   const options = {
     properties: ["openFile", "multiSelections"],
     filters: [
-      { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "webp"] }
+      { name: "Images", extensions: config.fileTypes.images }
     ]
   };
   try {
@@ -5939,6 +6115,7 @@ electron.ipcMain.handle("select-files", async () => {
   }
 });
 electron.ipcMain.handle("select-export-directory", async () => {
+  const mainWindow = windowManager.getMainWindow();
   if (!mainWindow) return null;
   const options = {
     properties: ["openDirectory"]
@@ -5952,64 +6129,7 @@ electron.ipcMain.handle("select-export-directory", async () => {
   }
 });
 electron.ipcMain.handle("read-file", async (_, filePath) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
-  try {
-    const buffer = fs.readFileSync(filePath);
-    const tags = await ExifReader.load(buffer);
-    let latitude = null;
-    let longitude = null;
-    let error = null;
-    if (((_a = tags.GPSLatitude) == null ? void 0 : _a.description) && ((_b = tags.GPSLongitude) == null ? void 0 : _b.description)) {
-      try {
-        const latDesc = tags.GPSLatitude.description;
-        const lonDesc = tags.GPSLongitude.description;
-        const latRef = ((_c = tags.GPSLatitudeRef) == null ? void 0 : _c.value) ? Array.isArray(tags.GPSLatitudeRef.value) ? tags.GPSLatitudeRef.value[0] : tags.GPSLatitudeRef.value : "N";
-        const lonRef = ((_d = tags.GPSLongitudeRef) == null ? void 0 : _d.value) ? Array.isArray(tags.GPSLongitudeRef.value) ? tags.GPSLongitudeRef.value[0] : tags.GPSLongitudeRef.value : "E";
-        latitude = parseFloat(latDesc);
-        longitude = parseFloat(lonDesc);
-        if (latRef === "S") latitude = -latitude;
-        if (lonRef === "W") longitude = -longitude;
-        if (isNaN(latitude) || isNaN(longitude)) {
-          error = "Invalid GPS coordinates found in image";
-          latitude = null;
-          longitude = null;
-        }
-      } catch (err) {
-        console.error("Error processing GPS coordinates:", err);
-        error = "Failed to process GPS coordinates";
-        latitude = null;
-        longitude = null;
-      }
-    }
-    return {
-      exif: {
-        latitude,
-        longitude,
-        error,
-        dateTimeOriginal: ((_e = tags.DateTimeOriginal) == null ? void 0 : _e.description) || null,
-        make: ((_f = tags.Make) == null ? void 0 : _f.description) || null,
-        model: ((_g = tags.Model) == null ? void 0 : _g.description) || null,
-        exposureTime: ((_h = tags.ExposureTime) == null ? void 0 : _h.description) || null,
-        fNumber: ((_i = tags.FNumber) == null ? void 0 : _i.description) ? parseFloat(tags.FNumber.description) : null,
-        iso: ((_j = tags.ISOSpeedRatings) == null ? void 0 : _j.value) ? Array.isArray(tags.ISOSpeedRatings.value) ? tags.ISOSpeedRatings.value[0] : tags.ISOSpeedRatings.value : null,
-        focalLength: ((_k = tags.FocalLength) == null ? void 0 : _k.description) ? parseFloat(tags.FocalLength.description) : null
-      },
-      fileData: {
-        base64: buffer.toString("base64"),
-        mimeType: "image/jpeg",
-        fileName: path.basename(filePath)
-      }
-    };
-  } catch (error) {
-    console.error("Error reading file:", error);
-    return null;
-  }
-});
-electron.ipcMain.handle("get-store-value", (_, key) => {
-  return store.get(key);
-});
-electron.ipcMain.handle("set-store-value", (_, key, value) => {
-  store.set(key, value);
+  return ExifProcessor.processImage(filePath);
 });
 electron.ipcMain.handle("save-file", async (_, options) => {
   try {
