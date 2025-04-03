@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ImageData } from './types';
-import ImageUploader from './components/ImageUploader';
 import Map from './components/Map';
 import ExifPanel from './components/ExifPanel';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
-import ExportModal from './components/ExportModal';
+import { ExportModal } from './components/ExportModal';
 import Settings from './components/Settings';
 import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
@@ -14,6 +13,7 @@ import { Panel } from './components/common/Panel';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
 import ImageComparison from './components/ImageComparison';
+import { readFile } from './utils/fileUtils';
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -41,8 +41,20 @@ function App() {
     setSelectedImage(imageData);
   };
 
-  const handleUploadClick = () => {
-    document.getElementById('headerFileInput')?.click();
+  const handleUploadClick = async () => {
+    try {
+      const filePaths = await window.api.selectFiles();
+      if (filePaths.length === 0) return;
+
+      for (const filePath of filePaths) {
+        const imageData = await readFile(filePath);
+        if (imageData) {
+          handleImageUpload(imageData);
+        }
+      }
+    } catch (error) {
+      console.error('Error selecting files:', error);
+    }
   };
 
   const handleRouteClick = () => {
@@ -77,12 +89,6 @@ function App() {
         onToggleView={toggleViewMode}
         onToggleRoute={handleRouteClick}
         onOpenSettings={() => setShowSettings(true)}
-      />
-
-      <ImageUploader 
-        onImageUpload={handleImageUpload} 
-        inputId="headerFileInput"
-        hideDropZone
       />
 
       <div className="relative flex-1 flex overflow-hidden">
