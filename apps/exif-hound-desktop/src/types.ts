@@ -1,4 +1,5 @@
 import { TileLayer } from 'leaflet';
+import { LocationData } from './utils/geocoding';
 
 export interface ExifData {
   latitude?: number | null;
@@ -27,6 +28,8 @@ export interface ExifData {
   whiteBalance?: string | null;
   imageDescription?: string | null;
   userComment?: string | null;
+  // Location data from reverse geocoding
+  location?: LocationData | null;
 }
 
 export interface ImageData {

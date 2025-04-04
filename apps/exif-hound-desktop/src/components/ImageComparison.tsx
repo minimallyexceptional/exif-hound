@@ -76,7 +76,7 @@ const ImageComparison: React.FC<Props> = ({ image, onClose }) => {
       showFullscreenToggle
       size="lg"
     >
-      <div className="p-6">
+      <div className="h-full flex items-center justify-center p-4">
         {error ? (
           <div className="text-center text-red-500 dark:text-red-400 p-4">
             {error}
@@ -84,7 +84,7 @@ const ImageComparison: React.FC<Props> = ({ image, onClose }) => {
         ) : (
           <div 
             ref={containerRef}
-            className="relative select-none"
+            className="relative select-none w-full max-w-4xl"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
           >

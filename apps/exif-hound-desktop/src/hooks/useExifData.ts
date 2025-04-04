@@ -1,114 +1,123 @@
-import ExifReader from 'exifreader';
+import { extractExifData, ExifMetadata } from 'exif-middleware';
 import { ExifData } from '../types';
+import { fixCoordinates } from '../utils/diagnostics';
+import { getLocationFromCoordinates } from '../utils/geocoding';
 
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
   onError?: (error: string) => void;
+  fetchLocation?: boolean; // Option to enable/disable location fetching
 }
 
-// Type guard to check if a tag has a description property
-function hasDescription(tag: unknown): tag is { description: string } {
-  return tag !== null && 
-         typeof tag === 'object' && 
-         'description' in (tag as object);
+/**
+ * Converts middleware ExifMetadata to application ExifData format
+ */
+function convertMetadataToExifData(metadata: ExifMetadata, error?: string): ExifData {
+  // Apply coordinate fixes if we have both latitude and longitude
+  let latitude = metadata.latitude ?? null;
+  let longitude = metadata.longitude ?? null;
+  
+  if (latitude !== null && longitude !== null) {
+    // Apply diagnostic fixes for known coordinate issues
+    const [fixedLat, fixedLng] = fixCoordinates(latitude, longitude);
+    
+    // Log if any fixes were applied
+    if (fixedLat !== latitude || fixedLng !== longitude) {
+      console.log(`[useExifData] Applied coordinate fixes for unknown file:`, {
+        from: { latitude, longitude },
+        to: { latitude: fixedLat, longitude: fixedLng }
+      });
+    }
+    
+    latitude = fixedLat;
+    longitude = fixedLng;
+  }
+  
+  return {
+    latitude,
+    longitude,
+    dateTimeOriginal: metadata.dateTaken ? metadata.dateTaken.toString() : null,
+    make: metadata.make ?? null,
+    model: metadata.model ?? null,
+    exposureTime: metadata.exposureTime ?? null,
+    fNumber: metadata.fNumber ?? null,
+    iso: metadata.iso ?? null,
+    focalLength: metadata.focalLength ? parseFloat(metadata.focalLength) : null,
+    error: error ?? null,
+    gpsAltitude: metadata.altitude ?? null,
+    gpsAltitudeRef: null, // Not provided by middleware
+    imageWidth: metadata.dimensions?.width ?? null,
+    imageHeight: metadata.dimensions?.height ?? null,
+    orientation: null, // Not provided by middleware
+    software: null, // Not provided by middleware
+    artist: null, // Not provided by middleware
+    copyright: null, // Not provided by middleware
+    description: null, // Not provided by middleware
+    lensModel: null, // Not provided by middleware
+    flash: null, // Not provided by middleware
+    meteringMode: null, // Not provided by middleware
+    whiteBalance: null, // Not provided by middleware
+    imageDescription: null, // Not provided by middleware
+    userComment: null, // Not provided by middleware
+    location: null, // Will be populated later if coordinates are valid
+  };
 }
 
 export const useExifData = (options: UseExifDataOptions = {}) => {
   const processExifData = async (file: File): Promise<ExifData> => {
     try {
-      const tags = await ExifReader.load(file);
+      // Convert File to ArrayBuffer for middleware
+      const buffer = await file.arrayBuffer();
       
-      let latitude = null;
-      let longitude = null;
-      let error = null;
+      // Use the middleware to extract EXIF data
+      const metadata = await extractExifData(buffer);
       
-      if (hasDescription(tags.GPSLatitude) && hasDescription(tags.GPSLongitude)) {
+      console.log('GPS Data from middleware for:', file.name, {
+        latitude: metadata.latitude,
+        longitude: metadata.longitude,
+      });
+      
+      // Convert the middleware's metadata format to our app's ExifData format
+      const exifData = convertMetadataToExifData(metadata);
+      
+      // If we have valid coordinates and location fetching is enabled, get location data
+      if (options.fetchLocation !== false && 
+          typeof exifData.latitude === 'number' && 
+          typeof exifData.longitude === 'number') {
         try {
-          const latDesc = tags.GPSLatitude.description;
-          const lonDesc = tags.GPSLongitude.description;
-          const latRef = tags.GPSLatitudeRef?.value?.[0] || 'N';
-          const lonRef = tags.GPSLongitudeRef?.value?.[0] || 'E';
-
-          latitude = parseFloat(latDesc);
-          longitude = parseFloat(lonDesc);
-
-          if (latRef === 'S') latitude = -latitude;
-          if (lonRef === 'W') longitude = -longitude;
-
-          if (isNaN(latitude) || isNaN(longitude)) {
-            error = 'Invalid GPS coordinates found in image';
-            latitude = null;
-            longitude = null;
-          }
-        } catch (err) {
-          error = 'Failed to process GPS coordinates';
-          latitude = null;
-          longitude = null;
+          console.log(`[useExifData] Fetching location data for: ${file.name}`);
+          
+          // Set initial loading state
+          exifData.location = { loading: true };
+          
+          // Fetch location data asynchronously
+          const locationData = await getLocationFromCoordinates(
+            exifData.latitude, 
+            exifData.longitude
+          );
+          
+          console.log(`[useExifData] Location data received for: ${file.name}`, locationData);
+          
+          // Update with fetched location data
+          exifData.location = locationData;
+        } catch (locError) {
+          console.error('Error fetching location data:', locError);
+          exifData.location = { 
+            loading: false, 
+            error: 'Failed to fetch location data' 
+          };
         }
-      } else {
-        error = 'No GPS data found in image';
       }
-
-      const exifData: ExifData = {
-        latitude,
-        longitude,
-        dateTimeOriginal: hasDescription(tags.DateTimeOriginal) ? tags.DateTimeOriginal.description : null,
-        make: hasDescription(tags.Make) ? tags.Make.description : null,
-        model: hasDescription(tags.Model) ? tags.Model.description : null,
-        exposureTime: hasDescription(tags.ExposureTime) ? tags.ExposureTime.description : null,
-        fNumber: hasDescription(tags.FNumber) ? parseFloat(tags.FNumber.description) : null,
-        iso: tags.ISOSpeedRatings?.value?.[0] || null,
-        focalLength: hasDescription(tags.FocalLength) ? parseFloat(tags.FocalLength.description) : null,
-        error,
-        gpsAltitude: hasDescription(tags.GPSAltitude) ? parseFloat(tags.GPSAltitude.description) : null,
-        gpsAltitudeRef: hasDescription(tags.GPSAltitudeRef) ? tags.GPSAltitudeRef.description : null,
-        imageWidth: tags.ImageWidth?.value?.[0] || null,
-        imageHeight: tags.ImageLength?.value?.[0] || null,
-        orientation: tags.Orientation?.value?.[0] || null,
-        software: hasDescription(tags.Software) ? tags.Software.description : null,
-        artist: hasDescription(tags.Artist) ? tags.Artist.description : null,
-        copyright: hasDescription(tags.Copyright) ? tags.Copyright.description : null,
-        description: hasDescription(tags.ImageDescription) ? tags.ImageDescription.description : null,
-        lensModel: hasDescription(tags.LensModel) ? tags.LensModel.description : null,
-        flash: hasDescription(tags.Flash) ? tags.Flash.description : null,
-        meteringMode: hasDescription(tags.MeteringMode) ? tags.MeteringMode.description : null,
-        whiteBalance: hasDescription(tags.WhiteBalance) ? tags.WhiteBalance.description : null,
-        imageDescription: hasDescription(tags.ImageDescription) ? tags.ImageDescription.description : null,
-        userComment: hasDescription(tags.UserComment) ? tags.UserComment.description : null
-      };
-
+      
       options.onSuccess?.(exifData);
       return exifData;
-    } catch (error) {
+    } catch (err) {
       const errorMessage = 'Failed to read EXIF data from image';
+      console.error(errorMessage, err);
       options.onError?.(errorMessage);
-      return {
-        latitude: null,
-        longitude: null,
-        dateTimeOriginal: null,
-        make: null,
-        model: null,
-        exposureTime: null,
-        fNumber: null,
-        iso: null,
-        focalLength: null,
-        error: errorMessage,
-        gpsAltitude: null,
-        gpsAltitudeRef: null,
-        imageWidth: null,
-        imageHeight: null,
-        orientation: null,
-        software: null,
-        artist: null,
-        copyright: null,
-        description: null,
-        lensModel: null,
-        flash: null,
-        meteringMode: null,
-        whiteBalance: null,
-        imageDescription: null,
-        userComment: null
-      };
+      
+      // Return empty ExifData with error message
+      return convertMetadataToExifData({}, errorMessage);
     }
   };
 

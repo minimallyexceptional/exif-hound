@@ -1,0 +1,91 @@
+import { useEffect, useState } from 'react';
+
+/**
+ * Hook to check if Tauri is available and initialized
+ */
+export function useTauri() {
+  const [isTauriAvailable, setIsTauriAvailable] = useState<boolean>(false);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkTauri = async () => {
+      try {
+        // Check if Tauri is available
+        const available = typeof window !== 'undefined' && 
+                         'window' in globalThis && 
+                         window.__TAURI__ !== undefined;
+        
+        console.log(`[useTauri] Tauri available: ${available}`);
+        setIsTauriAvailable(available);
+        
+        if (!available) {
+          setError('Tauri is not available in this environment');
+          return;
+        }
+        
+        // Test the dialog plugin functionality
+        try {
+          // Just check if the API is accessible
+          const hasDialog = window.__TAURI__ && 
+                           window.__TAURI__.dialog !== undefined;
+          
+          console.log(`[useTauri] Dialog plugin available: ${hasDialog}`);
+          
+          if (!hasDialog) {
+            setError('Tauri dialog plugin is not initialized');
+          }
+        } catch (dialogError) {
+          console.error('[useTauri] Error checking dialog plugin:', dialogError);
+          setError(`Dialog plugin error: ${dialogError instanceof Error ? dialogError.message : 'Unknown error'}`);
+        }
+        
+        // Test the fs plugin functionality
+        try {
+          // Just check if the API is accessible
+          const hasFs = window.__TAURI__ && 
+                       window.__TAURI__.fs !== undefined;
+          
+          console.log(`[useTauri] FS plugin available: ${hasFs}`);
+          
+          if (!hasFs) {
+            setError((prev) => prev ? `${prev}, FS plugin is not initialized` : 'FS plugin is not initialized');
+          }
+        } catch (fsError) {
+          console.error('[useTauri] Error checking fs plugin:', fsError);
+          setError((prev) => prev ? 
+            `${prev}, FS plugin error: ${fsError instanceof Error ? fsError.message : 'Unknown error'}` : 
+            `FS plugin error: ${fsError instanceof Error ? fsError.message : 'Unknown error'}`);
+        }
+        
+        // If we got here with no errors, Tauri is initialized
+        if (!error) {
+          console.log('[useTauri] Tauri is fully initialized');
+          setIsInitialized(true);
+        }
+      } catch (e) {
+        console.error('[useTauri] Error checking Tauri:', e);
+        setError(`Tauri initialization error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+        setIsInitialized(false);
+      }
+    };
+    
+    checkTauri();
+  }, []);
+
+  return {
+    isTauriAvailable,
+    isInitialized,
+    error
+  };
+}
+
+declare global {
+  interface Window {
+    __TAURI__?: {
+      dialog?: Record<string, unknown>;
+      fs?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+  }
+} 

@@ -3,6 +3,8 @@ import { ImageData } from '../types';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { useTheme } from '../context/ThemeContext';
+import { formatShortDateTime } from '../utils/date';
 
 interface Props {
   images: ImageData[];
@@ -13,6 +15,7 @@ interface Props {
 const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showTooltip, setShowTooltip] = useState(true);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -105,12 +108,12 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                       } transition-all duration-200`} />
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <div className="bg-app-black/85 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
-                        <p className="text-white text-sm font-medium truncate">
+                      <div className={`${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'} rounded-lg px-3 py-2 shadow-lg`}>
+                        <p className="text-sm font-medium truncate">
                           {image.file.name}
                         </p>
-                        <p className="text-white/70 text-xs mt-0.5 truncate">
-                          {image.exif.dateTimeOriginal || 'No date available'}
+                        <p className={`text-xs mt-0.5 truncate ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
+                          {image.exif.dateTimeOriginal ? formatShortDateTime(image.exif.dateTimeOriginal) : 'No date available'}
                         </p>
                       </div>
                     </div>
@@ -126,26 +129,34 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
         <>
           <button
             onClick={handlePrevious}
-            className="absolute top-2 left-1/2 -translate-x-1/2 p-3 rounded-lg bg-app-black/85 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-app-black/95 disabled:opacity-30"
+            className={`absolute top-2 left-1/2 -translate-x-1/2 p-3 rounded-lg ${
+              theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'
+            } shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:${
+              theme === 'dark' ? 'bg-black/95' : 'bg-white/95'
+            } disabled:opacity-30`}
             aria-label="Previous image"
             disabled={!selectedImage || images.indexOf(selectedImage) === 0}
           >
-            <ChevronUp className="w-6 h-6 text-white" />
+            <ChevronUp className="w-6 h-6" />
           </button>
           <button
             onClick={handleNext}
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 p-3 rounded-lg bg-app-black/85 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-app-black/95 disabled:opacity-30"
+            className={`absolute bottom-2 left-1/2 -translate-x-1/2 p-3 rounded-lg ${
+              theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'
+            } shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:${
+              theme === 'dark' ? 'bg-black/95' : 'bg-white/95'
+            } disabled:opacity-30`}
             aria-label="Next image"
             disabled={!selectedImage || images.indexOf(selectedImage) === images.length - 1}
           >
-            <ChevronDown className="w-6 h-6 text-white" />
+            <ChevronDown className="w-6 h-6" />
           </button>
         </>
       )}
 
       {images.length > 1 && showTooltip && (
         <div className="absolute bottom-14 left-1/2 -translate-x-1/2">
-          <div className="text-white text-sm bg-black/85 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg opacity-100 transition-opacity duration-300">
+          <div className={`text-sm ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'} px-4 py-2 rounded-full shadow-lg opacity-100 transition-opacity duration-300`}>
             Use ↑ ↓ arrow keys to navigate
           </div>
         </div>

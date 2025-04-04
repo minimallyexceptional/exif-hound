@@ -17,10 +17,10 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "shared-utils": ["../../packages/shared-utils/src"],
-      "shared-utils/*": ["../../packages/shared-utils/src/*"],
-      "exif-middleware": ["../../packages/exif-middleware/src"],
-      "exif-middleware/*": ["../../packages/exif-middleware/src/*"]
+      "shared-utils": ["../../packages/shared-utils/dist"],
+      "shared-utils/*": ["../../packages/shared-utils/dist/*"],
+      "exif-middleware": ["../../packages/exif-middleware/dist"],
+      "exif-middleware/*": ["../../packages/exif-middleware/dist/*"]
     }
   },
   "include": ["src"],
