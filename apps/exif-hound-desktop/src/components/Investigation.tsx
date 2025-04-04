@@ -4,6 +4,7 @@ import { Search, Map, Calendar, Database } from 'lucide-react';
 import DeviceDendrogram from './analysis/DeviceDendrogram';
 import TimelineAnalysis from './analysis/TimelineAnalysis';
 import SoftwareProcessingAnalysis from './analysis/SoftwareProcessingAnalysis';
+import GeographicalAnalysis from './analysis/GeographicalAnalysis';
 
 interface Props {
   images: ImageData[];
@@ -60,8 +61,14 @@ const Investigation: React.FC<Props> = ({ images }) => {
           <div className="h-full">
             <SoftwareProcessingAnalysis
               images={images}
-              width={dimensions.width}
-              height={dimensions.height}
+            />
+          </div>
+        );
+      case 'geolocation':
+        return (
+          <div className="h-full">
+            <GeographicalAnalysis
+              images={images}
             />
           </div>
         );
