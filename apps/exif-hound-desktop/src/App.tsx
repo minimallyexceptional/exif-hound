@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageData } from './types';
 import ImageUploader from './components/ImageUploader';
 import Map from './components/Map';
@@ -10,8 +10,7 @@ import Settings from './components/Settings';
 import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
-import { Panel } from './components/common/Panel';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
 import ImageComparison from './components/ImageComparison';
 

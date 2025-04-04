@@ -13,18 +13,20 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "composite": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
     "paths": {
-      "shared-utils": ["./packages/shared-utils/src"],
-      "shared-utils/*": ["./packages/shared-utils/src/*"],
-      "exif-middleware": ["./packages/exif-middleware/src"],
-      "exif-middleware/*": ["./packages/exif-middleware/src/*"]
+      "shared-utils": ["../../packages/shared-utils/src"],
+      "shared-utils/*": ["../../packages/shared-utils/src/*"],
+      "exif-middleware": ["../../packages/exif-middleware/src"],
+      "exif-middleware/*": ["../../packages/exif-middleware/src/*"]
     }
   },
-  "include": ["packages/**/*.ts", "packages/**/*.tsx"],
+  "include": ["src"],
   "references": [
     { "path": "./tsconfig.node.json" },
-    { "path": "./packages/shared-utils" },
-    { "path": "./packages/exif-middleware" },
-    { "path": "./apps/exif-hound-desktop/tsconfig.json" }
+    { "path": "../../packages/shared-utils" },
+    { "path": "../../packages/exif-middleware" }
   ]
 }

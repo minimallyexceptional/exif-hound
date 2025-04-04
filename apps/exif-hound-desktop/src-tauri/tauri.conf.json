@@ -34,5 +34,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "fs": {
+      "scope": {
+        "allow": ["**/*"],
+        "requireLiteralLeadingDot": false
+      }
+    },
+    "dialog": {
+      "all": true
+    }
   }
 }

@@ -69,7 +69,7 @@ function MapUpdater({ images, selectedImage }: { images: ImageData[]; selectedIm
       });
 
       // Highlight the selected marker and open its popup
-      const selectedMarker = markersRef.current[selectedImage.id];
+      const selectedMarker = selectedImage && markersRef.current[selectedImage.id];
       if (selectedMarker) {
         selectedMarker.setIcon(highlightedIcon);
         selectedMarker.openPopup();

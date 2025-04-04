@@ -1,0 +1,29 @@
+{
+  "name": "exif-middleware",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --clean --external shared-utils",
+    "dev": "tsup src/index.ts --format esm,cjs --watch --external shared-utils",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit --project tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "exifreader": "^4.21.1"
+  },
+  "peerDependencies": {
+    "shared-utils": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "tsup": "^8.0.1",
+    "eslint": "^9.9.1",
+    "shared-utils": "*"
+  }
+} 

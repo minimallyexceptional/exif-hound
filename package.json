@@ -1,43 +1,27 @@
 {
-  "name": "exif-hound-pro",
+  "name": "exif-hound-monorepo",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "tauri": "npx @tauri-apps/cli",
-    "tauri:dev": "npx @tauri-apps/cli dev",
-    "tauri:build": "npx @tauri-apps/cli build"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^2.0.0",
-    "@types/leaflet": "^1.9.8",
-    "exifreader": "^4.21.1",
-    "leaflet": "^1.9.4",
-    "lucide-react": "^0.344.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-leaflet": "^4.2.1",
-    "react-loading-skeleton": "^3.4.0"
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter=\"./packages/*\"",
+    "build:apps": "turbo run build --filter=\"./apps/*\"",
+    "dev": "turbo run dev",
+    "dev:packages": "turbo run dev --filter=\"./packages/*\" --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "tauri:dev": "turbo run tauri:dev --filter=exif-hound-desktop",
+    "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop"
   },
   "devDependencies": {
-    "@eslint/js": "^9.9.1",
-    "@tauri-apps/cli": "^2.0.0",
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.18",
-    "eslint": "^9.9.1",
-    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
-    "eslint-plugin-react-refresh": "^0.4.11",
-    "globals": "^15.9.0",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^8.3.0",
-    "vite": "^5.4.2"
-  }
+    "turbo": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "npm@10.0.0"
 }
