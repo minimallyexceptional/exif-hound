@@ -44,7 +44,7 @@ const isValidCoordinate = (coord: number | null | undefined): coord is number =>
 };
 
 // Auto pan component that handles map movement
-function MapUpdater({ images, selectedImage }: { images: ImageData[]; selectedImage: ImageData | null }) {
+function MapUpdater({ selectedImage }: { images: ImageData[]; selectedImage: ImageData | null }) {
   const map = useMap();
   const markersRef = useRef<{ [key: string]: LeafletMarker }>({});
   
