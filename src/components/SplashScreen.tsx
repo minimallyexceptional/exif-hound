@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Dog, Map as MapIcon, Upload, Shield, Lock, Eye } from 'lucide-react';
+import { Dog, Shield, Lock, Eye } from 'lucide-react';
 
 const SplashScreen: React.FC = () => {
   const [showSecondary, setShowSecondary] = useState(false);
@@ -17,10 +17,11 @@ const SplashScreen: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-app-black flex items-center justify-center z-50">
-      <div className="text-center space-y-6 relative">
-        <div className="relative">
+      <div className="max-w-md w-full mx-auto px-4">
+        {/* Logo container */}
+        <div className="relative h-40 flex items-center justify-center mb-10">
           <Dog 
-            className={`w-24 h-24 mx-auto text-app-white transform transition-all duration-700 ease-out ${
+            className={`w-24 h-24 text-app-white z-10 transform transition-all duration-700 ease-out ${
               showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           />
@@ -31,19 +32,21 @@ const SplashScreen: React.FC = () => {
             showSecondary ? 'scale-100 opacity-10' : 'scale-50 opacity-0'
           }`} />
         </div>
-
-        <div className={`space-y-2 transition-all duration-700 ease-out ${
+        
+        {/* Title */}
+        <div className={`text-center mb-14 transition-all duration-700 ease-out ${
           showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}>
-          <h1 className="text-3xl font-bold text-app-white">
+          <h1 className="text-3xl font-bold text-app-white mb-2">
             EXIF HOUND
           </h1>
           <p className="text-app-accent-dim font-mono">
             INITIALIZING METADATA ANALYSIS...
           </p>
         </div>
-
-        <div className={`flex justify-center gap-8 transition-all duration-700 ease-out ${
+        
+        {/* Feature icons */}
+        <div className={`grid grid-cols-3 gap-8 mb-16 transition-all duration-700 ease-out ${
           showTertiary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}>
           <div className="text-center">
@@ -59,14 +62,16 @@ const SplashScreen: React.FC = () => {
             <p className="text-sm text-app-accent-dim font-mono">DETECT</p>
           </div>
         </div>
-
+        
+        {/* Progress bar with explicit spacing */}
         <div className={`w-48 h-1 mx-auto bg-app-gray rounded-full overflow-hidden transition-all duration-700 ${
           showTertiary ? 'opacity-100' : 'opacity-0'
         }`}>
           <div className="h-full bg-app-white rounded-full animate-progress" />
         </div>
-
-        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 font-mono text-xs text-app-accent-dim transition-all duration-700 ${
+        
+        {/* Version */}
+        <div className={`text-center mt-16 font-mono text-xs text-app-accent-dim transition-all duration-700 ${
           showTertiary ? 'opacity-100' : 'opacity-0'
         }`}>
           SYSTEM v2.5.0

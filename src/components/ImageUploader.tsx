@@ -24,8 +24,11 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
         try {
           const latDesc = tags.GPSLatitude.description;
           const lonDesc = tags.GPSLongitude.description;
-          const latRef = tags.GPSLatitudeRef?.value?.[0] || 'N';
-          const lonRef = tags.GPSLongitudeRef?.value?.[0] || 'E';
+          // Safely access values with type checking
+          const latRefTag = tags.GPSLatitudeRef;
+          const lonRefTag = tags.GPSLongitudeRef;
+          const latRef = latRefTag && typeof latRefTag.value === 'string' ? latRefTag.value[0] : 'N';
+          const lonRef = lonRefTag && typeof lonRefTag.value === 'string' ? lonRefTag.value[0] : 'E';
 
           latitude = parseFloat(latDesc);
           longitude = parseFloat(lonDesc);
@@ -48,12 +51,29 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
         error = 'No GPS data found in image';
       }
 
-      // Extract additional EXIF data
+      // Extract additional EXIF data with safe type checking
       const gpsAltitude = tags.GPSAltitude?.description ? parseFloat(tags.GPSAltitude.description) : null;
       const gpsAltitudeRef = tags.GPSAltitudeRef?.description || null;
-      const imageWidth = tags.ImageWidth?.value?.[0] || null;
-      const imageHeight = tags.ImageLength?.value?.[0] || null;
-      const orientation = tags.Orientation?.value?.[0] || null;
+      
+      // Safely extract numeric values
+      const imageWidth = typeof tags.ImageWidth?.value === 'number' 
+        ? tags.ImageWidth.value 
+        : Array.isArray(tags.ImageWidth?.value) 
+          ? Number(tags.ImageWidth.value[0]) 
+          : null;
+          
+      const imageHeight = typeof tags.ImageLength?.value === 'number' 
+        ? tags.ImageLength.value 
+        : Array.isArray(tags.ImageLength?.value) 
+          ? Number(tags.ImageLength.value[0]) 
+          : null;
+          
+      const orientation = typeof tags.Orientation?.value === 'number' 
+        ? tags.Orientation.value 
+        : Array.isArray(tags.Orientation?.value) 
+          ? Number(tags.Orientation.value[0]) 
+          : null;
+          
       const software = tags.Software?.description || null;
       const artist = tags.Artist?.description || null;
       const copyright = tags.Copyright?.description || null;
@@ -63,7 +83,17 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
       const meteringMode = tags.MeteringMode?.description || null;
       const whiteBalance = tags.WhiteBalance?.description || null;
       const imageDescription = tags.ImageDescription?.description || null;
-      const userComment = tags.UserComment?.description || null;
+      // Use optional chaining and nullish coalescing for safety
+      const userComment = typeof tags.UserComment === 'object' && tags.UserComment !== null 
+        ? (tags.UserComment as any).description || null 
+        : null;
+      
+      // Safely extract ISO value
+      const iso = typeof tags.ISOSpeedRatings?.value === 'number' 
+        ? tags.ISOSpeedRatings.value 
+        : Array.isArray(tags.ISOSpeedRatings?.value) 
+          ? Number(tags.ISOSpeedRatings.value[0]) 
+          : null;
 
       return {
         latitude,
@@ -73,7 +103,7 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
         model: tags.Model?.description || null,
         exposureTime: tags.ExposureTime?.description || null,
         fNumber: tags.FNumber?.description ? parseFloat(tags.FNumber.description) : null,
-        iso: tags.ISOSpeedRatings?.value?.[0] || null,
+        iso,
         focalLength: tags.FocalLength?.description ? parseFloat(tags.FocalLength.description) : null,
         error,
         // New EXIF properties
