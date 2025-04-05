@@ -1,37 +1,45 @@
-# Exif Hound Desktop
+# Exif Hound Pro
 
-A cross-platform desktop application for exploring and visualizing image metadata, including GPS coordinates and camera settings.
+A powerful desktop application for visualizing and managing EXIF data from your images.
 
 ## Features
 
-- Import images and extract EXIF metadata
-- View image locations on an interactive map
-- Display detailed EXIF information including camera settings
-- Plot routes between geo-tagged images
-- Dark mode support
-- Export metadata to various formats
+- **Image Import**: Drag and drop or select multiple images
+- **EXIF Data Extraction**: View detailed EXIF metadata including location, camera settings, and more
+- **Map Visualization**: See where your photos were taken on an interactive map
+- **Human-Readable Location Data**: Displays city, state, and country information based on GPS coordinates
+- **Data Export**: Export EXIF data to JSON or CSV using native file dialogs
+- **Customizable Map Styles**: Choose from different map styles for your viewing preference
 
-## Development
+## Technical Details
 
-### Prerequisites
+### Native File System Integration
 
-1. Node.js (v16+)
-2. Rust (latest stable version)
-3. Tauri setup requirements:
-   - Windows: Microsoft Visual Studio C++ Build Tools
-   - macOS: Xcode Command Line Tools
-   - Linux: Various development libraries (see Tauri docs)
+The application uses Tauri's native file system APIs to provide a better user experience:
 
-### Setup
+- Native file dialogs for saving data
+- System-specific file handling
+- Proper file type association
 
-1. Run the development server
+#### Implementation Details
+
+- Uses the `@tauri-apps/plugin-dialog` for file save dialogs
+- Uses the `@tauri-apps/plugin-fs` for file writing operations
+- Includes browser fallback for handling edge cases
+
+### Local Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Run in development mode
 npm run tauri:dev
+
+# Build for production
+npm run tauri:build
 ```
 
-2. Build the application
+## License
 
-```bash
-npm run tauri:build
-``` 
+MIT 

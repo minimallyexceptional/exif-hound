@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Dog, Upload, Route as RouteIcon, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X } from 'lucide-react';
+import { Dog, Upload, Route as RouteIcon, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search } from 'lucide-react';
 import { Button } from './common/Button';
 import ThemeToggle from './ThemeToggle';
-import { Tooltip } from './common/Tooltip';
 import { Panel } from './common/Panel';
+
+type ViewMode = 'map' | 'list' | 'investigation';
 
 interface Props {
   imagesCount: number;
-  viewMode: 'map' | 'list';
+  viewMode: ViewMode;
   showRoute: boolean;
   onUpload: () => void;
   onExport: () => void;
@@ -15,6 +16,28 @@ interface Props {
   onToggleRoute: () => void;
   onOpenSettings: () => void;
 }
+
+const getViewIcon = (currentMode: ViewMode) => {
+  switch (currentMode) {
+    case 'map':
+      return <List className="w-4 h-4" />;
+    case 'list':
+      return <Search className="w-4 h-4" />;
+    case 'investigation':
+      return <MapIcon className="w-4 h-4" />;
+  }
+};
+
+const getNextViewLabel = (currentMode: ViewMode) => {
+  switch (currentMode) {
+    case 'map':
+      return 'List View';
+    case 'list':
+      return 'Investigation';
+    case 'investigation':
+      return 'Map View';
+  }
+};
 
 export const AppHeader: React.FC<Props> = ({
   imagesCount,
@@ -55,29 +78,29 @@ export const AppHeader: React.FC<Props> = ({
 
               <Button
                 variant="secondary"
-                icon={viewMode === 'map' ? <List className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
+                icon={getViewIcon(viewMode)}
                 onClick={() => { onToggleView(); setIsMobileMenuOpen(false); }}
                 fullWidth
               >
-                {viewMode === 'map' ? 'List View' : 'Map View'}
+                {getNextViewLabel(viewMode)}
               </Button>
 
-              <Button
-                variant={showRoute ? 'primary' : 'secondary'}
-                icon={<RouteIcon className="w-4 h-4" />}
-                onClick={() => { onToggleRoute(); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                Show Route
-              </Button>
+              {viewMode === 'map' && (
+                <Button
+                  variant={showRoute ? 'primary' : 'secondary'}
+                  icon={<RouteIcon className="w-4 h-4" />}
+                  onClick={() => { onToggleRoute(); setIsMobileMenuOpen(false); }}
+                  fullWidth
+                >
+                  Show Route
+                </Button>
+              )}
             </>
           )}
 
-          <div className="border-t border-app-gray-light/30 pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-app-white">Theme</span>
-              <ThemeToggle />
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-app-white">Theme</span>
+            <ThemeToggle />
           </div>
 
           <Button
@@ -111,7 +134,7 @@ export const AppHeader: React.FC<Props> = ({
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-4">
             {/* Primary Actions */}
             <div className="flex items-center">
               <Button
@@ -136,19 +159,21 @@ export const AppHeader: React.FC<Props> = ({
 
                 <Button
                   variant="secondary"
-                  icon={viewMode === 'map' ? <List className="w-4 h-4" /> : <MapIcon className="w-4 h-4" />}
+                  icon={getViewIcon(viewMode)}
                   onClick={onToggleView}
                 >
-                  {viewMode === 'map' ? 'List View' : 'Map View'}
+                  {getNextViewLabel(viewMode)}
                 </Button>
 
-                <Button
-                  variant={showRoute ? 'primary' : 'secondary'}
-                  icon={<RouteIcon className="w-4 h-4" />}
-                  onClick={onToggleRoute}
-                >
-                  Show Route
-                </Button>
+                {viewMode === 'map' && (
+                  <Button
+                    variant={showRoute ? 'primary' : 'secondary'}
+                    icon={<RouteIcon className="w-4 h-4" />}
+                    onClick={onToggleRoute}
+                  >
+                    Show Route
+                  </Button>
+                )}
               </div>
             )}
 

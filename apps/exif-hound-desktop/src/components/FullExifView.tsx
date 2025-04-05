@@ -1,13 +1,26 @@
 import React, { useState, useMemo } from 'react';
+import { 
+  ArrowLeft, 
+  Clock, 
+  FileText, 
+  MapPin, 
+  Camera, 
+  Copy, 
+  Check,
+  Image as ImageIcon,
+  Aperture,
+  Sliders,
+  Tag
+} from 'lucide-react';
 import { ImageData } from '../types';
-import { Copy, Check, ArrowLeft, Camera, Clock, MapPin, FileText, Image as ImageIcon, Aperture, Sliders, Tag } from 'lucide-react';
 import { Button } from './common/Button';
-import { copyToClipboard } from '../utils/clipboard';
 import { Panel } from './common/Panel';
+import { formatDateTime, formatDateOnly } from '../utils/date';
+import { formatLocation } from '../utils/geocoding';
 
 interface Props {
   image: ImageData;
-  rawExif: any;
+  rawExif: Record<string, unknown>;
   onBack: () => void;
 }
 
@@ -24,42 +37,32 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
   console.log('Raw EXIF data:', rawExif);
 
   const handleCopy = async (key: string, value: string) => {
-    const success = await copyToClipboard(value);
-    if (success) {
-      setCopiedKeys(prev => new Set(prev).add(key));
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKeys(prev => {
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      });
       setTimeout(() => {
         setCopiedKeys(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(key);
-          return newSet;
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
         });
-      }, 2000);
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
     }
   };
 
-  const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return 'N/A';
-    
-    // Handle ExifReader's tag format
+  const formatValue = (value: unknown): string => {
+    // Format non-string values appropriately
+    if (value === null || value === undefined) {
+      return 'N/A';
+    }
     if (typeof value === 'object') {
-      if ('description' in value) {
-        return String(value.description);
-      }
-      if ('value' in value) {
-        const val = value.value;
-        if (Array.isArray(val)) {
-          // Handle arrays of numbers (like RGB values)
-          if (val.every(v => typeof v === 'number')) {
-            return val.join(', ');
-          }
-          // Handle arrays of objects (like some GPS data)
-          if (val.every(v => typeof v === 'object')) {
-            return val.map(v => formatValue(v)).join(', ');
-          }
-          return val.join(', ');
-        }
-        return String(val);
-      }
+      return JSON.stringify(value);
     }
     return String(value);
   };
@@ -67,8 +70,40 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
   const exifGroups = useMemo((): ExifGroup[] => {
     // Helper function to safely get EXIF values from the expanded structure
     const getExifValue = (section: string, tag: string) => {
-      const value = rawExif?.[section]?.[tag];
-      return value ? formatValue(value) : 'N/A';
+      try {
+        // Check if the section exists in the raw EXIF data
+        if (rawExif && rawExif[section] && tag in (rawExif[section] as Record<string, unknown>)) {
+          const value = (rawExif[section] as Record<string, unknown>)[tag];
+
+          // Special formatting for date values
+          if (tag.toLowerCase().includes('date') || tag.toLowerCase().includes('time')) {
+            const strValue = formatValue(
+              value && typeof value === 'object' && 'description' in value 
+                ? (value as { description?: unknown }).description 
+                : value
+            );
+            // Don't try to format if it's already "N/A"
+            if (strValue === 'N/A') return strValue;
+            
+            // Use our enhanced date formatting for date/time fields
+            if (tag === 'DateTimeOriginal' || tag === 'CreateDate' || tag === 'ModifyDate' || tag === 'DateTimeDigitized') {
+              return formatDateTime(strValue);
+            } else if (tag === 'DateStamp') {
+              return formatDateOnly(strValue);
+            }
+          }
+          
+          return formatValue(
+            value && typeof value === 'object' && 'description' in value 
+              ? (value as { description?: unknown }).description 
+              : value
+          );
+        }
+        return 'N/A';
+      } catch (err) {
+        console.error(`Error getting EXIF value for ${section}.${tag}:`, err);
+        return 'N/A';
+      }
     };
 
     const groups: ExifGroup[] = [
@@ -182,6 +217,9 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         title: 'Location',
         icon: <MapPin className="w-5 h-5 text-app-accent" />,
         properties: [
+          ...(image.exif.location && !image.exif.location.loading ? [
+            { key: 'Location', value: formatLocation(image.exif.location) }
+          ] : []),
           { key: 'GPS Latitude', value: getExifValue('gps', 'Latitude') },
           { key: 'GPS Latitude Ref', value: getExifValue('gps', 'LatitudeRef') },
           { key: 'GPS Longitude', value: getExifValue('gps', 'Longitude') },
@@ -209,7 +247,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
           { key: 'File Size', value: `${(image.file.size / 1024).toFixed(1)} KB` },
           { key: 'File Type', value: image.file.type.split('/')[1].toUpperCase() },
           { key: 'MIME Type', value: image.file.type },
-          { key: 'Last Modified', value: new Date(image.file.lastModified).toLocaleString() }
+          { key: 'Last Modified', value: formatDateTime(new Date(image.file.lastModified).toISOString()) }
         ]
       }
     ];
@@ -241,7 +279,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
       {header}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-6">
-          {exifGroups.map((group, index) => (
+          {exifGroups.map((group) => (
             <div key={group.title} className="space-y-3">
               <div className="flex items-center gap-2 text-app-white border-b border-app-gray-light/10 pb-2">
                 {group.icon}

@@ -2,6 +2,8 @@ import React from 'react';
 import { ImageData } from '../types';
 import { ImageIcon, Images, FileText, MapPin, Clock, Camera } from 'lucide-react';
 import { Button } from './common/Button';
+import { formatDateTime } from '../utils/date';
+import { formatShortLocation } from '../utils/geocoding';
 
 interface Props {
   image: ImageData;
@@ -68,9 +70,25 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
               <MapPin className="w-5 h-5 text-app-accent" />
               <h3 className="font-medium">Location</h3>
             </div>
-            <p className={`pl-7 ${hasValidCoordinates ? 'text-app-accent' : 'text-app-accent-dim'}`}>
-              {formatCoordinates()}
-            </p>
+            {exif.location && !exif.location.loading ? (
+              <div className="pl-7 space-y-1">
+                <p className="text-app-accent">{formatShortLocation(exif.location)}</p>
+                <p className={`text-xs ${hasValidCoordinates ? 'text-app-accent-dim' : 'text-app-accent-dim'}`}>
+                  {formatCoordinates()}
+                </p>
+              </div>
+            ) : exif.location?.loading ? (
+              <div className="pl-7">
+                <p className="text-app-accent-dim">Loading location data...</p>
+                <p className={`text-xs ${hasValidCoordinates ? 'text-app-accent-dim' : 'text-app-accent-dim'}`}>
+                  {formatCoordinates()}
+                </p>
+              </div>
+            ) : (
+              <p className={`pl-7 ${hasValidCoordinates ? 'text-app-accent' : 'text-app-accent-dim'}`}>
+                {formatCoordinates()}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -79,7 +97,7 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
               <h3 className="font-medium">Date Taken</h3>
             </div>
             <p className="text-app-accent pl-7">
-              {exif.dateTimeOriginal || 'Not available'}
+              {exif.dateTimeOriginal ? formatDateTime(exif.dateTimeOriginal) : 'Not available'}
             </p>
           </div>
 

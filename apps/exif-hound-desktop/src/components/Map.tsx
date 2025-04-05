@@ -6,6 +6,24 @@ import { MAP_STYLES } from '../constants/mapStyles';
 import 'leaflet/dist/leaflet.css';
 import { Icon, Marker as LeafletMarker } from 'leaflet';
 import { Maximize2, X, ZapOff as MapOff } from 'lucide-react';
+import { formatShortDateTime } from '../utils/date';
+import * as geolib from 'geolib';
+import { fixCoordinates, isWesternHemisphere } from '../utils/diagnostics';
+import { formatShortLocation } from '../utils/geocoding';
+
+/**
+ * Map Component
+ * 
+ * This component displays image locations on a Leaflet map.
+ * 
+ * IMPORTANT: This implementation relies on the EXIF middleware for coordinate
+ * processing. The middleware handles all GPS coordinate extraction, validation,
+ * and sign correction. The useExifData hook converts the middleware's metadata
+ * format to the application's ExifData format.
+ * 
+ * Leaflet expects coordinates in [latitude, longitude] format.
+ * The geolib package is used for additional validation and formatting.
+ */
 
 // Fix for default marker icon not showing up
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -44,7 +62,7 @@ const isValidCoordinate = (coord: number | null | undefined): coord is number =>
 };
 
 // Auto pan component that handles map movement
-function MapUpdater({ selectedImage }: { images: ImageData[]; selectedImage: ImageData | null }) {
+function MapUpdater({ selectedImage }: { selectedImage: ImageData | null }) {
   const map = useMap();
   const markersRef = useRef<{ [key: string]: LeafletMarker }>({});
   
@@ -53,6 +71,7 @@ function MapUpdater({ selectedImage }: { images: ImageData[]; selectedImage: Ima
     const lng = selectedImage?.exif.longitude;
 
     if (isValidCoordinate(lat) && isValidCoordinate(lng)) {
+      // Use the correct coordinate order for Leaflet [latitude, longitude]
       map.setView(
         [lat, lng],
         15,
@@ -90,9 +109,17 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
   
   const selectedStyle = MAP_STYLES.find(style => style.id === mapSettings.selectedStyle) || MAP_STYLES[0];
   
+  // Filter images to only include those with valid GPS coordinates
   const imagesWithLocation = images.filter(img => {
-    const hasValidLocation = isValidCoordinate(img.exif.latitude) && isValidCoordinate(img.exif.longitude);
-    return hasValidLocation;
+    const hasCoordinates = isValidCoordinate(img.exif.latitude) && isValidCoordinate(img.exif.longitude);
+    if (hasCoordinates) {
+      // Final validation with geolib
+      return geolib.isValidCoordinate({
+        latitude: img.exif.latitude!,
+        longitude: img.exif.longitude!
+      });
+    }
+    return false;
   });
 
   const hasNoLocationData = selectedImage && 
@@ -105,10 +132,11 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
     return dateA - dateB;
   });
 
-  // Create route coordinates
+  // Create route coordinates - always using [latitude, longitude] format for Leaflet
   const routeCoordinates = sortedImages
     .map(img => [img.exif.latitude!, img.exif.longitude!] as [number, number]);
 
+  // Set center point of map
   const center = imagesWithLocation.length > 0 && 
     isValidCoordinate(imagesWithLocation[0].exif.latitude) && 
     isValidCoordinate(imagesWithLocation[0].exif.longitude)
@@ -167,7 +195,7 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
       ref={mapRef}
     >
       <ZoomControl position="bottomright" />
-      <MapUpdater images={images} selectedImage={selectedImage} />
+      <MapUpdater selectedImage={selectedImage} />
       <TileLayer
         url={selectedStyle.url}
         attribution={selectedStyle.attribution}
@@ -182,8 +210,32 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
         />
       )}
       {imagesWithLocation.map((image) => {
-        const lat = image.exif.latitude!;
-        const lng = image.exif.longitude!;
+        const origLat = image.exif.latitude!;
+        const origLng = image.exif.longitude!;
+        
+        // Apply coordinate fixes - both are already non-null due to the imagesWithLocation filter
+        const [lat, lng] = fixCoordinates(origLat, origLng) as [number, number];
+        
+        // Validate coordinates using geolib
+        const isValid = geolib.isValidCoordinate({ 
+          latitude: lat, 
+          longitude: lng 
+        });
+        
+        // Log raw coordinates for debugging
+        console.log(`MAP PIN DATA: ${image.file.name}`, {
+          originalLat: origLat,
+          originalLng: origLng,
+          fixedLat: lat,
+          fixedLng: lng,
+          wasFixed: origLng !== lng,
+          isWesternHemisphere: isWesternHemisphere(origLat, origLng),
+          isValidCoordinate: isValid,
+          formattedDMS: {
+            latitude: geolib.decimalToSexagesimal(lat),
+            longitude: geolib.decimalToSexagesimal(lng)
+          }
+        });
 
         return (
           <Marker
@@ -204,8 +256,29 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
                   className="w-32 h-32 object-cover rounded mb-2"
                 />
                 <div className="text-sm">
-                  <p><strong>Date:</strong> {image.exif.dateTimeOriginal}</p>
-                  <p><strong>Camera:</strong> {image.exif.make} {image.exif.model}</p>
+                  <p><strong>Date:</strong> {image.exif.dateTimeOriginal ? formatShortDateTime(image.exif.dateTimeOriginal) : 'Not available'}</p>
+                  <p><strong>Camera:</strong> {image.exif.make || 'Unknown'} {image.exif.model || ''}</p>
+                  <div className="mt-1">
+                    <p className="font-semibold">Location</p>
+                    {image.exif.location && !image.exif.location.loading ? (
+                      <p className="text-xs">{formatShortLocation(image.exif.location)}</p>
+                    ) : image.exif.location?.loading ? (
+                      <p className="text-xs text-gray-600">Loading location data...</p>
+                    ) : null}
+                    <p className="text-xs text-gray-600">Decimal: {lat.toFixed(6)}, {lng.toFixed(6)}</p>
+                    <p className="text-xs text-gray-600">DMS: {geolib.decimalToSexagesimal(lat)}, {geolib.decimalToSexagesimal(lng)}</p>
+                    <p className="text-xs text-gray-600">Hemisphere: {lat >= 0 ? 'N' : 'S'}, {lng >= 0 ? 'E' : 'W'}</p>
+                  </div>
+                  {isWesternHemisphere(lat, lng) && lng > 0 && (
+                    <p className="text-red-500 mt-1 text-xs">
+                      Warning: Western hemisphere longitude should be negative!
+                    </p>
+                  )}
+                  {!isValid && (
+                    <p className="text-red-500 mt-1 text-xs">
+                      Warning: These coordinates may not be valid!
+                    </p>
+                  )}
                   {image.exif.error && (
                     <p className="text-red-500 mt-1">{image.exif.error}</p>
                   )}

@@ -5,6 +5,7 @@ import Map from './components/Map';
 import ExifPanel from './components/ExifPanel';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
+import Investigation from './components/Investigation';
 import ExportModal from './components/ExportModal';
 import Settings from './components/Settings';
 import SplashScreen from './components/SplashScreen';
@@ -14,11 +15,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
 import ImageComparison from './components/ImageComparison';
 
+type ViewMode = 'map' | 'list' | 'investigation';
+
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [showRoute, setShowRoute] = useState(false);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -48,10 +51,6 @@ function App() {
     setShowRoute(prev => !prev);
   };
 
-  const toggleViewMode = () => {
-    setViewMode(prev => prev === 'map' ? 'list' : 'map');
-  };
-
   const toggleGallery = () => {
     setIsGalleryCollapsed(prev => !prev);
   };
@@ -59,6 +58,48 @@ function App() {
   const handleShowComparison = (image: ImageData) => {
     setComparisonImage(image);
     setShowImageComparison(true);
+  };
+
+  const getViewTitle = () => {
+    switch (viewMode) {
+      case 'map':
+        return 'Location Map';
+      case 'list':
+        return 'Image Details';
+      case 'investigation':
+        return 'Investigation';
+      default:
+        return '';
+    }
+  };
+
+  const renderView = () => {
+    switch (viewMode) {
+      case 'map':
+        return (
+          <div className="h-full">
+            <Map 
+              images={images} 
+              selectedImage={selectedImage}
+              showRoute={showRoute}
+            />
+          </div>
+        );
+      case 'list':
+        return (
+          <ImageList
+            images={images}
+            selectedImage={selectedImage}
+            onSelect={setSelectedImage}
+          />
+        );
+      case 'investigation':
+        return (
+          <Investigation images={images} />
+        );
+      default:
+        return null;
+    }
   };
 
   if (isLoading) {
@@ -73,7 +114,13 @@ function App() {
         showRoute={showRoute}
         onUpload={handleUploadClick}
         onExport={() => setShowExportModal(true)}
-        onToggleView={toggleViewMode}
+        onToggleView={() => {
+          setViewMode(prev => {
+            if (prev === 'map') return 'list';
+            if (prev === 'list') return 'investigation';
+            return 'map';
+          });
+        }}
         onToggleRoute={handleRouteClick}
         onOpenSettings={() => setShowSettings(true)}
       />
@@ -84,7 +131,7 @@ function App() {
         hideDropZone
       />
 
-      <div className="relative flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         <AppLayout
           showSidebar={images.length > 0 && viewMode === 'map'}
           isGalleryCollapsed={isGalleryCollapsed}
@@ -100,30 +147,16 @@ function App() {
         >
           <div className="flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30">
             <h2 className="text-lg font-semibold text-app-white">
-              {viewMode === 'map' ? 'Location Map' : 'Image Details'}
+              {getViewTitle()}
             </h2>
           </div>
-          <div className="flex-1 p-4 sm:p-6 min-h-0">
-            {viewMode === 'map' ? (
-              <div className="h-full">
-                <Map 
-                  images={images} 
-                  selectedImage={selectedImage}
-                  showRoute={showRoute}
-                />
-              </div>
-            ) : (
-              <ImageList
-                images={images}
-                selectedImage={selectedImage}
-                onSelect={setSelectedImage}
-              />
-            )}
+          <div className="flex-1 min-h-0">
+            {renderView()}
           </div>
         </AppLayout>
 
-        {/* EXIF Panel - Responsive */}
-        {selectedImage && (
+        {/* EXIF Panel - Only show for map and list views */}
+        {selectedImage && viewMode !== 'investigation' && (
           <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
           }`}>

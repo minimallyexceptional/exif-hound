@@ -4,27 +4,37 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5176 --clearScreen false",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json",
-    "tauri": "npx @tauri-apps/cli",
-    "tauri:dev": "npx @tauri-apps/cli dev",
-    "tauri:build": "npx @tauri-apps/cli build"
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/api": "^2.4.1",
+    "@tauri-apps/plugin-dialog": "^2.2.1",
+    "@tauri-apps/plugin-fs": "^2.2.1",
     "@types/leaflet": "^1.9.8",
+    "@visx/axis": "^3.12.0",
+    "@visx/group": "^3.12.0",
+    "@visx/hierarchy": "^3.12.0",
+    "@visx/scale": "^3.12.0",
+    "@visx/shape": "^3.12.0",
+    "@visx/tooltip": "^3.12.0",
+    "@visx/zoom": "^3.12.0",
+    "exif-middleware": "*",
     "exifreader": "^4.21.1",
+    "geolib": "^3.3.4",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "react-loading-skeleton": "^3.4.0",
-    "shared-utils": "*",
-    "exif-middleware": "*"
+    "shared-utils": "*"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
@@ -44,4 +54,4 @@
     "typescript-eslint": "^8.3.0",
     "vite": "^5.4.2"
   }
-} 
+}

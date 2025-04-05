@@ -27,6 +27,90 @@ export interface ExifMetadata {
 }
 
 /**
+ * Parses coordinates from EXIF data, handling different formats
+ * @param coordinateStr The coordinate string from EXIF
+ * @param isLongitude Whether this is a longitude value (helps with intelligent auto-correction)
+ * @param direction Optional N, S, E, W direction if known separately
+ * @returns Parsed coordinate as a decimal number
+ */
+function parseCoordinate(coordinateStr: string, isLongitude = false, direction?: string): number | undefined {
+  try {
+    // Check if the string already has a direction indicator
+    const hasDirectionInStr = /[NSEW]$/i.test(coordinateStr.trim());
+    
+    // Some formats provide coordinates as decimal degrees
+    if (!coordinateStr.includes("'") && !coordinateStr.includes('"')) {
+      const value = parseFloat(coordinateStr);
+      
+      // If no direction in string but direction provided separately, apply it
+      if (!hasDirectionInStr && direction) {
+        const dir = direction.toUpperCase();
+        if (dir === 'S' || dir === 'W') {
+          return -Math.abs(value);
+        } else if (dir === 'N' || dir === 'E') {
+          return Math.abs(value);
+        }
+      }
+      
+      // Auto-correct common western hemisphere values if they're positive
+      if (isLongitude && !direction && !hasDirectionInStr && value > 30 && value < 180) {
+        console.warn(`Detected likely Western hemisphere longitude value without direction: ${value}`);
+        console.warn(`Auto-correcting to negative value: ${-Math.abs(value)}`);
+        return -Math.abs(value);
+      }
+      
+      return value;
+    }
+    
+    // Handle DMS format (degrees, minutes, seconds)
+    // Example formats: "40 deg 42' 51.95\" N" or "40° 42' 51.95\" N"
+    const dmsPattern = /(\d+)(?:°|\s*deg)?\s+(\d+)['′]?\s+(\d+(?:\.\d+)?)["″]?\s*([NSEW])?/i;
+    const dmsMatch = coordinateStr.match(dmsPattern);
+    
+    if (dmsMatch) {
+      const [, degrees, minutes, seconds, dirFromStr] = dmsMatch;
+      let decimal = parseInt(degrees, 10) + parseInt(minutes, 10) / 60 + parseFloat(seconds) / 3600;
+      
+      // Use direction from string if available, otherwise use provided direction
+      const finalDirection = dirFromStr || direction;
+      
+      // Apply the direction - Western and Southern hemispheres need negative coordinates
+      if (finalDirection) {
+        const dir = finalDirection.toUpperCase();
+        if (dir === 'S' || dir === 'W') {
+          decimal = -Math.abs(decimal);
+          console.log(`Applied ${dir} direction to make coordinate negative: ${decimal}`);
+        } else {
+          decimal = Math.abs(decimal);
+          console.log(`Applied ${dir} direction to keep coordinate positive: ${decimal}`);
+        }
+      } else if (isLongitude && decimal > 30 && decimal < 180) {
+        // For longitude without direction, likely western hemisphere if in common range
+        decimal = -Math.abs(decimal);
+        console.warn(`No direction for likely western hemisphere longitude. Auto-correcting: ${decimal}`);
+      }
+      
+      return decimal;
+    }
+    
+    // Simple decimal degrees with no direction indicator
+    const value = parseFloat(coordinateStr);
+    
+    // Auto-correct common western hemisphere values if they're positive
+    if (isLongitude && !direction && !hasDirectionInStr && value > 30 && value < 180) {
+      console.warn(`Detected likely Western hemisphere longitude value without direction: ${value}`);
+      console.warn(`Auto-correcting to negative value: ${-Math.abs(value)}`);
+      return -Math.abs(value);
+    }
+    
+    return value;
+  } catch (error) {
+    console.error('Error parsing coordinate:', coordinateStr, error);
+    return undefined;
+  }
+}
+
+/**
  * Extract EXIF data from an image buffer
  * @param buffer The image buffer
  * @returns Processed EXIF metadata
@@ -34,6 +118,14 @@ export interface ExifMetadata {
 export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata> {
   try {
     const tags = ExifReader.load(buffer);
+    
+    // Log all raw GPS data for debugging
+    console.log('EXIF RAW GPS Data:', {
+      GPSLatitude: tags.GPSLatitude,
+      GPSLatitudeRef: tags.GPSLatitudeRef,
+      GPSLongitude: tags.GPSLongitude,
+      GPSLongitudeRef: tags.GPSLongitudeRef,
+    });
     
     const metadata: ExifMetadata = {};
     
@@ -51,21 +143,95 @@ export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata
       metadata.dateTaken = new Date(year, month - 1, day, hour, minute, second);
     }
     
-    // GPS information
+    // GPS information - Direct extraction from EXIF
+    // We'll use the description field which is already formatted as a string by exif-reader
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    
+    // Process latitude with reference
     if (tags.GPSLatitude && tags.GPSLatitudeRef) {
-      metadata.latitude = parseFloat(tags.GPSLatitude.description);
-      if (tags.GPSLatitudeRef.description === 'S' && metadata.latitude !== undefined) {
-        metadata.latitude = -metadata.latitude;
+      try {
+        // Get the description which is already formatted as a human-readable string
+        let latStr = tags.GPSLatitude.description;
+        console.log('Latitude description:', latStr);
+        
+        // Get the reference (N/S)
+        const latRefStr = tags.GPSLatitudeRef.description;
+        console.log('Latitude reference:', latRefStr);
+        
+        // Parse latitude value
+        let latValue = parseFloat(latStr);
+        
+        // Apply reference (S = negative)
+        if (!isNaN(latValue)) {
+          if (latRefStr === 'S') {
+            latValue = -Math.abs(latValue);
+          }
+          latitude = latValue;
+          console.log('Parsed latitude with reference:', latitude);
+        }
+        
+        // Validate the latitude range
+        if (latitude !== undefined && (latitude < -90 || latitude > 90)) {
+          console.error('Invalid latitude value outside range -90 to 90:', latitude);
+          latitude = undefined;
+        }
+      } catch (error) {
+        console.error('Error processing latitude:', error);
       }
     }
     
+    // Process longitude with reference
     if (tags.GPSLongitude && tags.GPSLongitudeRef) {
-      metadata.longitude = parseFloat(tags.GPSLongitude.description);
-      if (tags.GPSLongitudeRef.description === 'W' && metadata.longitude !== undefined) {
-        metadata.longitude = -metadata.longitude;
+      try {
+        // Get the description which is already formatted as a human-readable string
+        let lonStr = tags.GPSLongitude.description;
+        console.log('Longitude description:', lonStr);
+        
+        // Get the reference (E/W)
+        const lonRefStr = tags.GPSLongitudeRef.description;
+        console.log('Longitude reference:', lonRefStr);
+        
+        // Parse longitude value
+        let lonValue = parseFloat(lonStr);
+        
+        // Apply reference (W = negative)
+        if (!isNaN(lonValue)) {
+          if (lonRefStr === 'W') {
+            lonValue = -Math.abs(lonValue);
+          }
+          longitude = lonValue;
+          console.log('Parsed longitude with reference:', longitude);
+        }
+        
+        // Validate the longitude range
+        if (longitude !== undefined && (longitude < -180 || longitude > 180)) {
+          console.error('Invalid longitude value outside range -180 to 180:', longitude);
+          longitude = undefined;
+        }
+      } catch (error) {
+        console.error('Error processing longitude:', error);
       }
     }
     
+    // Special handling for North American coordinates without proper references
+    if (latitude !== undefined && longitude !== undefined) {
+      // North America is approximately between 15°N-70°N and 50°W-170°W
+      // If a location appears to be in North America but longitude is positive, fix it
+      if (latitude > 15 && latitude < 70 && longitude > 50 && longitude < 170) {
+        console.warn('North American location detected with positive longitude:', longitude);
+        console.warn('Converting to negative longitude for Western hemisphere');
+        longitude = -Math.abs(longitude);
+      }
+      
+      // For debugging - log final coordinates
+      console.log('Final coordinates:', { latitude, longitude });
+    }
+    
+    metadata.latitude = latitude;
+    metadata.longitude = longitude;
+    
+    // Handle altitude
     if (tags.GPSAltitude) {
       metadata.altitude = parseFloat(tags.GPSAltitude.description);
     }
