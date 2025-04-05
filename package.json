@@ -12,10 +12,12 @@
     "build:apps": "turbo run build --filter=\"./apps/*\"",
     "dev": "turbo run dev",
     "dev:packages": "turbo run dev --filter=\"./packages/*\" --parallel",
+    "dev:website": "turbo run dev --filter=exif-hound-website",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "tauri:dev": "turbo run tauri:dev --filter=exif-hound-desktop",
-    "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop"
+    "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop",
+    "website:build": "turbo run build --filter=exif-hound-website"
   },
   "devDependencies": {
     "turbo": "^2.0.0"

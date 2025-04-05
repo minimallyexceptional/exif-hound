@@ -34,5 +34,18 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "dialog": null,
+    "fs": null,
+    "http": null,
+    "process": {
+      "all": true,
+      "exit": true
+    },
+    "window": {
+      "all": true,
+      "close": true
+    }
   }
 }

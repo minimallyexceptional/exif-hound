@@ -13,6 +13,18 @@
     "core:menu:default",
     "core:tray:default",
     "core:window:allow-set-title",
-    "dialog:default"
+    "dialog:default",
+    "http:default",
+    "http:allow-fetch",
+    "http:allow-fetch-cancel",
+    "http:allow-fetch-read-body",
+    "http:allow-fetch-send",
+    {
+      "identifier": "http:default",
+      "allow": [
+        "http://localhost:3000/api/*",
+        "https://exifhound.com/api/*"
+      ]
+    }
   ]
 } 

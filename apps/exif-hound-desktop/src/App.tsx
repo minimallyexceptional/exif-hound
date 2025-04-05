@@ -14,6 +14,8 @@ import { AppLayout } from './components/AppLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
 import ImageComparison from './components/ImageComparison';
+import { LicenseActivationModal } from './components/LicenseActivationModal';
+import { hasLicense, verifyLicense } from './utils/licenseManager';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -29,6 +31,8 @@ function App() {
   const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [licenseError, setLicenseError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,6 +41,42 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const checkLicense = async () => {
+      try {
+        const hasExistingLicense = await hasLicense();
+        
+        if (!hasExistingLicense) {
+          console.log('[App] No license found, showing activation modal');
+          setShowLicenseModal(true);
+          return;
+        }
+        
+        const licenseStatus = await verifyLicense();
+        if (!licenseStatus.isValid) {
+          console.log('[App] License invalid:', licenseStatus.errorMessage);
+          setLicenseError(licenseStatus.errorMessage || 'Invalid license');
+          setShowLicenseModal(true);
+        } else {
+          console.log('[App] License valid');
+        }
+      } catch (error) {
+        console.error('[App] Error checking license:', error);
+        setShowLicenseModal(true);
+      }
+    };
+    
+    if (!isLoading) {
+      checkLicense();
+    }
+  }, [isLoading]);
+
+  const handleLicenseSuccess = () => {
+    console.log('[App] License activation successful');
+    setShowLicenseModal(false);
+    setLicenseError(null);
+  };
 
   const handleImageUpload = (imageData: ImageData) => {
     setImages(prev => [...prev, imageData]);
@@ -220,6 +260,12 @@ function App() {
             setShowImageComparison(false);
             setComparisonImage(null);
           }}
+        />
+      )}
+
+      {showLicenseModal && (
+        <LicenseActivationModal
+          onSuccess={handleLicenseSuccess}
         />
       )}
     </div>
