@@ -12,6 +12,7 @@ interface Props {
   images: ImageData[];
   width: number;
   height: number;
+  showStats?: boolean;
 }
 
 interface TimelineNode {
@@ -21,18 +22,51 @@ interface TimelineNode {
   y: number;
 }
 
-const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
+const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = true }) => {
   const [tooltipData, setTooltipData] = useState<TimelineNode | null>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [visibleImages, setVisibleImages] = useState<Set<string>>(
     new Set(images.map(img => img.file.name))
   );
   
-  const margin = { top: 60, right: 40, bottom: 60, left: 40 };
+  const margin = { 
+    top: showStats ? 60 : 30, 
+    right: 40, 
+    bottom: 60, 
+    left: 40 
+  };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // Process and sort images by date
+  const timeStats = useMemo(() => {
+    const imagesWithDates = images.filter(img => img.exif.dateTimeOriginal && visibleImages.has(img.file.name));
+    
+    if (imagesWithDates.length === 0) {
+      return {
+        total: 0,
+        earliestDate: null,
+        latestDate: null,
+        timeSpan: null
+      };
+    }
+    
+    const dates = imagesWithDates.map(img => new Date(img.exif.dateTimeOriginal!));
+    const earliestDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const latestDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    
+    const diffMs = latestDate.getTime() - earliestDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return {
+      total: imagesWithDates.length,
+      earliestDate,
+      latestDate,
+      timeSpan: `${diffDays}d ${diffHours}h ${diffMinutes}m`
+    };
+  }, [images, visibleImages]);
+
   const timelineData = useMemo(() => {
     return images
       .filter(img => img.exif.dateTimeOriginal && visibleImages.has(img.file.name))
@@ -43,7 +77,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [images, visibleImages]);
 
-  // Create scales
   const timeScale = useMemo(() => {
     if (timelineData.length === 0) return null;
     
@@ -69,6 +102,31 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
 
   return (
     <div className="w-full h-full relative">
+      {showStats && timeStats.total > 0 && (
+        <div className="flex gap-4 p-4 mb-2">
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="text-xs text-app-accent-dim">Images</div>
+            <div className="text-lg font-semibold text-app-white">{timeStats.total}</div>
+          </div>
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="text-xs text-app-accent-dim">Earliest</div>
+            <div className="text-sm font-semibold text-app-white">
+              {timeStats.earliestDate ? formatDateTime(timeStats.earliestDate.toISOString()) : '-'}
+            </div>
+          </div>
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="text-xs text-app-accent-dim">Latest</div>
+            <div className="text-sm font-semibold text-app-white">
+              {timeStats.latestDate ? formatDateTime(timeStats.latestDate.toISOString()) : '-'}
+            </div>
+          </div>
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="text-xs text-app-accent-dim">Time Span</div>
+            <div className="text-sm font-semibold text-app-white">{timeStats.timeSpan || '-'}</div>
+          </div>
+        </div>
+      )}
+
       <Zoom<SVGSVGElement>
         width={width}
         height={height}
@@ -107,7 +165,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
                   top={margin.top}
                   left={margin.left}
                 >
-                  {/* Timeline base line */}
                   <line
                     x1={0}
                     x2={innerWidth}
@@ -118,7 +175,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
                     strokeOpacity={0.3}
                   />
 
-                  {/* Draw nodes */}
                   {nodes.map((node, i) => (
                     <Group
                       key={`node-${i}`}
@@ -133,7 +189,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
                         fill="#4A90E2"
                         opacity={0.6}
                       />
-                      {/* Vertical connector line */}
                       <line
                         x1={0}
                         x2={0}
@@ -143,7 +198,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
                         strokeWidth={1}
                         strokeOpacity={0.2}
                       />
-                      {/* Image name - alternate above/below timeline */}
                       <text
                         dy={i % 2 === 0 ? "-45" : "60"}
                         dx={0}
@@ -160,7 +214,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
                     </Group>
                   ))}
 
-                  {/* Time axis */}
                   <AxisBottom
                     top={innerHeight}
                     scale={timeScale}
@@ -186,7 +239,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
               )}
             </svg>
 
-            {/* Zoom controls */}
             <div className="absolute bottom-4 right-4 flex gap-2">
               <button
                 onClick={() => setShowFilterPanel(!showFilterPanel)}
@@ -222,7 +274,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
               )}
             </div>
 
-            {/* Filter Panel */}
             {showFilterPanel && (
               <div className="absolute top-4 right-4 w-64 bg-app-gray-dark border border-app-gray-light rounded-lg shadow-lg">
                 <div className="p-3 border-b border-app-gray-light">
@@ -274,7 +325,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
               </div>
             )}
 
-            {/* Tooltip */}
             {tooltipData && (
               <Tooltip
                 style={{
@@ -310,6 +360,10 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height }) => {
       </Zoom>
     </div>
   );
+};
+
+TimelineAnalysis.defaultProps = {
+  showStats: true
 };
 
 export default TimelineAnalysis; 

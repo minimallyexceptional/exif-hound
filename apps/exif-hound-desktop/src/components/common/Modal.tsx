@@ -36,10 +36,10 @@ export const Modal: React.FC<ModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className={`glass-panel rounded-lg shadow-inner-light w-full ${isFullscreen ? '' : sizeClasses[size]} ${className} flex flex-col ${
-        isFullscreen ? 'fixed inset-0 rounded-none' : 'max-h-[calc(100vh-2rem)]'
+      <div className={`glass-panel rounded-xl border border-app-gray-light/30 shadow-lg shadow-black/30 w-full ${isFullscreen ? '' : sizeClasses[size]} ${className} flex flex-col ${
+        isFullscreen ? 'fixed inset-0 rounded-none border-0' : 'max-h-[calc(100vh-2rem)]'
       }`}>
-        <div className="flex-none p-4 border-b border-app-gray-light/30 bg-app-gray/95 backdrop-blur-sm z-10">
+        <div className="flex-none p-4 border-b border-app-gray-light/30 bg-app-gray/95 backdrop-blur-sm z-10 rounded-t-xl">
           <div className="flex items-center justify-between gap-4">
             {headerContent ? (
               <>
@@ -94,7 +94,7 @@ export const Modal: React.FC<ModalProps> = ({
             )}
           </div>
         </div>
-        <div className={`flex-1 overflow-y-auto ${isFullscreen ? 'flex items-center justify-center' : 'p-6'}`}>
+        <div className={`flex-1 overflow-y-auto ${isFullscreen ? 'flex items-center justify-center' : 'p-6'} ${isFullscreen ? '' : 'rounded-b-xl'}`}>
           {children}
         </div>
       </div>

@@ -52,8 +52,13 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
   };
 
   return (
-    <Modal title="Export Data" onClose={onClose} size="sm">
-      <div className="p-6 space-y-4">
+    <Modal 
+      title="Export Data" 
+      onClose={onClose} 
+      size="sm"
+      className="export-modal"
+    >
+      <div className="p-6 space-y-6">
         {exportError && (
           <div className="bg-red-900/30 p-3 rounded-md text-red-300 flex items-start gap-2 mb-2 text-sm">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -64,6 +69,7 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
         <Button
           fullWidth
           variant="secondary"
+          className="py-3 hover:translate-y-[-2px] transition-all duration-200 ease-in-out"
           icon={isExporting ? <Loader className="w-5 h-5 animate-spin" /> : <FileJson className="w-5 h-5" />}
           onClick={() => handleExport('json')}
           disabled={isExporting}
@@ -73,12 +79,17 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
         <Button
           fullWidth
           variant="secondary"
+          className="py-3 hover:translate-y-[-2px] transition-all duration-200 ease-in-out"
           icon={isExporting ? <Loader className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5" />}
           onClick={() => handleExport('csv')}
           disabled={isExporting}
         >
           {isExporting ? 'Exporting...' : 'Export as CSV'}
         </Button>
+        
+        <div className="text-xs text-app-accent-dim text-center mt-2">
+          Export includes all metadata from {images.length} images
+        </div>
       </div>
     </Modal>
   );

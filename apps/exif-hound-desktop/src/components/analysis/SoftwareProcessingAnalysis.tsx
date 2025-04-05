@@ -5,6 +5,7 @@ import { formatDateTime } from '../../utils/date';
 
 interface Props {
   images: ImageData[];
+  showStats?: boolean;
 }
 
 interface ProcessingInfo {
@@ -16,7 +17,7 @@ interface ProcessingInfo {
   anomalies: string[];
 }
 
-const SoftwareProcessingAnalysis: React.FC<Props> = ({ images }) => {
+const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedSoftware, setSelectedSoftware] = useState<Set<string>>(new Set());
 
@@ -93,37 +94,39 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images }) => {
 
   return (
     <div className="w-full h-full relative p-4">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Info className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">Total Images</h3>
+      {/* Stats Overview - Only show when showStats is true */}
+      {showStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">Total Images</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">{stats.total}</p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">{stats.total}</p>
-        </div>
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Edit2 className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">Edited Images</h3>
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Edit2 className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">Edited Images</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">{stats.edited}</p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">{stats.edited}</p>
-        </div>
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <History className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">With Software Info</h3>
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <History className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">With Software Info</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">{stats.withSoftware}</p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">{stats.withSoftware}</p>
-        </div>
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">With Anomalies</h3>
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">With Anomalies</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">{stats.withAnomalies}</p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">{stats.withAnomalies}</p>
         </div>
-      </div>
+      )}
 
       {/* Controls */}
       <div className="flex justify-between items-center mb-4">
@@ -233,6 +236,10 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images }) => {
       </div>
     </div>
   );
+};
+
+SoftwareProcessingAnalysis.defaultProps = {
+  showStats: true
 };
 
 export default SoftwareProcessingAnalysis; 

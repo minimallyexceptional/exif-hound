@@ -1,14 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Group } from '@visx/group';
 import { Cluster } from '@visx/hierarchy';
 import { LinkHorizontal } from '@visx/shape';
 import { hierarchy } from 'd3-hierarchy';
 import { ImageData } from '../../types';
+import { CircuitBoard, Smartphone, Image } from 'lucide-react';
 
 interface Props {
   images: ImageData[];
   width: number;
   height: number;
+  showStats?: boolean;
 }
 
 interface TreeNode {
@@ -17,8 +19,13 @@ interface TreeNode {
   image?: ImageData;
 }
 
-const DeviceDendrogram: React.FC<Props> = ({ images, width, height }) => {
-  const margin = { top: 40, left: 40, right: 160, bottom: 40 };
+const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = true }) => {
+  const margin = { 
+    top: showStats ? 100 : 40, 
+    left: 40, 
+    right: 160, 
+    bottom: 40 
+  };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -50,13 +57,76 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height }) => {
 
     return root;
   }, [images]);
+  
+  // Calculate some statistics about the devices
+  const deviceStats = useMemo(() => {
+    // Count unique devices
+    const uniqueDevices = new Set<string>();
+    let totalDeviceImages = 0;
+    let unknownDeviceCount = 0;
+    
+    images.forEach(img => {
+      const deviceName = img.exif.make && img.exif.model
+        ? `${img.exif.make} ${img.exif.model}`.trim()
+        : 'Unknown Device';
+        
+      uniqueDevices.add(deviceName);
+      totalDeviceImages++;
+      
+      if (deviceName === 'Unknown Device') {
+        unknownDeviceCount++;
+      }
+    });
+    
+    return {
+      uniqueDeviceCount: uniqueDevices.size,
+      totalImages: totalDeviceImages,
+      unknownCount: unknownDeviceCount
+    };
+  }, [images]);
 
   const defaultColor = '#26A69A';
   const defaultNodeColor = '#4A90E2';
 
   return (
     <div className="w-full h-full">
-      <svg width={width} height={height}>
+      {/* Stats Display - Only show when showStats is true */}
+      {showStats && (
+        <div className="flex gap-4 p-4 mb-2">
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="flex items-center gap-2">
+              <CircuitBoard className="w-4 h-4 text-app-accent" />
+              <div className="text-xs text-app-accent-dim">Unique Devices</div>
+            </div>
+            <div className="text-lg font-semibold text-app-white">
+              {deviceStats.uniqueDeviceCount}
+            </div>
+          </div>
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-app-accent" />
+              <div className="text-xs text-app-accent-dim">Most Common</div>
+            </div>
+            <div className="text-sm font-semibold text-app-white truncate">
+              {data.children && data.children.length > 0 
+                ? data.children.sort((a, b) => 
+                    (b.children?.length || 0) - (a.children?.length || 0))[0].name
+                : 'None'}
+            </div>
+          </div>
+          <div className="glass-panel p-2 rounded-lg flex-1">
+            <div className="flex items-center gap-2">
+              <Image className="w-4 h-4 text-app-accent" />
+              <div className="text-xs text-app-accent-dim">Total Images</div>
+            </div>
+            <div className="text-lg font-semibold text-app-white">
+              {deviceStats.totalImages}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <svg width={width} height={height - (showStats ? 80 : 0)}>
         <Group top={margin.top} left={margin.left}>
           <Cluster<TreeNode>
             root={hierarchy(data)}
@@ -120,6 +190,10 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height }) => {
       </svg>
     </div>
   );
+};
+
+DeviceDendrogram.defaultProps = {
+  showStats: true
 };
 
 export default DeviceDendrogram; 

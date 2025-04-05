@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 
 interface Props {
   images: ImageData[];
+  showStats?: boolean;
 }
 
 interface LocationCluster {
@@ -33,7 +34,7 @@ interface LocationStats {
 const CLUSTER_RADIUS_KM = 1; // Images within 1km are considered in the same cluster
 const KM_TO_DEG = 1 / 111; // Rough conversion from kilometers to degrees
 
-const GeographicalAnalysis: React.FC<Props> = ({ images }) => {
+const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState<[Date | null, Date | null]>([null, null]);
 
@@ -128,51 +129,53 @@ const GeographicalAnalysis: React.FC<Props> = ({ images }) => {
 
   return (
     <div className="w-full h-full relative p-4">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <MapPin className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">Images with Location</h3>
+      {/* Stats Overview - Only show when showStats is true */}
+      {showStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">Images with Location</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">{locationStats.totalWithLocation}</p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">{locationStats.totalWithLocation}</p>
-        </div>
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Info className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">Unique Locations</h3>
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">Unique Locations</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">{locationStats.uniqueLocations}</p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">{locationStats.uniqueLocations}</p>
-        </div>
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">Time Span</h3>
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">Time Span</h3>
+            </div>
+            <p className="text-sm text-app-white">
+              {locationStats.timeSpan.start && locationStats.timeSpan.end ? (
+                <>
+                  {formatDateTime(locationStats.timeSpan.start.toISOString())}
+                  <br />
+                  to
+                  <br />
+                  {formatDateTime(locationStats.timeSpan.end.toISOString())}
+                </>
+              ) : (
+                'No temporal data'
+              )}
+            </p>
           </div>
-          <p className="text-sm text-app-white">
-            {locationStats.timeSpan.start && locationStats.timeSpan.end ? (
-              <>
-                {formatDateTime(locationStats.timeSpan.start.toISOString())}
-                <br />
-                to
-                <br />
-                {formatDateTime(locationStats.timeSpan.end.toISOString())}
-              </>
-            ) : (
-              'No temporal data'
-            )}
-          </p>
-        </div>
-        <div className="glass-panel p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-app-accent" />
-            <h3 className="text-sm font-medium text-app-white">Missing Location</h3>
+          <div className="glass-panel p-4 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5 text-app-accent" />
+              <h3 className="text-sm font-medium text-app-white">Missing Location</h3>
+            </div>
+            <p className="text-2xl font-semibold text-app-white">
+              {images.length - locationStats.totalWithLocation}
+            </p>
           </div>
-          <p className="text-2xl font-semibold text-app-white">
-            {images.length - locationStats.totalWithLocation}
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Controls */}
       <div className="flex justify-between items-center mb-4">
@@ -270,6 +273,10 @@ const GeographicalAnalysis: React.FC<Props> = ({ images }) => {
       </div>
     </div>
   );
+};
+
+GeographicalAnalysis.defaultProps = {
+  showStats: true
 };
 
 export default GeographicalAnalysis; 
