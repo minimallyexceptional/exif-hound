@@ -45,24 +45,28 @@ function App() {
   useEffect(() => {
     const checkLicense = async () => {
       try {
+        console.log('[APP-DEBUG] Starting license check');
         const hasExistingLicense = await hasLicense();
         
         if (!hasExistingLicense) {
-          console.log('[App] No license found, showing activation modal');
+          console.log('[APP-DEBUG] No license found, showing activation modal');
           setShowLicenseModal(true);
           return;
         }
         
+        console.log('[APP-DEBUG] License found, verifying...');
         const licenseStatus = await verifyLicense();
+        console.log('[APP-DEBUG] License verification result:', licenseStatus);
+        
         if (!licenseStatus.isValid) {
-          console.log('[App] License invalid:', licenseStatus.errorMessage);
+          console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
           setLicenseError(licenseStatus.errorMessage || 'Invalid license');
           setShowLicenseModal(true);
         } else {
-          console.log('[App] License valid');
+          console.log('[APP-DEBUG] License valid, proceeding with application');
         }
       } catch (error) {
-        console.error('[App] Error checking license:', error);
+        console.error('[APP-DEBUG] Error checking license:', error);
         setShowLicenseModal(true);
       }
     };

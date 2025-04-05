@@ -16,7 +16,16 @@ export async function POST(request: NextRequest) {
     // Get license key and email from request body
     const { licenseKey, email } = await request.json();
     
+    console.log('[API-DEBUG] Verify-license request received:', { 
+      licenseKey, 
+      email,
+      requestHeaders: Object.fromEntries(request.headers.entries()),
+      method: request.method,
+      url: request.url
+    });
+    
     if (!licenseKey) {
+      console.log('[API-DEBUG] License key missing');
       return NextResponse.json(
         { valid: false, error: 'License key is required' },
         { status: 400 }
@@ -25,6 +34,7 @@ export async function POST(request: NextRequest) {
     
     // Make email a required field for verification
     if (!email) {
+      console.log('[API-DEBUG] Email missing');
       return NextResponse.json(
         { valid: false, error: 'Email is required for license verification' },
         { status: 400 }
@@ -33,6 +43,7 @@ export async function POST(request: NextRequest) {
     
     // Validate email format
     if (!validateEmail(email)) {
+      console.log('[API-DEBUG] Email format invalid:', email);
       return NextResponse.json(
         { valid: false, error: 'Invalid email format' },
         { status: 400 }
@@ -41,7 +52,13 @@ export async function POST(request: NextRequest) {
     
     // First validate the format of the license key
     if (!validateLicenseKeyFormat(licenseKey)) {
-      console.error('License key format validation failed for:', licenseKey);
+      console.error('[API-DEBUG] License key format validation failed:', { 
+        licenseKey,
+        formatValidationResult: validateLicenseKeyFormat(licenseKey),
+        isExhproPrefix: licenseKey.startsWith('EXHPRO-'),
+        licenseSegments: licenseKey.split('-'),
+        licenseSegmentLengths: licenseKey.split('-').map((s: string) => s.length)
+      });
       return NextResponse.json(
         { valid: false, error: 'Invalid license key format' },
         { status: 400 }
@@ -53,17 +70,33 @@ export async function POST(request: NextRequest) {
       const data = await fs.readFile(licensesPath, 'utf8');
       const licenses: License[] = JSON.parse(data);
       
+      console.log('[API-DEBUG] Searching for license in database:', { 
+        licenseCount: licenses.length,
+        licensesPath,
+        searchingFor: { licenseKey, email }
+      });
+      
       const license = licenses.find(lic => lic.key === licenseKey);
       
       if (!license) {
+        console.log('[API-DEBUG] License key not found in database:', { 
+          licenseKey,
+          availableKeys: licenses.map(l => l.key)
+        });
         return NextResponse.json(
           { valid: false, error: 'License key not found' },
           { status: 404 }
         );
       }
       
+      console.log('[API-DEBUG] License found in database:', { 
+        license,
+        matchesEmail: license.email ? license.email.toLowerCase() === email.toLowerCase() : false
+      });
+      
       // Require email match for verification
       if (!license.email) {
+        console.log('[API-DEBUG] License has no email associated');
         return NextResponse.json(
           { valid: false, error: 'License has not been activated with an email' },
           { status: 403 }
@@ -72,6 +105,10 @@ export async function POST(request: NextRequest) {
       
       // Strict email verification - case-insensitive comparison
       if (email.toLowerCase() !== license.email.toLowerCase()) {
+        console.log('[API-DEBUG] Email mismatch:', {
+          providedEmail: email.toLowerCase(),
+          storedEmail: license.email.toLowerCase()
+        });
         return NextResponse.json(
           { valid: false, error: 'License key is not registered to this email' },
           { status: 403 }
