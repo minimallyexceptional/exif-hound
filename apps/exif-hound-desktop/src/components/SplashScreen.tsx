@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Lock, Eye } from 'lucide-react';
+import { Eye, BarChart, Search } from 'lucide-react';
 import Logomark from './common/Logomark';
 
 const SplashScreen: React.FC = () => {
@@ -39,7 +39,7 @@ const SplashScreen: React.FC = () => {
           showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}>
           <h1 className="text-3xl font-bold text-app-white mb-2">
-            EXIF HOUND
+            EXIF HOUND PRO
           </h1>
           <p className="text-app-accent-dim font-mono">
             INITIALIZING METADATA ANALYSIS...
@@ -51,16 +51,16 @@ const SplashScreen: React.FC = () => {
           showTertiary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}>
           <div className="text-center">
-            <Shield className="w-8 h-8 mx-auto mb-2 text-app-white" />
-            <p className="text-sm text-app-accent-dim font-mono">SECURE</p>
+            <Eye className="w-8 h-8 mx-auto mb-2 text-app-white" />
+            <p className="text-sm text-app-accent-dim font-mono">DETECT</p>
           </div>
           <div className="text-center">
-            <Lock className="w-8 h-8 mx-auto mb-2 text-app-white" />
+            <BarChart className="w-8 h-8 mx-auto mb-2 text-app-white" />
             <p className="text-sm text-app-accent-dim font-mono">ANALYZE</p>
           </div>
           <div className="text-center">
-            <Eye className="w-8 h-8 mx-auto mb-2 text-app-white" />
-            <p className="text-sm text-app-accent-dim font-mono">DETECT</p>
+            <Search className="w-8 h-8 mx-auto mb-2 text-app-white" />
+            <p className="text-sm text-app-accent-dim font-mono">SOLVE</p>
           </div>
         </div>
         

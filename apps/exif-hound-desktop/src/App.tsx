@@ -20,6 +20,10 @@ import { hasLicense, verifyLicense } from './utils/licenseManager';
 type ViewMode = 'map' | 'list' | 'investigation';
 
 function App() {
+  // Temporary early access mode - set to true to bypass license check
+  // TODO: Remove this before production release
+  const earlyAccess = true;
+  
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [showRoute, setShowRoute] = useState(false);
@@ -44,6 +48,12 @@ function App() {
 
   useEffect(() => {
     const checkLicense = async () => {
+      // If early access mode is enabled, skip license check
+      if (earlyAccess) {
+        console.log('[APP-DEBUG] Early access mode enabled, bypassing license check');
+        return;
+      }
+      
       try {
         console.log('[APP-DEBUG] Starting license check');
         const hasExistingLicense = await hasLicense();
@@ -74,7 +84,7 @@ function App() {
     if (!isLoading) {
       checkLicense();
     }
-  }, [isLoading]);
+  }, [isLoading, earlyAccess]);
 
   const handleLicenseSuccess = () => {
     console.log('[App] License activation successful');
@@ -267,7 +277,7 @@ function App() {
         />
       )}
 
-      {showLicenseModal && (
+      {showLicenseModal && !earlyAccess && (
         <LicenseActivationModal
           onSuccess={handleLicenseSuccess}
         />

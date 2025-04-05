@@ -27,7 +27,7 @@ export const AppLayout: React.FC<Props> = ({
         <div className="text-center glass-panel p-6 sm:p-8 rounded-lg max-w-md mx-4">
           <Logomark className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4" />
           <p className="text-base sm:text-lg font-medium text-app-white">
-            Upload images to start sniffing
+            Upload images to start tracking
           </p>
           <p className="text-xs sm:text-sm text-app-accent-dim mt-2">
             Drag and drop anywhere or use the upload button

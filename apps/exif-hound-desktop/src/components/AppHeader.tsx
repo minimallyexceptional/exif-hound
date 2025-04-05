@@ -126,10 +126,10 @@ export const AppHeader: React.FC<Props> = ({
             <Logomark className="w-7 h-7" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
-                Exif Hound
+                Exif Hound Pro
               </h1>
               <p className="text-xs text-app-accent-dim hidden sm:block">
-                Sniffing out your image metadata
+                Tracking digital footprints in every image
               </p>
             </div>
           </div>

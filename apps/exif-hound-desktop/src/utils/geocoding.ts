@@ -92,7 +92,7 @@ export async function getLocationFromCoordinates(
     const response = await fetch(url, {
       headers: {
         // Add a user agent as required by Nominatim usage policy
-        'User-Agent': 'Exif-Hound-Desktop/1.0',
+        'User-Agent': 'Exif-Hound-Pro/1.0',
       },
     });
     
