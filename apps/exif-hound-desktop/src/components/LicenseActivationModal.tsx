@@ -472,25 +472,25 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
           <div className="flex items-center gap-2">
             <span className="text-xs text-app-accent-dim">Server:</span>
             {serverStatus === 'checking' && (
-              <span className="flex items-center gap-1 text-yellow-400 text-xs">
+              <span className="flex items-center gap-1 text-yellow-400 text-xs [data-theme='light']:text-yellow-600">
                 <Loader className="w-3 h-3 animate-spin" />
                 Checking
               </span>
             )}
             {serverStatus === 'online' && (
-              <span className="flex items-center gap-1 text-green-400 text-xs">
+              <span className="flex items-center gap-1 text-green-400 text-xs [data-theme='light']:text-green-600">
                 <Check className="w-3 h-3" />
                 Online
               </span>
             )}
             {serverStatus === 'error' && (
-              <span className="flex items-center gap-1 text-orange-400 text-xs" title={serverStatusDetail}>
+              <span className="flex items-center gap-1 text-orange-400 text-xs [data-theme='light']:text-orange-600" title={serverStatusDetail}>
                 <AlertCircle className="w-3 h-3" />
                 Error
               </span>
             )}
             {serverStatus === 'offline' && (
-              <span className="flex items-center gap-1 text-red-400 text-xs">
+              <span className="flex items-center gap-1 text-red-400 text-xs [data-theme='light']:text-red-600">
                 <AlertCircle className="w-3 h-3" />
                 Offline
               </span>
@@ -499,13 +499,13 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
         </div>
         
         {error && (
-          <div className="p-3 bg-red-900/30 border border-red-700 rounded text-red-200">
+          <div className="p-3 bg-red-900/30 border border-red-700 rounded text-red-200 dark:text-red-200 [data-theme='light']:bg-red-100 [data-theme='light']:border-red-300 [data-theme='light']:text-red-800">
             {error}
           </div>
         )}
 
         {(serverStatus === 'offline' || serverStatus === 'error') && (
-          <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-yellow-200 flex items-start gap-2">
+          <div className="p-3 bg-yellow-900/30 border border-yellow-700 rounded text-yellow-200 dark:text-yellow-200 [data-theme='light']:bg-amber-100 [data-theme='light']:border-amber-300 [data-theme='light']:text-amber-800 flex items-start gap-2">
             <Server className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">License server is {serverStatus === 'offline' ? 'offline' : 'experiencing issues'}</p>
@@ -521,7 +521,7 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
         )}
         
         {showTestLicenseHint && serverStatus === 'online' && (
-          <div className="p-3 bg-blue-900/30 border border-blue-700 rounded text-blue-200 flex items-start gap-2">
+          <div className="p-3 bg-blue-900/30 border border-blue-700 rounded text-blue-200 dark:text-blue-200 [data-theme='light']:bg-blue-100 [data-theme='light']:border-blue-300 [data-theme='light']:text-blue-800 flex items-start gap-2">
             <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">Test License Detected</p>
@@ -544,11 +544,11 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
               placeholder="EXHPRO-XXXXX-XXXXX-XXXXX-XXXXX"
               value={formatLicenseKey(licenseKey)}
               onChange={handleLicenseKeyChange}
-              className="w-full p-2 bg-app-gray border border-app-gray-light rounded text-app-white"
+              className="w-full p-2 bg-app-gray border border-app-gray-light rounded text-app-white [data-theme='light']:border-gray-300"
               disabled={isSubmitting}
             />
             {formatError && (
-              <p className="mt-1 text-sm text-red-400">{formatError}</p>
+              <p className="mt-1 text-sm text-red-400 [data-theme='light']:text-red-600">{formatError}</p>
             )}
           </div>
           
@@ -562,7 +562,7 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
               placeholder="your@email.com"
               value={email}
               onChange={handleEmailChange}
-              className="w-full p-2 bg-app-gray border border-app-gray-light rounded text-app-white"
+              className="w-full p-2 bg-app-gray border border-app-gray-light rounded text-app-white [data-theme='light']:border-gray-300"
               disabled={isSubmitting}
             />
           </div>
@@ -579,7 +579,7 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
           </div>
         </form>
         
-        <p className="text-xs text-app-accent-dim mt-4">
+        <p className="text-xs text-app-accent-dim mt-4 [data-theme='light']:text-gray-600">
           Need help? Contact support at support@exifhound.com or visit our website at exifhound.com/support
         </p>
       </div>
