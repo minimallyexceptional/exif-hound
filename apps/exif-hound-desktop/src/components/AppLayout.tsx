@@ -1,7 +1,8 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Dog, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 import { Panel } from './common/Panel';
 import { Button } from './common/Button';
+import Logomark from './common/Logomark';
 
 interface Props {
   children: React.ReactNode;
@@ -24,7 +25,7 @@ export const AppLayout: React.FC<Props> = ({
     return (
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="text-center glass-panel p-6 sm:p-8 rounded-lg max-w-md mx-4">
-          <Dog className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 text-app-white" />
+          <Logomark className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4" />
           <p className="text-base sm:text-lg font-medium text-app-white">
             Upload images to start sniffing
           </p>

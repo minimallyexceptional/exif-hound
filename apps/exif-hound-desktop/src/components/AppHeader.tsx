@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Dog, Upload, Route as RouteIcon, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search } from 'lucide-react';
+import { Upload, Route as RouteIcon, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search } from 'lucide-react';
 import { Button } from './common/Button';
 import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
+import Logomark from './common/Logomark';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -122,7 +123,7 @@ export const AppHeader: React.FC<Props> = ({
         <div className="flex items-center justify-between gap-4">
           {/* Logo and Title */}
           <div className="flex items-center space-x-3 flex-shrink-0">
-            <Dog className="w-7 h-7 text-app-white" />
+            <Logomark className="w-7 h-7" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
                 Exif Hound

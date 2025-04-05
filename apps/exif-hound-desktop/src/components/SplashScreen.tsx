@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Dog, Shield, Lock, Eye } from 'lucide-react';
+import { Shield, Lock, Eye } from 'lucide-react';
+import Logomark from './common/Logomark';
 
 const SplashScreen: React.FC = () => {
   const [showSecondary, setShowSecondary] = useState(false);
@@ -20,8 +21,8 @@ const SplashScreen: React.FC = () => {
       <div className="max-w-md w-full mx-auto px-4">
         {/* Logo container */}
         <div className="relative h-40 flex items-center justify-center mb-10">
-          <Dog 
-            className={`w-24 h-24 text-app-white z-10 transform transition-all duration-700 ease-out ${
+          <Logomark 
+            className={`w-24 h-24 z-10 transform transition-all duration-700 ease-out ${
               showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           />
