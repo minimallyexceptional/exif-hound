@@ -164,7 +164,8 @@ const Investigation: React.FC<Props> = ({ images }) => {
             </h2>
             <div className="flex gap-2">
               <button 
-                className={`text-xs px-2 py-1 rounded ${showStats ? 'bg-app-accent text-white' : 'text-app-accent border border-app-accent'}`}
+                className={`text-xs px-2 py-1 rounded ${showStats ? 'bg-app-accent' : 'text-app-accent border border-app-accent'}`}
+                style={showStats ? { color: 'var(--app-black)' } : undefined}
                 onClick={() => setShowStats(!showStats)}
                 title={showStats ? "Hide statistics" : "Show statistics"}
               >

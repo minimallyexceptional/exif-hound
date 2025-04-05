@@ -4,17 +4,6 @@
 
 @layer base {
   :root {
-    --app-black: #ffffff;
-    --app-dark: #f8f9fa;
-    --app-gray: #e9ecef;
-    --app-gray-light: #dee2e6;
-    --app-gray-lighter: #ced4da;
-    --app-white: #212529;
-    --app-accent: #495057;
-    --app-accent-dim: #6c757d;
-  }
-
-  :root[data-theme="dark"] {
     --app-black: #000000;
     --app-dark: #121212;
     --app-gray: #1a1a1a;
@@ -23,6 +12,17 @@
     --app-white: #ffffff;
     --app-accent: #f5f5f5;
     --app-accent-dim: #858585;
+  }
+
+  :root[data-theme="light"] {
+    --app-black: #ffffff;
+    --app-dark: #f8f9fa;
+    --app-gray: #e9ecef;
+    --app-gray-light: #dee2e6;
+    --app-gray-lighter: #ced4da;
+    --app-white: #212529;
+    --app-accent: #495057;
+    --app-accent-dim: #6c757d;
   }
 
   body {
