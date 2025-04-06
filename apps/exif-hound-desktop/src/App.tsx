@@ -136,6 +136,7 @@ function App() {
               images={images} 
               selectedImage={selectedImage}
               showRoute={showRoute}
+              onToggleRoute={handleRouteClick}
             />
           </div>
         );
@@ -177,6 +178,7 @@ function App() {
         }}
         onToggleRoute={handleRouteClick}
         onOpenSettings={() => setShowSettings(true)}
+        onSetView={(view: ViewMode) => setViewMode(view)}
       />
 
       <ImageUploader 

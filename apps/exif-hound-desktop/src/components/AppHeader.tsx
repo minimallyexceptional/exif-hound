@@ -16,29 +16,8 @@ interface Props {
   onToggleView: () => void;
   onToggleRoute: () => void;
   onOpenSettings: () => void;
+  onSetView: (view: ViewMode) => void;
 }
-
-const getViewIcon = (currentMode: ViewMode) => {
-  switch (currentMode) {
-    case 'map':
-      return <List className="w-4 h-4" />;
-    case 'list':
-      return <Search className="w-4 h-4" />;
-    case 'investigation':
-      return <MapIcon className="w-4 h-4" />;
-  }
-};
-
-const getNextViewLabel = (currentMode: ViewMode) => {
-  switch (currentMode) {
-    case 'map':
-      return 'List View';
-    case 'list':
-      return 'Investigation';
-    case 'investigation':
-      return 'Map View';
-  }
-};
 
 export const AppHeader: React.FC<Props> = ({
   imagesCount,
@@ -49,6 +28,7 @@ export const AppHeader: React.FC<Props> = ({
   onToggleView,
   onToggleRoute,
   onOpenSettings,
+  onSetView,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -78,40 +58,47 @@ export const AppHeader: React.FC<Props> = ({
               </Button>
 
               <Button
-                variant="secondary"
-                icon={getViewIcon(viewMode)}
-                onClick={() => { onToggleView(); setIsMobileMenuOpen(false); }}
+                variant={viewMode === 'map' ? 'primary' : 'secondary'}
+                icon={<MapIcon className="w-4 h-4" />}
+                onClick={() => { onSetView('map'); setIsMobileMenuOpen(false); }}
                 fullWidth
               >
-                {getNextViewLabel(viewMode)}
+                Map View
+              </Button>
+              
+              <Button
+                variant={viewMode === 'list' ? 'primary' : 'secondary'}
+                icon={<List className="w-4 h-4" />}
+                onClick={() => { onSetView('list'); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                List View
+              </Button>
+              
+              <Button
+                variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                icon={<Search className="w-4 h-4" />}
+                onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                Investigation
               </Button>
 
-              {viewMode === 'map' && (
-                <Button
-                  variant={showRoute ? 'primary' : 'secondary'}
-                  icon={<RouteIcon className="w-4 h-4" />}
-                  onClick={() => { onToggleRoute(); setIsMobileMenuOpen(false); }}
-                  fullWidth
-                >
-                  Show Route
-                </Button>
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-app-white">Theme</span>
+                <ThemeToggle />
+              </div>
+
+              <Button
+                variant="ghost"
+                icon={<SettingsIcon className="w-5 h-5" />}
+                onClick={() => { onOpenSettings(); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                Settings
+              </Button>
             </>
           )}
-
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-app-white">Theme</span>
-            <ThemeToggle />
-          </div>
-
-          <Button
-            variant="ghost"
-            icon={<SettingsIcon className="w-5 h-5" />}
-            onClick={() => { onOpenSettings(); setIsMobileMenuOpen(false); }}
-            fullWidth
-          >
-            Settings
-          </Button>
         </div>
       </Panel>
     </div>
@@ -123,7 +110,7 @@ export const AppHeader: React.FC<Props> = ({
         <div className="flex items-center justify-between gap-4">
           {/* Logo and Title */}
           <div className="flex items-center space-x-3 flex-shrink-0">
-            <Logomark className="w-7 h-7" />
+            <Logomark className="w-9 h-9" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
                 Exif Hound Pro
@@ -159,22 +146,28 @@ export const AppHeader: React.FC<Props> = ({
                 </Button>
 
                 <Button
-                  variant="secondary"
-                  icon={getViewIcon(viewMode)}
-                  onClick={onToggleView}
+                  variant={viewMode === 'map' ? 'primary' : 'secondary'}
+                  icon={<MapIcon className="w-4 h-4" />}
+                  onClick={() => onSetView('map')}
                 >
-                  {getNextViewLabel(viewMode)}
+                  Map View
                 </Button>
-
-                {viewMode === 'map' && (
-                  <Button
-                    variant={showRoute ? 'primary' : 'secondary'}
-                    icon={<RouteIcon className="w-4 h-4" />}
-                    onClick={onToggleRoute}
-                  >
-                    Show Route
-                  </Button>
-                )}
+                
+                <Button
+                  variant={viewMode === 'list' ? 'primary' : 'secondary'}
+                  icon={<List className="w-4 h-4" />}
+                  onClick={() => onSetView('list')}
+                >
+                  List View
+                </Button>
+                
+                <Button
+                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                  icon={<Search className="w-4 h-4" />}
+                  onClick={() => onSetView('investigation')}
+                >
+                  Investigation
+                </Button>
               </div>
             )}
 

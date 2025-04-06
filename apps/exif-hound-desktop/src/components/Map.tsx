@@ -5,7 +5,7 @@ import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
 import 'leaflet/dist/leaflet.css';
 import { Icon, Marker as LeafletMarker } from 'leaflet';
-import { Maximize2, X, ZapOff as MapOff } from 'lucide-react';
+import { Maximize2, X, ZapOff as MapOff, Route as RouteIcon } from 'lucide-react';
 import { formatShortDateTime } from '../utils/date';
 import * as geolib from 'geolib';
 import { fixCoordinates, isWesternHemisphere } from '../utils/diagnostics';
@@ -34,6 +34,7 @@ interface Props {
   images: ImageData[];
   selectedImage: ImageData | null;
   showRoute?: boolean;
+  onToggleRoute: () => void;
 }
 
 // Default marker icon
@@ -99,7 +100,7 @@ function MapUpdater({ selectedImage }: { selectedImage: ImageData | null }) {
   return null;
 }
 
-const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
+const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onToggleRoute }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const defaultPosition: [number, number] = [0, 0];
   const markersRef = useRef<{ [key: string]: LeafletMarker }>({});
@@ -324,13 +325,22 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false }) => {
 
   return (
     <div className="relative h-full rounded-lg overflow-hidden" ref={mapContainerRef}>
-      <button
-        onClick={toggleFullscreen}
-        className="absolute top-4 right-4 z-[1000] bg-app-gray p-2 rounded-lg shadow-lg hover:bg-app-gray-light transition-colors"
-        aria-label="Enter fullscreen"
-      >
-        <Maximize2 className="w-5 h-5 text-app-white" />
-      </button>
+      <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+        <button
+          onClick={onToggleRoute}
+          className="bg-app-gray p-2 rounded-lg shadow-lg hover:bg-app-gray-light transition-colors"
+          aria-label={showRoute ? "Hide route" : "Show route"}
+        >
+          <RouteIcon className={`w-5 h-5 ${showRoute ? 'text-app-accent' : 'text-app-white'}`} />
+        </button>
+        <button
+          onClick={toggleFullscreen}
+          className="bg-app-gray p-2 rounded-lg shadow-lg hover:bg-app-gray-light transition-colors"
+          aria-label="Enter fullscreen"
+        >
+          <Maximize2 className="w-5 h-5 text-app-white" />
+        </button>
+      </div>
 
       <MapContent />
       {hasNoLocationData && <NoLocationOverlay />}
