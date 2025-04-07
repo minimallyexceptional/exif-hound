@@ -32,17 +32,19 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
         onImport({ type: 'kml', data: text });
       } else {
         // Basic CSV validation and parsing
+        console.log('Reading CSV file...');
         const lines = text.split('\n');
+        console.log('Number of lines:', lines.length);
+        
         if (lines.length < 2) {
           throw new Error('CSV file must contain at least a header row and one data row');
         }
         
-        const headers = lines[0].split(',');
-        if (!headers.includes('latitude') || !headers.includes('longitude')) {
-          throw new Error('CSV must contain "latitude" and "longitude" columns');
-        }
+        // Log the headers we found
+        const headers = lines[0].split(',').map(h => h.trim());
+        console.log('Found headers:', headers);
         
-        // TODO: Add proper CSV parsing
+        // Pass the data to the Map component for processing
         onImport({ type: 'csv', data: text });
       }
       

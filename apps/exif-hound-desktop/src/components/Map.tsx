@@ -72,6 +72,21 @@ interface ImportedLayer {
   visible: boolean;
 }
 
+interface CSVFeatureProperties {
+  [key: string]: string | number;
+}
+
+interface CSVFeature extends L.Marker {
+  feature?: {
+    type: 'Feature';
+    geometry: {
+      type: 'Point';
+      coordinates: [number, number];
+    };
+    properties?: CSVFeatureProperties;
+  };
+}
+
 const isValidCoordinate = (coord: number | null | undefined): coord is number => {
   return typeof coord === 'number' && !isNaN(coord) && isFinite(coord);
 };
@@ -190,12 +205,229 @@ function KMLLayer({ data }: { data: string }) {
   return null;
 }
 
+function CSVLayer({ data }: { data: string }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!map) return;
+    
+    console.log('Creating CSV layer...');
+    
+    try {
+      // Log raw data details
+      console.log('CSV Import - Raw Data Analysis:');
+      console.log('Data type:', typeof data);
+      console.log('Data length:', data.length);
+      console.log('First 100 characters:', data.substring(0, 100));
+      console.log('Contains newlines:', data.includes('\n'));
+      console.log('Contains commas:', data.includes(','));
+      
+      // Basic CSV validation
+      const lines = data.trim().split('\n');
+      console.log('CSV Structure:');
+      console.log('Number of lines:', lines.length);
+      console.log('Header row (raw):', JSON.stringify(lines[0]));
+      
+      if (lines.length < 2) {
+        setImportError('CSV must contain at least a header row and one data row');
+        return;
+      }
+
+      // Get and normalize header row
+      const headerRow = lines[0];
+      // Split into columns and clean each column name
+      const columns = headerRow.split(',').map(col => {
+        const cleaned = col.trim();
+        console.log(`Column found: "${col}" -> cleaned: "${cleaned}"`);
+        return cleaned;
+      });
+      
+      console.log('All normalized columns:', columns);
+      console.log('Column count:', columns.length);
+
+      // Find potential latitude and longitude columns
+      let latColumn = -1;
+      let lonColumn = -1;
+      const latKeywords = ['lat', 'latitude', 'gps lat', 'gps latitude'];
+      const lonKeywords = ['lon', 'long', 'longitude', 'gps long', 'gps longitude'];
+
+      console.log('Searching for coordinate columns...');
+      console.log('Latitude keywords:', latKeywords);
+      console.log('Longitude keywords:', lonKeywords);
+
+      // First try exact matches
+      columns.forEach((col, index) => {
+        const colLower = col.toLowerCase().trim();
+        console.log(`\nChecking column ${index}: "${col}"`);
+        console.log(`Normalized to: "${colLower}"`);
+        
+        // Try exact matches first
+        if (latColumn === -1) {
+          const isLatMatch = latKeywords.includes(colLower);
+          console.log(`Exact latitude match? ${isLatMatch}`);
+          if (isLatMatch) {
+            latColumn = index;
+            console.log(`Found exact latitude match at index ${index}`);
+          }
+        }
+        
+        if (lonColumn === -1) {
+          const isLonMatch = lonKeywords.includes(colLower);
+          console.log(`Exact longitude match? ${isLonMatch}`);
+          if (isLonMatch) {
+            lonColumn = index;
+            console.log(`Found exact longitude match at index ${index}`);
+          }
+        }
+      });
+
+      // If no exact matches, try partial matches
+      if (latColumn === -1 || lonColumn === -1) {
+        console.log('\nNo exact matches found, trying partial matches...');
+        columns.forEach((col, index) => {
+          const colLower = col.toLowerCase().trim();
+          console.log(`\nChecking column ${index} for partial match: "${col}"`);
+          
+          // Check for latitude - case insensitive partial match
+          if (latColumn === -1) {
+            const partialLatMatch = latKeywords.some(keyword => {
+              const matches = colLower.includes(keyword) || keyword.includes(colLower);
+              console.log(`Checking lat keyword "${keyword}" against "${colLower}": ${matches}`);
+              return matches;
+            });
+            
+            if (partialLatMatch) {
+              latColumn = index;
+              console.log(`Found partial latitude match at index ${index}`);
+            }
+          }
+          
+          // Check for longitude - case insensitive partial match
+          if (lonColumn === -1) {
+            const partialLonMatch = lonKeywords.some(keyword => {
+              const matches = colLower.includes(keyword) || keyword.includes(colLower);
+              console.log(`Checking lon keyword "${keyword}" against "${colLower}": ${matches}`);
+              return matches;
+            });
+            
+            if (partialLonMatch) {
+              lonColumn = index;
+              console.log(`Found partial longitude match at index ${index}`);
+            }
+          }
+        });
+      }
+
+      console.log('\nColumn Detection Results:');
+      console.log('Latitude column index:', latColumn, latColumn !== -1 ? `(${columns[latColumn]})` : '(not found)');
+      console.log('Longitude column index:', lonColumn, lonColumn !== -1 ? `(${columns[lonColumn]})` : '(not found)');
+
+      if (latColumn === -1 || lonColumn === -1) {
+        setImportError(`Could not find latitude and longitude columns. Available columns: ${columns.join(', ')}`);
+        console.log('Failed to find columns. Looking for keywords:', {
+          lat: latKeywords,
+          lon: lonKeywords,
+          available: columns.map(c => c.toLowerCase()),
+          foundLat: latColumn !== -1 ? columns[latColumn] : 'none',
+          foundLon: lonColumn !== -1 ? columns[lonColumn] : 'none'
+        });
+        return;
+      }
+
+      // Verify the data rows
+      console.log('First few data rows:');
+      lines.slice(1, 4).forEach((line, i) => {
+        const row = line.split(',').map(cell => cell.trim());
+        console.log(`Row ${i + 1}:`, {
+          latitude: row[latColumn],
+          longitude: row[lonColumn],
+          full: row
+        });
+      });
+
+      // If we got here, we found both columns
+      console.log('Successfully validated CSV with lat column:', columns[latColumn], 
+                 'and lon column:', columns[lonColumn]);
+      
+      // Create GeoJSON data manually
+      const features = lines.slice(1).map((line, index) => {
+        const columns = line.split(',').map(c => c.trim());
+        const lat = parseFloat(columns[latColumn]);
+        const lon = parseFloat(columns[lonColumn]);
+        
+        // Skip invalid coordinates
+        if (isNaN(lat) || isNaN(lon)) {
+          console.warn(`Invalid coordinates at row ${index + 2}:`, { lat, lon });
+          return null;
+        }
+
+        // Create properties object from all columns
+        const properties = columns.reduce((acc, header, i) => {
+          acc[header] = columns[i];
+          return acc;
+        }, {} as Record<string, string>);
+
+        return {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [lon, lat] // GeoJSON uses [longitude, latitude]
+          },
+          properties
+        };
+      }).filter(Boolean);
+
+      console.log('Created features:', features);
+
+      // Create the layer with our validated GeoJSON
+      const layer = L.geoJSON({
+        type: 'FeatureCollection',
+        features: features as any[]
+      }, {
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 15,
+            fillColor: '#4a9eff',
+            color: '#000',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.8
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          if (feature.properties) {
+            const popupContent = Object.entries(feature.properties)
+              .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
+              .join('<br>');
+            layer.bindPopup(popupContent);
+          }
+        }
+      }).addTo(map);
+
+      // Fit bounds
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
+
+      return () => {
+        map.removeLayer(layer);
+      };
+    } catch (err) {
+      console.error('Error creating CSV layer:', err);
+    }
+  }, [map, data]);
+  
+  return null;
+}
+
 const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onToggleRoute, onSelectImage }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importedLayers, setImportedLayers] = useState<ImportedLayer[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingKmlData, setPendingKmlData] = useState<{ data: string; blobUrl: string } | null>(null);
+  const [pendingCsvData, setPendingCsvData] = useState<{ data: string } | null>(null);
   const defaultPosition: [number, number] = [0, 0];
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
   const mapRef = useRef<L.Map | null>(null);
@@ -273,6 +505,14 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
     if (!mapRef.current) return;
     setImportError(null);
 
+    // Add early logging
+    console.log('Import handler called with:', {
+      type: data.type,
+      dataType: typeof data.data,
+      dataLength: data.data?.length || 0,
+      hasData: !!data.data
+    });
+
     try {
       if (data.type === 'kml') {
         // Log the KML content for debugging
@@ -294,6 +534,152 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
 
         // Store the KML data
         setPendingKmlData({ data: data.data, blobUrl: '' });
+      } else if (data.type === 'csv') {
+        // Early CSV validation logging
+        console.log('Starting CSV import...');
+        if (!data.data) {
+          console.error('CSV data is empty or undefined');
+          setImportError('No CSV data provided');
+          return;
+        }
+
+        // Log raw data details
+        console.log('Raw CSV data:', {
+          type: typeof data.data,
+          length: data.data.length,
+          preview: data.data.substring(0, 100),
+          hasNewlines: data.data.includes('\n'),
+          hasCommas: data.data.includes(',')
+        });
+
+        // Basic CSV validation
+        const lines = data.data.trim().split('\n');
+        console.log('CSV Structure:');
+        console.log('Number of lines:', lines.length);
+        console.log('Header row (raw):', JSON.stringify(lines[0]));
+        
+        if (lines.length < 2) {
+          setImportError('CSV must contain at least a header row and one data row');
+          return;
+        }
+
+        // Get and normalize header row
+        const headerRow = lines[0];
+        // Split into columns and clean each column name
+        const columns = headerRow.split(',').map(col => {
+          const cleaned = col.trim();
+          console.log(`Column found: "${col}" -> cleaned: "${cleaned}"`);
+          return cleaned;
+        });
+        
+        console.log('All normalized columns:', columns);
+        console.log('Column count:', columns.length);
+
+        // Find potential latitude and longitude columns
+        let latColumn = -1;
+        let lonColumn = -1;
+        const latKeywords = ['lat', 'latitude', 'gps lat', 'gps latitude'];
+        const lonKeywords = ['lon', 'long', 'longitude', 'gps long', 'gps longitude'];
+
+        console.log('Searching for coordinate columns...');
+        console.log('Latitude keywords:', latKeywords);
+        console.log('Longitude keywords:', lonKeywords);
+
+        // First try exact matches
+        columns.forEach((col, index) => {
+          const colLower = col.toLowerCase().trim();
+          console.log(`\nChecking column ${index}: "${col}"`);
+          console.log(`Normalized to: "${colLower}"`);
+          
+          // Try exact matches first
+          if (latColumn === -1) {
+            const isLatMatch = latKeywords.includes(colLower);
+            console.log(`Exact latitude match? ${isLatMatch}`);
+            if (isLatMatch) {
+              latColumn = index;
+              console.log(`Found exact latitude match at index ${index}`);
+            }
+          }
+          
+          if (lonColumn === -1) {
+            const isLonMatch = lonKeywords.includes(colLower);
+            console.log(`Exact longitude match? ${isLonMatch}`);
+            if (isLonMatch) {
+              lonColumn = index;
+              console.log(`Found exact longitude match at index ${index}`);
+            }
+          }
+        });
+
+        // If no exact matches, try partial matches
+        if (latColumn === -1 || lonColumn === -1) {
+          console.log('\nNo exact matches found, trying partial matches...');
+          columns.forEach((col, index) => {
+            const colLower = col.toLowerCase().trim();
+            console.log(`\nChecking column ${index} for partial match: "${col}"`);
+            
+            // Check for latitude - case insensitive partial match
+            if (latColumn === -1) {
+              const partialLatMatch = latKeywords.some(keyword => {
+                const matches = colLower.includes(keyword) || keyword.includes(colLower);
+                console.log(`Checking lat keyword "${keyword}" against "${colLower}": ${matches}`);
+                return matches;
+              });
+              
+              if (partialLatMatch) {
+                latColumn = index;
+                console.log(`Found partial latitude match at index ${index}`);
+              }
+            }
+            
+            // Check for longitude - case insensitive partial match
+            if (lonColumn === -1) {
+              const partialLonMatch = lonKeywords.some(keyword => {
+                const matches = colLower.includes(keyword) || keyword.includes(colLower);
+                console.log(`Checking lon keyword "${keyword}" against "${colLower}": ${matches}`);
+                return matches;
+              });
+              
+              if (partialLonMatch) {
+                lonColumn = index;
+                console.log(`Found partial longitude match at index ${index}`);
+              }
+            }
+          });
+        }
+
+        console.log('\nColumn Detection Results:');
+        console.log('Latitude column index:', latColumn, latColumn !== -1 ? `(${columns[latColumn]})` : '(not found)');
+        console.log('Longitude column index:', lonColumn, lonColumn !== -1 ? `(${columns[lonColumn]})` : '(not found)');
+
+        if (latColumn === -1 || lonColumn === -1) {
+          setImportError(`Could not find latitude and longitude columns. Available columns: ${columns.join(', ')}`);
+          console.log('Failed to find columns. Looking for keywords:', {
+            lat: latKeywords,
+            lon: lonKeywords,
+            available: columns.map(c => c.toLowerCase()),
+            foundLat: latColumn !== -1 ? columns[latColumn] : 'none',
+            foundLon: lonColumn !== -1 ? columns[lonColumn] : 'none'
+          });
+          return;
+        }
+
+        // Verify the data rows
+        console.log('First few data rows:');
+        lines.slice(1, 4).forEach((line, i) => {
+          const row = line.split(',').map(cell => cell.trim());
+          console.log(`Row ${i + 1}:`, {
+            latitude: row[latColumn],
+            longitude: row[lonColumn],
+            full: row
+          });
+        });
+
+        // If we got here, we found both columns
+        console.log('Successfully validated CSV with lat column:', columns[latColumn], 
+                   'and lon column:', columns[lonColumn]);
+        
+        setPendingCsvData({ data: data.data });
       }
     } catch (err) {
       console.error('Error importing data:', err);
@@ -356,6 +742,7 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
     >
       <MapSetup />
       {pendingKmlData && <KMLLayer data={pendingKmlData.data} />}
+      {pendingCsvData && <CSVLayer data={pendingCsvData.data} />}
       <ZoomControl position="bottomright" />
       <MapUpdater selectedImage={selectedImage} />
       <TileLayer
@@ -478,7 +865,10 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
       {/* Top controls */}
       <div className="absolute top-4 right-4 z-[9000] flex gap-2">
         <button
-          onClick={() => setShowImportModal(true)}
+          onClick={() => {
+            console.log('Opening import modal...');
+            setShowImportModal(true);
+          }}
           className="bg-app-gray p-2 rounded-lg shadow-lg hover:bg-app-gray-light transition-colors"
           aria-label="Import locations"
         >
