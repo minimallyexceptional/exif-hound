@@ -4,12 +4,15 @@ import { ImageData } from '../types';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
 import 'leaflet/dist/leaflet.css';
-import { Icon, Marker as LeafletMarker } from 'leaflet';
-import { Maximize2, X, ZapOff as MapOff, Route as RouteIcon } from 'lucide-react';
+import { Icon } from 'leaflet';
+import { Maximize2, X, ZapOff as MapOff, Route as RouteIcon, Upload } from 'lucide-react';
 import { formatShortDateTime } from '../utils/date';
 import * as geolib from 'geolib';
 import { fixCoordinates, isWesternHemisphere } from '../utils/diagnostics';
 import { formatShortLocation } from '../utils/geocoding';
+import ImportModal from './ImportModal';
+import * as omnivore from '@mapbox/leaflet-omnivore';
+import * as L from 'leaflet';
 
 /**
  * Map Component
@@ -25,38 +28,49 @@ import { formatShortLocation } from '../utils/geocoding';
  * The geolib package is used for additional validation and formatting.
  */
 
-// Fix for default marker icon not showing up
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+// Create custom camera icon
+const cameraIcon = new Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  <svg width="492" height="492" viewBox="0 0 492 492" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="246" cy="246" r="234.666" fill="#111111" stroke="white" stroke-width="22.6677"/>
+    <path d="M272.942 159.789H219.06L192.119 192.118H159.789C154.073 192.118 148.591 194.389 144.549 198.431C140.507 202.473 138.236 207.955 138.236 213.671V310.659C138.236 316.375 140.507 321.857 144.549 325.899C148.591 329.941 154.073 332.212 159.789 332.212H332.212C337.928 332.212 343.41 329.941 347.452 325.899C351.494 321.857 353.765 316.375 353.765 310.659V213.671C353.765 207.955 351.494 202.473 347.452 198.431C343.41 194.389 337.928 192.118 332.212 192.118H299.883L272.942 159.789Z" stroke="white" stroke-width="21.5529" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M245.999 289.106C263.854 289.106 278.329 274.632 278.329 256.777C278.329 238.922 263.854 224.447 245.999 224.447C228.144 224.447 213.67 238.922 213.67 256.777C213.67 274.632 228.144 289.106 245.999 289.106Z" stroke="white" stroke-width="21.5529" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  `),
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16],
+});
+
+// Highlighted camera icon (larger size)
+const highlightedCameraIcon = new Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  <svg width="492" height="492" viewBox="0 0 492 492" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="246" cy="246" r="234.666" fill="white" stroke="black" stroke-width="22.6677"/>
+    <path d="M272.942 159.789H219.06L192.119 192.118H159.789C154.073 192.118 148.591 194.389 144.549 198.431C140.507 202.473 138.236 207.955 138.236 213.671V310.659C138.236 316.375 140.507 321.857 144.549 325.899C148.591 329.941 154.073 332.212 159.789 332.212H332.212C337.928 332.212 343.41 329.941 347.452 325.899C351.494 321.857 353.765 316.375 353.765 310.659V213.671C353.765 207.955 351.494 202.473 347.452 198.431C343.41 194.389 337.928 192.118 332.212 192.118H299.883L272.942 159.789Z" stroke="black" stroke-width="21.5529" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M245.999 289.106C263.854 289.106 278.329 274.632 278.329 256.777C278.329 238.922 263.854 224.447 245.999 224.447C228.144 224.447 213.67 238.922 213.67 256.777C213.67 274.632 228.144 289.106 245.999 289.106Z" stroke="black" stroke-width="21.5529" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  `),
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -20],
+});
 
 interface Props {
   images: ImageData[];
   selectedImage: ImageData | null;
   showRoute?: boolean;
   onToggleRoute: () => void;
+  onSelectImage: (image: ImageData) => void;
 }
 
-// Default marker icon
-const defaultIcon = new Icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-// Highlighted marker icon
-const highlightedIcon = new Icon({
-  iconUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [30, 49],
-  iconAnchor: [15, 49],
-  popupAnchor: [1, -41],
-  shadowSize: [41, 41]
-});
+interface ImportedLayer {
+  id: string;
+  name: string;
+  type: 'kml' | 'csv';
+  layer: L.Layer;
+  visible: boolean;
+}
 
 const isValidCoordinate = (coord: number | null | undefined): coord is number => {
   return typeof coord === 'number' && !isNaN(coord) && isFinite(coord);
@@ -65,7 +79,7 @@ const isValidCoordinate = (coord: number | null | undefined): coord is number =>
 // Auto pan component that handles map movement
 function MapUpdater({ selectedImage }: { selectedImage: ImageData | null }) {
   const map = useMap();
-  const markersRef = useRef<{ [key: string]: LeafletMarker }>({});
+  const markersRef = useRef<{ [key: string]: L.Marker }>({});
   
   useEffect(() => {
     const lat = selectedImage?.exif.latitude;
@@ -84,14 +98,14 @@ function MapUpdater({ selectedImage }: { selectedImage: ImageData | null }) {
 
       // Reset all markers to default icon and close their popups
       Object.values(markersRef.current).forEach(marker => {
-        marker.setIcon(defaultIcon);
+        marker.setIcon(cameraIcon);
         marker.closePopup();
       });
 
       // Highlight the selected marker and open its popup
       const selectedMarker = selectedImage && markersRef.current[selectedImage.id];
       if (selectedMarker) {
-        selectedMarker.setIcon(highlightedIcon);
+        selectedMarker.setIcon(highlightedCameraIcon);
         selectedMarker.openPopup();
       }
     }
@@ -100,10 +114,90 @@ function MapUpdater({ selectedImage }: { selectedImage: ImageData | null }) {
   return null;
 }
 
-const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onToggleRoute }) => {
+// Add MapSetup component at the top level
+function MapSetup() {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!map.getPane('markersPane')) {
+      map.createPane('markersPane');
+      map.getPane('markersPane')!.style.zIndex = '600';
+    }
+  }, [map]);
+
+  return null;
+}
+
+function KMLLayer({ data }: { data: string }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!map) return;
+    
+    console.log('Creating KML layer...');
+    
+    // Parse KML string directly
+    const layer = omnivore.kml.parse(data)
+      .on('ready', function(this: L.GeoJSON) {
+        console.log('KML layer ready');
+        
+        // Get the features
+        const features = this.getLayers();
+        console.log('Number of features:', features.length);
+        
+        // Add markers for each feature
+        features.forEach((feature, i) => {
+          if (feature instanceof L.Marker) {
+            const pos = feature.getLatLng();
+            console.log(`Feature ${i} position:`, pos);
+            
+            // Create a circle marker
+            const marker = L.circleMarker(pos, {
+              radius: 20,
+              fillColor: '#ff0000',
+              color: '#000',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.8
+            }).addTo(map);
+            
+            // Add popup if available
+            const popup = feature.getPopup();
+            if (popup) {
+              marker.bindPopup(popup);
+            }
+          }
+        });
+        
+        // Fit bounds if we have features
+        if (features.length > 0) {
+          const bounds = this.getBounds();
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
+      })
+      .on('error', function(e) {
+        console.error('Error parsing KML:', e);
+      });
+    
+    // Add the base layer to the map
+    layer.addTo(map);
+    
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [map, data]);
+  
+  return null;
+}
+
+const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onToggleRoute, onSelectImage }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importedLayers, setImportedLayers] = useState<ImportedLayer[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [pendingKmlData, setPendingKmlData] = useState<{ data: string; blobUrl: string } | null>(null);
   const defaultPosition: [number, number] = [0, 0];
-  const markersRef = useRef<{ [key: string]: LeafletMarker }>({});
+  const markersRef = useRef<{ [key: string]: L.Marker }>({});
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const { mapSettings } = useSettings();
@@ -167,6 +261,71 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
     setIsFullscreen(!isFullscreen);
   };
 
+  // Initialize custom pane when map is ready
+  useEffect(() => {
+    if (mapRef.current && !mapRef.current.getPane('markersPane')) {
+      mapRef.current.createPane('markersPane');
+      mapRef.current.getPane('markersPane')!.style.zIndex = '600';
+    }
+  }, [mapRef.current]);
+
+  const handleImport = async (data: { type: 'kml' | 'csv', data: string }) => {
+    if (!mapRef.current) return;
+    setImportError(null);
+
+    try {
+      if (data.type === 'kml') {
+        // Log the KML content for debugging
+        console.log('Raw KML content (first 500 chars):', data.data.substring(0, 500));
+        
+        // Enhanced KML validation
+        if (!data.data.includes('<?xml')) {
+          setImportError('Missing XML declaration');
+          return;
+        }
+        if (!data.data.includes('<kml')) {
+          setImportError('Missing KML root element');
+          return;
+        }
+        if (!data.data.includes('<Placemark>')) {
+          setImportError('No Placemark elements found in KML');
+          return;
+        }
+
+        // Store the KML data
+        setPendingKmlData({ data: data.data, blobUrl: '' });
+      }
+    } catch (err) {
+      console.error('Error importing data:', err);
+      setImportError(err instanceof Error ? err.message : 'Failed to parse file');
+    }
+  };
+
+  const toggleLayerVisibility = (layerId: string) => {
+    setImportedLayers(prev => prev.map(layer => {
+      if (layer.id === layerId) {
+        if (layer.visible) {
+          mapRef.current?.removeLayer(layer.layer);
+        } else {
+          layer.layer.addTo(mapRef.current!);
+        }
+        return { ...layer, visible: !layer.visible };
+      }
+      return layer;
+    }));
+  };
+
+  const clearImportedLayers = () => {
+    importedLayers.forEach(({ layer }) => {
+      if (layer instanceof L.LayerGroup) {
+        layer.clearLayers();
+      }
+      layer.remove();
+    });
+    setImportedLayers([]);
+    setImportError(null);
+  };
+
   const NoLocationOverlay = () => (
     <div className="absolute inset-0 z-[9999] bg-app-black/90 backdrop-blur-sm flex items-start justify-center pt-[15vh]">
       <div className="text-center space-y-4 p-6 glass-panel rounded-lg w-full max-w-md mx-4">
@@ -195,6 +354,8 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
       zoomControl={false}
       ref={mapRef}
     >
+      <MapSetup />
+      {pendingKmlData && <KMLLayer data={pendingKmlData.data} />}
       <ZoomControl position="bottomright" />
       <MapUpdater selectedImage={selectedImage} />
       <TileLayer
@@ -214,40 +375,29 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
         const origLat = image.exif.latitude!;
         const origLng = image.exif.longitude!;
         
-        // Apply coordinate fixes - both are already non-null due to the imagesWithLocation filter
         const [lat, lng] = fixCoordinates(origLat, origLng) as [number, number];
         
-        // Validate coordinates using geolib
         const isValid = geolib.isValidCoordinate({ 
           latitude: lat, 
           longitude: lng 
-        });
-        
-        // Log raw coordinates for debugging
-        console.log(`MAP PIN DATA: ${image.file.name}`, {
-          originalLat: origLat,
-          originalLng: origLng,
-          fixedLat: lat,
-          fixedLng: lng,
-          wasFixed: origLng !== lng,
-          isWesternHemisphere: isWesternHemisphere(origLat, origLng),
-          isValidCoordinate: isValid,
-          formattedDMS: {
-            latitude: geolib.decimalToSexagesimal(lat),
-            longitude: geolib.decimalToSexagesimal(lng)
-          }
         });
 
         return (
           <Marker
             key={image.id}
             position={[lat, lng]}
-            icon={image.id === selectedImage?.id ? highlightedIcon : defaultIcon}
+            icon={image.id === selectedImage?.id ? highlightedCameraIcon : cameraIcon}
+            eventHandlers={{
+              click: () => {
+                onSelectImage(image);
+              }
+            }}
             ref={(ref) => {
               if (ref) {
                 markersRef.current[image.id] = ref;
               }
             }}
+            zIndexOffset={1000} // Ensure markers are always on top
           >
             <Popup>
               <div className="p-2">
@@ -325,7 +475,15 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
 
   return (
     <div className="relative h-full rounded-lg overflow-hidden" ref={mapContainerRef}>
-      <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+      {/* Top controls */}
+      <div className="absolute top-4 right-4 z-[9000] flex gap-2">
+        <button
+          onClick={() => setShowImportModal(true)}
+          className="bg-app-gray p-2 rounded-lg shadow-lg hover:bg-app-gray-light transition-colors"
+          aria-label="Import locations"
+        >
+          <Upload className="w-5 h-5 text-app-white" />
+        </button>
         <button
           onClick={onToggleRoute}
           className="bg-app-gray p-2 rounded-lg shadow-lg hover:bg-app-gray-light transition-colors"
@@ -342,8 +500,59 @@ const Map: React.FC<Props> = ({ images, selectedImage, showRoute = false, onTogg
         </button>
       </div>
 
-      <MapContent />
-      {hasNoLocationData && <NoLocationOverlay />}
+      {/* Map */}
+      <div className="relative w-full h-full z-[1]">
+        <MapContent />
+      </div>
+
+      {/* Layer control panel */}
+      {(importedLayers.length > 0 || importError) && (
+        <div className="absolute bottom-4 right-4 z-[9000] bg-app-gray p-2 rounded-lg shadow-lg min-w-[200px]">
+          <div className="relative">
+            {importError && (
+              <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-sm text-red-500">
+                {importError}
+              </div>
+            )}
+            {importedLayers.map(layer => (
+              <div key={layer.id} className="flex items-center gap-2 mb-2 last:mb-0">
+                <button
+                  onClick={() => toggleLayerVisibility(layer.id)}
+                  className={`flex items-center gap-2 text-sm ${
+                    layer.visible ? 'text-app-white' : 'text-app-accent-dim'
+                  } hover:text-app-accent transition-colors`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${
+                    layer.visible ? 'bg-app-accent' : 'bg-app-gray-light'
+                  }`} />
+                  {layer.name}
+                </button>
+              </div>
+            ))}
+            {importedLayers.length > 0 && (
+              <button
+                onClick={clearImportedLayers}
+                className="mt-2 w-full p-1 border border-app-gray-light rounded text-sm text-app-white hover:bg-app-gray-light/30 transition-colors"
+              >
+                Clear All Layers
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Overlays */}
+      {hasNoLocationData && (
+        <div className="absolute inset-0 z-[9999] bg-app-black/90 backdrop-blur-sm flex items-start justify-center pt-[15vh]">
+          <NoLocationOverlay />
+        </div>
+      )}
+      {showImportModal && (
+        <ImportModal
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImport}
+        />
+      )}
     </div>
   );
 };

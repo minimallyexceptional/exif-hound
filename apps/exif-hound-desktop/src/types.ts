@@ -48,6 +48,11 @@ export interface MapStyle {
   preview: string;
 }
 
+export interface ImportData {
+  type: 'kml' | 'csv';
+  data: string;
+}
+
 export interface MapSettings {
   selectedStyle: string;
 }

@@ -137,6 +137,7 @@ function App() {
               selectedImage={selectedImage}
               showRoute={showRoute}
               onToggleRoute={handleRouteClick}
+              onSelectImage={setSelectedImage}
             />
           </div>
         );

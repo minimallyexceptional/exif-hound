@@ -2,8 +2,22 @@ import React, { useMemo, useState } from 'react';
 import { ImageData } from '../../types';
 import { MapPin, AlertTriangle, Filter, Info, Clock } from 'lucide-react';
 import { formatDateTime } from '../../utils/date';
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Create custom camera icon
+const cameraIcon = new Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14" fill="black" stroke="white" stroke-width="2"/>
+      <path d="M22 12h-2l-2-2h-4l-2 2h-2c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zm-6 9c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z" fill="white"/>
+    </svg>
+  `),
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16],
+});
 
 interface Props {
   images: ImageData[];
@@ -238,15 +252,10 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
             {filteredClusters.map((cluster, index) => (
-              <CircleMarker
+              <Marker
                 key={index}
-                center={[cluster.latitude, cluster.longitude]}
-                radius={Math.min(20, Math.max(8, Math.sqrt(cluster.count) * 5))}
-                fillColor="#4A90E2"
-                color="#2171C7"
-                weight={2}
-                opacity={0.8}
-                fillOpacity={0.4}
+                position={[cluster.latitude, cluster.longitude]}
+                icon={cameraIcon}
               >
                 <Popup>
                   <div className="p-2">
@@ -262,7 +271,7 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
                     </p>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             ))}
           </MapContainer>
         ) : (
