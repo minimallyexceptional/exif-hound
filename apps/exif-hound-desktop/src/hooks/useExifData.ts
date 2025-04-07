@@ -1,7 +1,30 @@
-import { extractExifData, ExifMetadata } from 'exif-middleware';
 import { ExifData } from '../types';
 import { fixCoordinates } from '../utils/diagnostics';
 import { getLocationFromCoordinates } from '../utils/geocoding';
+
+// Using ts-expect-error to handle the missing type declaration
+// @ts-expect-error - Module does not have type declarations
+import { extractExifData } from 'exif-middleware';
+
+// Define the ExifMetadata interface locally
+interface ExifMetadata {
+  make?: string;
+  model?: string;
+  dateTaken?: Date;
+  latitude?: number;
+  longitude?: number;
+  altitude?: number;
+  exposureTime?: string;
+  fNumber?: number;
+  iso?: number;
+  focalLength?: string;
+  fileSize?: string;
+  dimensions?: {
+    width: number;
+    height: number;
+  };
+  [key: string]: unknown;
+}
 
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
@@ -18,19 +41,14 @@ function convertMetadataToExifData(metadata: ExifMetadata, error?: string): Exif
   let longitude = metadata.longitude ?? null;
   
   if (latitude !== null && longitude !== null) {
-    // Apply diagnostic fixes for known coordinate issues
-    const [fixedLat, fixedLng] = fixCoordinates(latitude, longitude);
-    
-    // Log if any fixes were applied
-    if (fixedLat !== latitude || fixedLng !== longitude) {
-      console.log(`[useExifData] Applied coordinate fixes for unknown file:`, {
-        from: { latitude, longitude },
-        to: { latitude: fixedLat, longitude: fixedLng }
-      });
+    try {
+      const [fixedLat, fixedLng] = fixCoordinates(latitude, longitude);
+      latitude = fixedLat;
+      longitude = fixedLng;
+    } catch (err) {
+      console.error('Error fixing coordinates:', err);
+      // Keep original coordinates if fix fails
     }
-    
-    latitude = fixedLat;
-    longitude = fixedLng;
   }
   
   return {
@@ -112,14 +130,16 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       options.onSuccess?.(exifData);
       return exifData;
     } catch (err) {
-      const errorMessage = 'Failed to read EXIF data from image';
-      console.error(errorMessage, err);
-      options.onError?.(errorMessage);
+      const error = err instanceof Error ? err.message : 'Failed to process EXIF data';
+      console.error('Error processing EXIF data:', error);
       
-      // Return empty ExifData with error message
-      return convertMetadataToExifData({}, errorMessage);
+      const exifData = convertMetadataToExifData({}, error);
+      options.onError?.(error);
+      return exifData;
     }
   };
 
-  return { processExifData };
+  return {
+    processExifData
+  };
 }; 

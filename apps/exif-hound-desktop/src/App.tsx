@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ImageData } from './types';
 import ImageUploader from './components/ImageUploader';
-import Map from './components/Map';
+import { Map } from './components/Map';
 import ExifPanel from './components/ExifPanel';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
