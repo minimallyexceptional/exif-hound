@@ -66,4 +66,26 @@
   background: none !important;
   text-decoration: none !important;
   border: none !important;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.custom-popup .glass-panel {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 } 

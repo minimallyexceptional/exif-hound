@@ -11,13 +11,21 @@ export const MapLayers: React.FC<MapLayersProps> = () => {
   const { mapSettings } = useSettings();
   const selectedStyle = MAP_STYLES.find(style => style.id === mapSettings.selectedStyle) || MAP_STYLES[0];
   
+  // Use custom tiles if enabled, otherwise use selected style
+  const tileConfig = mapSettings.customTiles.enabled
+    ? {
+        url: mapSettings.customTiles.url,
+        attribution: '&copy; Custom Tile Server'
+      }
+    : selectedStyle;
+
   return (
     <TileLayer
-      attribution={selectedStyle.attribution}
-      url={selectedStyle.url}
+      attribution={tileConfig.attribution}
+      url={tileConfig.url}
       maxZoom={19}
       minZoom={0}
-      subdomains={selectedStyle.id === 'classic' ? [] : ['a', 'b', 'c']}
+      subdomains={tileConfig.url.includes('{s}') ? ['a', 'b', 'c'] : []}
       detectRetina={true}
       crossOrigin=""
     />

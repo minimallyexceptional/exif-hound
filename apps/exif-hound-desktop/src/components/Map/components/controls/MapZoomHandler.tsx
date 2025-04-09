@@ -26,8 +26,7 @@ export const MapZoomHandler: React.FC<MapZoomHandlerProps> = ({ showRoute, image
       if (points.length > 1) {
         const bounds = L.latLngBounds(points);
         map.fitBounds(bounds, {
-          padding: [20, 20],
-          maxZoom: 10,
+          padding: [50, 50],
           animate: true,
           duration: 1
         });

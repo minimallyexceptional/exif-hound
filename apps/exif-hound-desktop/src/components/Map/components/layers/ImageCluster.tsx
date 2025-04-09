@@ -3,7 +3,8 @@ import L from 'leaflet';
 import { ImageData } from '../../../../types';
 import { fixCoordinates } from '../../../../utils/diagnostics';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import { Marker, Popup, useMap } from 'react-leaflet';
+import { Marker, useMap } from 'react-leaflet';
+import { ImagePopup } from './ImagePopup';
 
 interface ImageClusterProps {
   images: ImageData[];
@@ -57,14 +58,7 @@ export const ImageCluster: React.FC<ImageClusterProps> = ({
         click: () => onSelectImage(image)
       }}
     >
-      <Popup>
-        <div className="text-sm">
-          <p className="font-medium">{image.file.name}</p>
-          <p className="text-gray-600">
-            {new Date(image.exif.dateTimeOriginal ?? '').toLocaleString()}
-          </p>
-        </div>
-      </Popup>
+      <ImagePopup image={image} />
     </Marker>
   );
 

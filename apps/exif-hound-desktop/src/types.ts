@@ -55,4 +55,8 @@ export interface ImportData {
 
 export interface MapSettings {
   selectedStyle: string;
+  customTiles: {
+    enabled: boolean;
+    url: string;
+  };
 }

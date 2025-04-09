@@ -89,22 +89,50 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                         alt={style.name}
                         className="w-full aspect-video object-cover"
                       />
-                      <div className="absolute inset-x-0 bottom-0">
-                        <div className="bg-black/75 backdrop-blur-sm p-3">
-                          <div className="relative z-10">
-                            <p className="text-white font-medium text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
-                              {style.name}
-                            </p>
-                            {mapSettings.selectedStyle === style.id && (
-                              <p className="text-white/80 text-xs text-center mt-1 font-medium">
-                                Currently Selected
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
+                        <p className="text-sm text-app-white text-center">{style.name}</p>
                       </div>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-4">
+                <p className="text-app-accent-dim mb-4">Custom Tile Server</p>
+                <div className="flex items-center gap-4">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={mapSettings.customTiles.enabled}
+                      onChange={(e) => updateMapSettings({
+                        customTiles: {
+                          ...mapSettings.customTiles,
+                          enabled: e.target.checked
+                        }
+                      })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-app-gray-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                    <span className="ml-3 text-sm font-medium text-app-white">Use Custom Tiles</span>
+                  </label>
+                </div>
+                
+                <div className={mapSettings.customTiles.enabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}>
+                  <input
+                    type="text"
+                    value={mapSettings.customTiles.url}
+                    onChange={(e) => updateMapSettings({
+                      customTiles: {
+                        ...mapSettings.customTiles,
+                        url: e.target.value
+                      }
+                    })}
+                    placeholder="Enter tile server URL (e.g., https://{s}.tile.server.org/{z}/{x}/{y}.png)"
+                    className="w-full px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light focus:outline-none focus:border-app-accent"
+                  />
+                  <p className="mt-2 text-xs text-app-accent-dim">
+                    Supports standard map tile URL format with {'{z}'}, {'{x}'}, {'{y}'} placeholders and optional {'{s}'} for subdomains
+                  </p>
                 </div>
               </div>
             </section>

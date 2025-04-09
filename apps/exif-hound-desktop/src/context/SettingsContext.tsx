@@ -9,13 +9,25 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 const defaultMapSettings: MapSettings = {
-  selectedStyle: 'osm-standard'
+  selectedStyle: 'osm-standard',
+  customTiles: {
+    enabled: false,
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+  }
 };
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [mapSettings, setMapSettings] = useState<MapSettings>(() => {
     const saved = localStorage.getItem('mapSettings');
-    return saved ? JSON.parse(saved) : defaultMapSettings;
+    const savedSettings = saved ? JSON.parse(saved) : {};
+    return {
+      ...defaultMapSettings,
+      ...savedSettings,
+      customTiles: {
+        ...defaultMapSettings.customTiles,
+        ...(savedSettings.customTiles || {})
+      }
+    };
   });
 
   useEffect(() => {
@@ -23,7 +35,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [mapSettings]);
 
   const updateMapSettings = (settings: Partial<MapSettings>) => {
-    setMapSettings(prev => ({ ...prev, ...settings }));
+    setMapSettings(prev => ({
+      ...prev,
+      ...settings,
+      customTiles: {
+        ...prev.customTiles,
+        ...(settings.customTiles || {})
+      }
+    }));
   };
 
   return (
