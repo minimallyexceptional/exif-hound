@@ -43,7 +43,7 @@ export const AppHeader: React.FC<Props> = ({
             onClick={() => { onUpload(); setIsMobileMenuOpen(false); }}
             fullWidth
           >
-            Upload
+            Import
           </Button>
 
           {imagesCount > 0 && (
@@ -130,7 +130,7 @@ export const AppHeader: React.FC<Props> = ({
                 icon={<Upload className="w-4 h-4" />}
                 onClick={onUpload}
               >
-                Upload
+                Import
               </Button>
             </div>
 
