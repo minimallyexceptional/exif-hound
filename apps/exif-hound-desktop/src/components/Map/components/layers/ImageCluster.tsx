@@ -3,11 +3,12 @@ import L from 'leaflet';
 import { ImageData } from '../../../../types';
 import { fixCoordinates } from '../../../../utils/diagnostics';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import { Marker, useMap } from 'react-leaflet';
+import { Marker, Circle, useMap } from 'react-leaflet';
 import { ImagePopup } from './ImagePopup';
+import { ImportedPoint } from '../../../../utils/importData';
 
 interface ImageClusterProps {
-  images: ImageData[];
+  images: (ImageData | ImportedPoint)[];
   onSelectImage: (image: ImageData) => void;
   enableClustering?: boolean;
 }
@@ -44,23 +45,46 @@ export const ImageCluster: React.FC<ImageClusterProps> = ({
         if (!coords) return null;
         return { image, coords };
       })
-      .filter((item): item is { image: ImageData; coords: [number, number] } => item !== null);
+      .filter((item): item is { image: ImageData | ImportedPoint; coords: [number, number] } => item !== null);
   }, [images]);
 
   if (!map || !cameraIcon) return null;
 
-  const renderMarker = ({ image, coords }: { image: ImageData; coords: [number, number] }) => (
-    <Marker
-      key={image.id}
-      position={coords}
-      icon={cameraIcon}
-      eventHandlers={{
-        click: () => onSelectImage(image)
-      }}
-    >
-      <ImagePopup image={image} />
-    </Marker>
-  );
+  const renderMarker = ({ image, coords }: { image: ImageData | ImportedPoint; coords: [number, number] }) => {
+    const isImportedPoint = 'hasImage' in image;
+    const hasImage = isImportedPoint ? image.hasImage : true;
+
+    if (!hasImage) {
+      return (
+        <Circle
+          key={image.id}
+          center={coords}
+          radius={100}
+          pathOptions={{
+            color: '#3b82f6',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.5,
+            weight: 2
+          }}
+        >
+          <ImagePopup image={image} />
+        </Circle>
+      );
+    }
+
+    return (
+      <Marker
+        key={image.id}
+        position={coords}
+        icon={cameraIcon}
+        eventHandlers={{
+          click: () => onSelectImage(image)
+        }}
+      >
+        <ImagePopup image={image} />
+      </Marker>
+    );
+  };
 
   if (enableClustering) {
     return (

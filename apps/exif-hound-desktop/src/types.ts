@@ -32,12 +32,43 @@ export interface ExifData {
   location?: LocationData | null;
 }
 
+export interface ImageFile {
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+}
+
 export interface ImageData {
   id: string;
-  file: File;
   url: string;
-  exif: ExifData;
-  isProcessing?: boolean;
+  file: ImageFile;
+  exif: {
+    latitude?: number;
+    longitude?: number;
+    dateTimeOriginal?: string;
+    make?: string;
+    model?: string;
+    exposureTime?: string;
+    fNumber?: string;
+    iso?: string;
+    focalLength?: string;
+    gpsAltitude?: number;
+    gpsAltitudeRef?: string;
+    imageWidth?: number;
+    imageHeight?: number;
+    orientation?: number;
+    software?: string;
+    artist?: string;
+    copyright?: string;
+    description?: string;
+    lensModel?: string;
+    flash?: string;
+    meteringMode?: string;
+    whiteBalance?: string;
+    imageDescription?: string;
+    userComment?: string;
+  };
 }
 
 export interface MapStyle {

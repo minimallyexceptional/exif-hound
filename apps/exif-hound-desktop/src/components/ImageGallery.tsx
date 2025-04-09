@@ -1,77 +1,67 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ImageData } from '../types';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, Camera } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useTheme } from '../context/ThemeContext';
 import { formatShortDateTime } from '../utils/date';
+import { ImportedPoint } from '../utils/importData';
 
 interface Props {
-  images: ImageData[];
+  images: (ImageData | ImportedPoint)[];
   selectedImage: ImageData | null;
   onSelect: (image: ImageData) => void;
 }
 
 const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showTooltip, setShowTooltip] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { theme } = useTheme();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowTooltip(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // Filter out items without valid images
+  const imagesWithImages = images.filter(image => {
+    const isImportedPoint = 'hasImage' in image;
+    return isImportedPoint ? image.hasImage : true;
+  });
 
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (!selectedImage) return;
-      
-      const currentIndex = images.findIndex(img => img.id === selectedImage.id);
-      if (currentIndex === -1) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-      if (e.key === 'ArrowUp' && currentIndex > 0) {
-        onSelect(images[currentIndex - 1]);
-      } else if (e.key === 'ArrowDown' && currentIndex < images.length - 1) {
-        onSelect(images[currentIndex + 1]);
-      }
+    const handleScroll = () => {
+      setIsScrolled(container.scrollTop > 0);
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [images, selectedImage, onSelect]);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToImage = (imageId: string) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const imageElement = container.querySelector(`[data-image-id="${imageId}"]`);
+    if (imageElement) {
+      imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   useEffect(() => {
-    if (selectedImage && containerRef.current) {
-      const selectedElement = containerRef.current.querySelector(`[data-image-id="${selectedImage.id}"]`);
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest'
-        });
-      }
+    if (selectedImage) {
+      scrollToImage(selectedImage.id);
     }
   }, [selectedImage]);
 
-  const handlePrevious = () => {
-    if (!selectedImage) return;
-    const currentIndex = images.findIndex(img => img.id === selectedImage.id);
-    if (currentIndex > 0) {
-      onSelect(images[currentIndex - 1]);
-    }
-  };
-
-  const handleNext = () => {
-    if (!selectedImage) return;
-    const currentIndex = images.findIndex(img => img.id === selectedImage.id);
-    if (currentIndex < images.length - 1) {
-      onSelect(images[currentIndex + 1]);
-    }
-  };
-
-  if (images.length === 0) return null;
+  if (imagesWithImages.length === 0) {
+    return (
+      <div className="glass-panel p-6">
+        <div className="text-center">
+          <Camera className="w-12 h-12 mx-auto mb-3 text-app-white" />
+          <p className="text-app-white">No images available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative group h-full py-12">
@@ -80,7 +70,7 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
         className="h-full overflow-y-auto overflow-x-hidden scroll-smooth px-4"
       >
         <div className="flex flex-col gap-4">
-          {images.map((image) => (
+          {imagesWithImages.map((image) => (
             <div
               key={image.id}
               data-image-id={image.id}
@@ -90,76 +80,44 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
               <div className={`relative cursor-pointer transition-transform duration-200 ${
                 selectedImage?.id === image.id ? 'scale-[1.02]' : 'hover:scale-[1.02]'
               }`}>
-                {image.isProcessing ? (
-                  <Skeleton height={160} className="rounded-lg" />
-                ) : (
-                  <>
-                    <div className="aspect-[3/2] rounded-lg overflow-hidden shadow-lg">
-                      <img
-                        src={image.url}
-                        alt={image.file.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className={`absolute inset-0 ${
-                        selectedImage?.id === image.id 
-                          ? 'ring-2 ring-app-accent' 
-                          : 'group-hover:bg-app-black/10'
-                      } transition-all duration-200`} />
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <div className={`${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'} rounded-lg px-3 py-2 shadow-lg`}>
-                        <p className="text-sm font-medium truncate">
-                          {image.file.name}
-                        </p>
-                        <p className={`text-xs mt-0.5 truncate ${theme === 'dark' ? 'text-white/70' : 'text-black/70'}`}>
-                          {image.exif.dateTimeOriginal ? formatShortDateTime(image.exif.dateTimeOriginal) : 'No date available'}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <div className="aspect-[3/2] rounded-lg overflow-hidden shadow-lg">
+                  <img
+                    src={image.url}
+                    alt={image.file.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Hide the image if it fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+                      }
+                    }}
+                  />
+                  <div className={`absolute inset-0 ${
+                    selectedImage?.id === image.id 
+                      ? 'ring-2 ring-app-accent' 
+                      : 'group-hover:bg-app-black/10'
+                  } transition-all duration-200`} />
+                </div>
+                <div className="mt-2 text-sm text-app-accent-dim">
+                  {formatShortDateTime(image.exif.dateTimeOriginal || '')}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {images.length > 1 && (
-        <>
-          <button
-            onClick={handlePrevious}
-            className={`absolute top-2 left-1/2 -translate-x-1/2 p-3 rounded-lg ${
-              theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'
-            } shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:${
-              theme === 'dark' ? 'bg-black/95' : 'bg-white/95'
-            } disabled:opacity-30`}
-            aria-label="Previous image"
-            disabled={!selectedImage || images.indexOf(selectedImage) === 0}
-          >
-            <ChevronUp className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handleNext}
-            className={`absolute bottom-2 left-1/2 -translate-x-1/2 p-3 rounded-lg ${
-              theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'
-            } shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:${
-              theme === 'dark' ? 'bg-black/95' : 'bg-white/95'
-            } disabled:opacity-30`}
-            aria-label="Next image"
-            disabled={!selectedImage || images.indexOf(selectedImage) === images.length - 1}
-          >
-            <ChevronDown className="w-6 h-6" />
-          </button>
-        </>
-      )}
-
-      {images.length > 1 && showTooltip && (
-        <div className="absolute bottom-14 left-1/2 -translate-x-1/2">
-          <div className={`text-sm ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'} px-4 py-2 rounded-full shadow-lg opacity-100 transition-opacity duration-300`}>
-            Use ↑ ↓ arrow keys to navigate
-          </div>
-        </div>
+      {isScrolled && (
+        <button
+          onClick={() => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="absolute top-4 right-4 p-2 rounded-full bg-app-gray/80 hover:bg-app-gray text-app-white transition-colors duration-200"
+        >
+          <ChevronUp className="w-5 h-5" />
+        </button>
       )}
     </div>
   );

@@ -3,9 +3,10 @@ import { ImageData } from '../types';
 import { ArrowUpDown, Camera, Calendar, MapPin, Clock, Info, Shield, Settings2, Check } from 'lucide-react';
 import { formatFileSize } from '../utils/formatters';
 import { formatShortDateTime } from '../utils/date';
+import { ImportedPoint } from '../utils/importData';
 
 interface Props {
-  images: ImageData[];
+  images: (ImageData | ImportedPoint)[];
   selectedImage: ImageData | null;
   onSelect: (image: ImageData) => void;
 }
@@ -247,12 +248,18 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     return info.length > 0 ? info.join(' • ') : 'No technical data';
   };
 
-  if (images.length === 0) {
+  // Filter out items without images
+  const imagesWithImages = images.filter(image => {
+    const isImportedPoint = 'hasImage' in image;
+    return isImportedPoint ? image.hasImage : true;
+  });
+
+  if (imagesWithImages.length === 0) {
     return (
       <div className="glass-panel p-6">
         <div className="text-center">
           <Camera className="w-12 h-12 mx-auto mb-3 text-app-white" />
-          <p className="text-app-white">No images uploaded yet</p>
+          <p className="text-app-white">No images available</p>
         </div>
       </div>
     );
@@ -332,7 +339,10 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
             </tr>
           </thead>
           <tbody>
-            {sortedImages.map((image) => (
+            {sortedImages.filter(image => {
+              const isImportedPoint = 'hasImage' in image;
+              return isImportedPoint ? image.hasImage : true;
+            }).map((image) => (
               <tr
                 key={image.id}
                 onClick={() => onSelect(image)}

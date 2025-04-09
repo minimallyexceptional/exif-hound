@@ -17,6 +17,7 @@ import { Button } from './components/common/Button';
 import ImageComparison from './components/ImageComparison';
 import { LicenseActivationModal } from './components/LicenseActivationModal';
 import { hasLicense, verifyLicense } from './utils/licenseManager';
+import { parseImportData } from './utils/importData';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -116,9 +117,14 @@ function App() {
     setShowImageComparison(true);
   };
 
-  const handleImport = (data: ImportData) => {
-    // TODO: Handle import data
-    console.log('Importing data:', data);
+  const handleImport = async (data: ImportData) => {
+    try {
+      const importedImages = await parseImportData(data);
+      setImages(prevImages => [...prevImages, ...importedImages]);
+    } catch (error) {
+      console.error('Failed to import data:', error);
+      // TODO: Show error to user
+    }
   };
 
   const getViewTitle = () => {
