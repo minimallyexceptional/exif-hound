@@ -131,22 +131,20 @@ function App() {
     switch (viewMode) {
       case 'map':
         return (
-          <div className="h-full">
-            <Map 
-              images={images} 
-              selectedImage={selectedImage}
-              showRoute={showRoute}
-              onToggleRoute={handleRouteClick}
-              onSelectImage={setSelectedImage}
-            />
-          </div>
+          <Map
+            images={images}
+            selectedImage={selectedImage}
+            showRoute={showRoute}
+            onToggleRoute={handleRouteClick}
+            onSelectImage={setSelectedImage}
+          />
         );
       case 'list':
         return (
           <ImageList
             images={images}
             selectedImage={selectedImage}
-            onSelect={setSelectedImage}
+            onSelectImage={setSelectedImage}
           />
         );
       case 'investigation':
