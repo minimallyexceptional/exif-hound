@@ -102,23 +102,17 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                       : 'group-hover:bg-app-black/10'
                   } transition-all duration-200`} />
                 </div>
-                <div className="mt-2 text-sm text-app-accent-dim">
-                  {formatShortDateTime(image.exif.dateTimeOriginal || '')}
-                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {isScrolled && (
-        <button
-          onClick={() => containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="absolute top-4 right-4 p-2 rounded-full bg-app-gray/80 hover:bg-app-gray text-app-white transition-colors duration-200"
-        >
-          <ChevronUp className="w-5 h-5" />
-        </button>
-      )}
+      {/* Scroll indicators */}
+      <div className={`absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-app-black to-transparent pointer-events-none transition-opacity duration-200 ${
+        isScrolled ? 'opacity-100' : 'opacity-0'
+      }`} />
+      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-app-black to-transparent pointer-events-none" />
     </div>
   );
 };
