@@ -18,7 +18,7 @@ export const MapZoomHandler: React.FC<MapZoomHandlerProps> = ({ showRoute, image
         .map(image => {
           const coords = fixCoordinates(image.exif.latitude ?? null, image.exif.longitude ?? null);
           if (!coords) return null;
-          const [lat, lng] = coords;
+          const [lat, lng] = coords as [number, number];
           return L.latLng(lat, lng);
         })
         .filter((point): point is L.LatLng => point !== null);

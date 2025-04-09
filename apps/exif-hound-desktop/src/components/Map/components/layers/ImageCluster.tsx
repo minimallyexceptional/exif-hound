@@ -59,7 +59,7 @@ export const ImageCluster: React.FC<ImageClusterProps> = ({
     >
       <Popup>
         <div className="text-sm">
-          <p className="font-medium">{image.name}</p>
+          <p className="font-medium">{image.file.name}</p>
           <p className="text-gray-600">
             {new Date(image.exif.dateTimeOriginal ?? '').toLocaleString()}
           </p>
