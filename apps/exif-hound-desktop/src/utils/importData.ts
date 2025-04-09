@@ -6,37 +6,31 @@ export interface ImportedPoint extends ImageData {
   hasImage: boolean;
 }
 
-export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Promise<ImportedPoint[]> {
+export interface ImportedData {
+  type: 'kml' | 'csv';
+  data: string;
+  layer?: L.Layer;
+  points?: ImportedPoint[];
+}
+
+export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Promise<ImportedData> {
   return new Promise((resolve, reject) => {
     try {
       if (data.type === 'kml') {
-        // Parse KML data
-        const kmlLayer = omnivore.kml.parse(data.data);
-        const images: ImportedPoint[] = [];
-        
-        kmlLayer.eachLayer((layer: L.Layer) => {
-          if (layer instanceof L.Marker) {
-            const latlng = layer.getLatLng();
-            images.push({
-              id: Math.random().toString(36).substr(2, 9),
-              url: '',
-              hasImage: false,
-              file: {
-                name: layer.getPopup()?.getContent()?.toString() || 'Unknown',
-                type: '',
-                size: 0,
-                lastModified: Date.now()
-              },
-              exif: {
-                latitude: latlng.lat,
-                longitude: latlng.lng,
-                dateTimeOriginal: new Date().toISOString()
-              }
-            });
+        // Parse KML data using omnivore with custom options to prevent default markers
+        const kmlLayer = omnivore.kml.parse(data.data, {
+          style: {
+            pointToLayer: (feature, latlng) => {
+              // Return null to prevent marker creation
+              return null;
+            }
           }
         });
-        
-        resolve(images);
+        resolve({
+          type: 'kml',
+          data: data.data,
+          layer: kmlLayer
+        });
       } else {
         // Parse CSV data
         const lines = data.data.split('\n');
@@ -100,7 +94,11 @@ export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Pr
           });
         });
         
-        resolve(validImages);
+        resolve({
+          type: 'csv',
+          data: data.data,
+          points: validImages
+        });
       }
     } catch (error) {
       reject(error);

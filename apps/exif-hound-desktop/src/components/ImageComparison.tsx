@@ -1,137 +1,97 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Modal } from './common/Modal';
+import ExifReader from 'exifreader';
 import { ImageData } from '../types';
 import { ArrowLeftRight } from 'lucide-react';
-import ExifReader from 'exifreader';
-import { Modal } from './common/Modal';
 import { ImageContainer } from './common/ImageContainer';
 
-interface Props {
+interface ImageComparisonProps {
   image: ImageData;
   onClose: () => void;
 }
 
-const ImageComparison: React.FC<Props> = ({ image, onClose }) => {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose }) => {
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sliderPosition, setSliderPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
+  const [mousePosition, setMousePosition] = useState<number>(0.5);
 
   useEffect(() => {
     const extractThumbnail = async () => {
       try {
-        const tags = await ExifReader.load(image.file, { expanded: true });
+        // Convert the file to an ArrayBuffer
+        const response = await fetch(image.url);
+        const buffer = await response.arrayBuffer();
         
-        if (tags.Thumbnail?.image) {
-          const uint8Array = new Uint8Array(tags.Thumbnail.image);
-          const base64String = btoa(
-            uint8Array.reduce((data, byte) => data + String.fromCharCode(byte), '')
-          );
-          const dataUrl = `data:image/jpeg;base64,${base64String}`;
-          setThumbnailUrl(dataUrl);
+        const tags = await ExifReader.load(buffer);
+        if (tags.Thumbnail && 'value' in tags.Thumbnail && tags.Thumbnail.value instanceof ArrayBuffer) {
+          const blob = new Blob([tags.Thumbnail.value], { type: 'image/jpeg' });
+          const url = URL.createObjectURL(blob);
+          setThumbnail(url);
         } else {
-          setError('No EXIF thumbnail found in this image');
+          setError('No thumbnail found in EXIF data');
         }
       } catch (err) {
-        setError('Failed to extract EXIF thumbnail');
+        setError('Failed to extract thumbnail from EXIF data');
         console.error('Error extracting thumbnail:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     extractThumbnail();
-  }, [image]);
+  }, [image.url]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    isDragging.current = true;
-    handleMouseMove(e);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging.current || !containerRef.current) return;
-
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    const percentage = (x / rect.width) * 100;
-    setSliderPosition(percentage);
+    const x = (e.clientX - rect.left) / rect.width;
+    setMousePosition(Math.max(0, Math.min(1, x)));
   };
 
-  const handleMouseUp = () => {
-    isDragging.current = false;
+  const handleMouseLeave = () => {
+    setMousePosition(0.5);
   };
-
-  useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mouseleave', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
-    };
-  }, []);
 
   return (
-    <Modal 
-      title="Image Comparison" 
-      onClose={onClose} 
-      showFullscreenToggle
-      size="lg"
-    >
-      <div className="h-full flex items-center justify-center p-4">
-        {error ? (
-          <div className="text-center text-red-500 dark:text-red-400 p-4">
-            {error}
+    <Modal title="Image Comparison" onClose={onClose}>
+      <div className="p-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-app-accent"></div>
           </div>
+        ) : error ? (
+          <div className="text-app-accent-dim text-center">{error}</div>
         ) : (
-          <div 
+          <div
             ref={containerRef}
-            className="relative select-none w-full max-w-4xl"
-            onMouseDown={handleMouseDown}
+            className="relative h-64 w-full cursor-crosshair"
             onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
           >
-            <ImageContainer
+            <img
               src={image.url}
               alt="Original"
-              aspectRatio="16/9"
-              className="bg-gray-100 dark:bg-gray-700"
+              className="absolute inset-0 w-full h-full object-contain"
             />
-            
-            {thumbnailUrl && (
-              <div
-                className="absolute inset-0"
+            {thumbnail && (
+              <img
+                src={thumbnail}
+                alt="Thumbnail"
+                className="absolute inset-0 w-full h-full object-contain"
                 style={{
-                  clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
+                  clipPath: `inset(0 ${(1 - mousePosition) * 100}% 0 0)`,
                 }}
-              >
-                <ImageContainer
-                  src={thumbnailUrl}
-                  alt="Thumbnail"
-                  aspectRatio="16/9"
-                />
-              </div>
+              />
             )}
-
             <div
-              className="absolute top-0 bottom-0 w-1 bg-white cursor-ew-resize"
-              style={{ left: `${sliderPosition}%` }}
-            >
-              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 bg-white rounded-full shadow-lg flex items-center justify-center">
-                <ArrowLeftRight className="w-5 h-5 text-gray-600" />
-              </div>
-            </div>
-
-            <div className="absolute top-4 left-4 bg-black/50 text-white px-2 py-1 rounded text-sm">
-              Original
-            </div>
-            {thumbnailUrl && (
-              <div className="absolute top-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                Thumbnail
-              </div>
-            )}
+              className="absolute top-0 bottom-0 w-0.5 bg-app-accent"
+              style={{ left: `${mousePosition * 100}%` }}
+            />
           </div>
         )}
       </div>
     </Modal>
   );
 };
-
-export default ImageComparison;

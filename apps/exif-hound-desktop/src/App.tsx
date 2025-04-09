@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import Map from './components/Map';
@@ -14,10 +14,10 @@ import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
-import ImageComparison from './components/ImageComparison';
+import { ImageComparison } from './components/ImageComparison';
 import { LicenseActivationModal } from './components/LicenseActivationModal';
 import { hasLicense, verifyLicense } from './utils/licenseManager';
-import { parseImportData } from './utils/importData';
+import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -40,6 +40,7 @@ function App() {
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [showLicenseModal, setShowLicenseModal] = useState(false);
   const [licenseError, setLicenseError] = useState<string | null>(null);
+  const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -119,8 +120,13 @@ function App() {
 
   const handleImport = async (data: ImportData) => {
     try {
-      const importedImages = await parseImportData(data);
-      setImages(prevImages => [...prevImages, ...importedImages]);
+      const result = await parseImportData(data);
+      setImportedData(result);
+      
+      if (result.type === 'csv' && result.points) {
+        const points = result.points as ImportedPoint[];
+        setImages(prevImages => [...prevImages, ...points]);
+      }
     } catch (error) {
       console.error('Failed to import data:', error);
       // TODO: Show error to user
@@ -151,6 +157,7 @@ function App() {
             onToggleRoute={handleRouteClick}
             onSelectImage={setSelectedImage}
             onOpenImport={() => setShowImportModal(true)}
+            importedData={importedData}
           />
         );
       case 'list':
@@ -290,7 +297,7 @@ function App() {
       )}
 
       {showImageComparison && comparisonImage && (
-        <ImageComparison
+        <ImageComparison.ImageComparison
           image={comparisonImage}
           onClose={() => {
             setShowImageComparison(false);
