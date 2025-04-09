@@ -43,18 +43,26 @@ const FullscreenControl = createControlComponent(
 interface MapControlsProps {
   showFullscreen?: boolean;
   showRoute?: boolean;
+  showHeatmap?: boolean;
+  showClusters?: boolean;
   onToggleRoute?: () => void;
   onToggleFullscreen?: () => void;
   onOpenImport?: () => void;
+  onToggleHeatmap?: () => void;
+  onToggleClusters?: () => void;
   fullscreenPosition?: L.ControlPosition;
 }
 
 export const MapControls: React.FC<MapControlsProps> = ({
   showFullscreen = true,
   showRoute = false,
+  showHeatmap = false,
+  showClusters = true,
   onToggleRoute = () => {},
   onToggleFullscreen = () => {},
   onOpenImport = () => {},
+  onToggleHeatmap = () => {},
+  onToggleClusters = () => {},
   fullscreenPosition = 'topleft'
 }) => {
   return (
@@ -67,7 +75,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
           <div className="leaflet-control leaflet-bar">
             <button 
               onClick={onToggleRoute}
-              className="border-b"
+              className={`border-b ${showRoute ? 'toggle-active' : 'toggle-inactive'}`}
               title={showRoute ? "Hide Route" : "Show Route"}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -76,7 +84,32 @@ export const MapControls: React.FC<MapControlsProps> = ({
             </button>
             
             <button 
+              onClick={onToggleHeatmap}
+              className={`border-b ${showHeatmap ? 'toggle-active' : 'toggle-inactive'}`}
+              title={showHeatmap ? "Show Markers" : "Show Heatmap"}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2v20M2 12h20" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={onToggleClusters}
+              className={`border-b ${showClusters ? 'toggle-active' : 'toggle-inactive'}`}
+              title={showClusters ? "Show Individual Markers" : "Show Clusters"}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="8" cy="8" r="3" />
+                <circle cx="16" cy="16" r="3" />
+                <circle cx="16" cy="8" r="3" />
+                <circle cx="8" cy="16" r="3" />
+              </svg>
+            </button>
+
+            <button 
               onClick={onOpenImport}
+              className="toggle-inactive"
               title="Import Data"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

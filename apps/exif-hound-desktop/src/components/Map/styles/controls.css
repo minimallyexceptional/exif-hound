@@ -4,6 +4,37 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
+/* Custom marker styles */
+.custom-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.custom-marker svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Custom cluster marker styles */
+.custom-cluster-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.custom-cluster-marker .cluster-count {
+  width: 40px;
+  height: 40px;
+  background: #111111;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 /* Light mode styles */
 .leaflet-bar a,
 .leaflet-bar button {
@@ -16,6 +47,27 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+}
+
+/* Toggle states */
+.leaflet-bar button.toggle-active {
+  background-color: black !important;
+  color: white !important;
+}
+
+.leaflet-bar button.toggle-active:hover {
+  background-color: #1a1a1a !important;
+  color: white !important;
+}
+
+.leaflet-bar button.toggle-inactive {
+  background-color: white !important;
+  color: black !important;
+}
+
+.leaflet-bar button.toggle-inactive:hover {
+  background-color: #f3f4f6 !important;
+  color: black !important;
 }
 
 .leaflet-bar a:hover,

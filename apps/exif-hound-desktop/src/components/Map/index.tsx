@@ -5,6 +5,8 @@ import { MapLayers } from './components/layers/MapLayers';
 import { MapControls } from './components/controls/MapControls';
 import { ImageRoute } from './components/layers/ImageRoute';
 import { ImageCluster } from './components/layers/ImageCluster';
+import { ImageHeatmap } from './components/layers/HeatmapLayer';
+import { MapZoomHandler } from './components/controls/MapZoomHandler';
 import { useMapCenter } from './hooks/useMapCenter';
 import { useMapImages } from './hooks/useMapImages';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
@@ -33,6 +35,26 @@ const Map: React.FC<MapProps> = ({
 }) => {
   const { imagesWithLocation, sortedImages } = useMapImages(images);
   const { center, isFullscreen, setIsFullscreen } = useMapCenter(selectedImage, imagesWithLocation);
+  const [showHeatmap, setShowHeatmap] = React.useState(false);
+  const [showClusters, setShowClusters] = React.useState(true);
+
+  const handleHeatmapToggle = () => {
+    setShowHeatmap(!showHeatmap);
+    if (!showHeatmap && showRoute) {
+      onToggleRoute(); // Turn off route if turning on heatmap
+    }
+  };
+
+  const handleRouteToggle = () => {
+    if (showHeatmap) {
+      setShowHeatmap(false); // Turn off heatmap if turning on route
+    }
+    onToggleRoute();
+  };
+
+  const handleClusterToggle = () => {
+    setShowClusters(!showClusters);
+  };
 
   return (
     <MapErrorBoundary>
@@ -44,15 +66,26 @@ const Map: React.FC<MapProps> = ({
         <MapLayers defaultLayer="OpenStreetMap" />
         <MapControls
           showRoute={showRoute}
-          onToggleRoute={onToggleRoute}
+          showHeatmap={showHeatmap}
+          showClusters={showClusters}
+          onToggleRoute={handleRouteToggle}
           onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
           onOpenImport={onOpenImport}
+          onToggleHeatmap={handleHeatmapToggle}
+          onToggleClusters={handleClusterToggle}
         />
         
-        <ImageCluster
-          images={imagesWithLocation}
-          onSelectImage={onSelectImage}
-        />
+        <MapZoomHandler showRoute={showRoute} images={sortedImages} />
+        
+        {showHeatmap ? (
+          <ImageHeatmap images={imagesWithLocation} />
+        ) : (
+          <ImageCluster
+            images={imagesWithLocation}
+            onSelectImage={onSelectImage}
+            enableClustering={showClusters}
+          />
+        )}
 
         {showRoute && sortedImages.length > 1 && (
           <ImageRoute images={sortedImages} />
