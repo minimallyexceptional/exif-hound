@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ImageData } from './types';
+import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import Map from './components/Map';
 import ExifPanel from './components/ExifPanel';
@@ -7,6 +7,7 @@ import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
 import Investigation from './components/Investigation';
 import ExportModal from './components/ExportModal';
+import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
 import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
@@ -30,6 +31,7 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isGalleryCollapsed, setIsGalleryCollapsed] = useState(false);
   const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
@@ -114,6 +116,11 @@ function App() {
     setShowImageComparison(true);
   };
 
+  const handleImport = (data: ImportData) => {
+    // TODO: Handle import data
+    console.log('Importing data:', data);
+  };
+
   const getViewTitle = () => {
     switch (viewMode) {
       case 'map':
@@ -137,6 +144,7 @@ function App() {
             showRoute={showRoute}
             onToggleRoute={handleRouteClick}
             onSelectImage={setSelectedImage}
+            onOpenImport={() => setShowImportModal(true)}
           />
         );
       case 'list':
@@ -144,7 +152,7 @@ function App() {
           <ImageList
             images={images}
             selectedImage={selectedImage}
-            onSelectImage={setSelectedImage}
+            onSelect={setSelectedImage}
           />
         );
       case 'investigation':
@@ -261,6 +269,13 @@ function App() {
         <ExportModal
           images={images}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportModal
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImport}
         />
       )}
 
