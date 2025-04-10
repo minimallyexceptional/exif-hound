@@ -297,7 +297,7 @@ function App() {
       )}
 
       {showImageComparison && comparisonImage && (
-        <ImageComparison.ImageComparison
+        <ImageComparison
           image={comparisonImage}
           onClose={() => {
             setShowImageComparison(false);
