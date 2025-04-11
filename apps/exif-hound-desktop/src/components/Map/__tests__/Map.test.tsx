@@ -13,12 +13,9 @@ jest.mock('../components/controls/MapControls', () => ({
   MapControls: () => <div data-testid="map-controls">Map Controls Component</div>,
 }));
 
-jest.mock('../components/layers/ImageCluster', () => {
-  return {
-    __esModule: true,
-    default: () => <div data-testid="image-cluster">Image Cluster Component</div>,
-  };
-});
+jest.mock('../components/layers/ImageCluster', () => ({
+  ImageCluster: () => <div data-testid="image-cluster">Image Cluster Component</div>
+}));
 
 jest.mock('../components/layers/ImageRoute', () => ({
   ImageRoute: () => <div data-testid="image-route">Image Route Component</div>,

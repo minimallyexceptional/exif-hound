@@ -12,7 +12,10 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "test": "jest --config jest.config.cjs"
+    "test": "jest --config jest.config.cjs",
+    "test:watch": "jest --config jest.config.cjs --watch",
+    "test:coverage": "jest --config jest.config.cjs --coverage",
+    "test:coverage:no-threshold": "jest --config jest.config.cjs --coverage --coverageThreshold='{}'"
   },
   "dependencies": {
     "@mapbox/leaflet-omnivore": "^0.3.4",

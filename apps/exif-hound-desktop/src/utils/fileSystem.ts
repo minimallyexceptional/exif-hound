@@ -37,12 +37,12 @@ declare global {
 }
 
 // Helper function to wait for a specified time
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Check if we're running in a Tauri environment
  */
-function isTauriEnvironment(): boolean {
+export function isTauriEnvironment(): boolean {
   try {
     // Detailed debugging of the window and available objects
     console.log('[FileSystem] Window object keys:', Object.keys(window));

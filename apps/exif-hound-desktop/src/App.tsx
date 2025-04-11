@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import Map from './components/Map';

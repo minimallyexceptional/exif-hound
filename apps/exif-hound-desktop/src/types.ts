@@ -8,8 +8,8 @@ export interface ExifData {
   make?: string | null;
   model?: string | null;
   exposureTime?: string | null;
-  fNumber?: number | null;
-  iso?: number | null;
+  fNumber?: string | null;
+  iso?: string | null;
   focalLength?: number | null;
   error?: string | null;
   // New EXIF properties
