@@ -12,7 +12,8 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
     include: [
-      '@tauri-apps/api'
+      '@tauri-apps/api',
+      'leaflet-fullscreen'
     ],
     exclude: ['lucide-react'],
   },
