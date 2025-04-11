@@ -1,0 +1,119 @@
+/* Map Controls Styles */
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.custom-marker svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Custom cluster marker styles */
+.custom-cluster-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.custom-cluster-marker .cluster-count {
+  width: 40px;
+  height: 40px;
+  background: #111111;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Light mode styles */
+.leaflet-bar a,
+.leaflet-bar button {
+  background-color: white !important;
+  color: #111111 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Toggle states */
+.leaflet-bar button.toggle-active {
+  background-color: black !important;
+  color: white !important;
+}
+
+.leaflet-bar button.toggle-active:hover {
+  background-color: #1a1a1a !important;
+  color: white !important;
+}
+
+.leaflet-bar button.toggle-inactive {
+  background-color: white !important;
+  color: black !important;
+}
+
+.leaflet-bar button.toggle-inactive:hover {
+  background-color: #f3f4f6 !important;
+  color: black !important;
+}
+
+.leaflet-bar a:hover,
+.leaflet-bar button:hover {
+  background-color: #f3f4f6 !important;
+  color: #111111 !important;
+}
+
+/* Dark mode styles */
+.dark .leaflet-bar a,
+.dark .leaflet-bar button {
+  background-color: #1a1a1a !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .leaflet-bar a:hover,
+.dark .leaflet-bar button:hover {
+  background-color: #2a2a2a !important;
+  color: white !important;
+}
+
+/* Fullscreen control specific styles */
+.leaflet-control-fullscreen a {
+  background-size: 16px !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+.dark .leaflet-control-fullscreen a {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+/* Zoom controls */
+.leaflet-control-zoom a {
+  font-size: 16px !important;
+  font-weight: bold !important;
+}
+
+.dark .leaflet-control-zoom a {
+  color: white !important;
+}
+
+/* Disable default focus styles */
+.leaflet-bar a:focus,
+.leaflet-bar button:focus {
+  outline: none !important;
+} 

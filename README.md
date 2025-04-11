@@ -1,86 +1,110 @@
-# Exif Hound - Electron Edition
+# EXIF Hound Monorepo
 
-A desktop application for viewing and analyzing EXIF data from images, built with Electron, React, and TypeScript.
+A monorepo for EXIF Hound applications and packages, using Turborepo.
 
-## Features
+## What's inside?
 
-- View EXIF data from images
-- Display images on an interactive map using GPS coordinates
-- Export EXIF data to CSV
-- Drag and drop image upload
-- Dark theme support
-- Responsive design
+This monorepo uses [Turborepo](https://turbo.build/repo) for build system and workspace management.
 
-## Installation
+### Apps and Packages
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/exif-hound-electron.git
-cd exif-hound-electron
+- `apps/exif-hound-desktop`: A Tauri-based desktop application for EXIF metadata analysis
+- `packages/shared-utils`: Common utilities for formatting and data processing
+- `packages/exif-middleware`: EXIF processing and metadata extraction utilities
+
+## Current Status
+
+The monorepo setup is now complete with the following structure:
+
+```
+exif-hound-monorepo/
+├── apps/
+│   └── exif-hound-desktop/  # Tauri desktop app
+├── packages/
+│   ├── shared-utils/        # Common utilities
+│   └── exif-middleware/     # EXIF processing logic
+├── turbo.json               # Turborepo config
+├── build.sh                 # Unix build script
+├── build.bat                # Windows build script
+└── package.json             # Workspace config
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+Implementation status:
 
-3. Start the development server:
-```bash
-npm run dev
-```
-
-4. Build the application:
-```bash
-npm run electron:build
-```
+1. ✅ Create monorepo structure
+2. ✅ Set up Turborepo configuration
+3. ✅ Move existing application to `apps/exif-hound-desktop`
+4. ✅ Create basic shared packages
+5. ✅ Fix dependencies between packages and applications
+6. ✅ Set up build and development workflows
+7. ✅ Update paths and imports in application code
+8. ✅ Fix TypeScript project references
 
 ## Development
 
-The application is built using:
-- Electron for the desktop framework
-- React for the UI
-- TypeScript for type safety
-- Tailwind CSS for styling
-- Vite for development and building
+To develop all apps and packages, run the following command:
 
-### Project Structure
-
-```
-exif-hound-electron/
-├── electron/           # Electron main process files
-│   ├── main.ts        # Main process entry point
-│   └── preload.ts     # Preload script for IPC
-├── src/               # React application source
-│   ├── components/    # React components
-│   ├── utils/         # Utility functions
-│   ├── types/         # TypeScript type definitions
-│   └── ...           # Other source files
-├── public/            # Static assets
-└── ...               # Configuration files
+```bash
+# Build packages first, then start development
+npm run build:packages
+npm run dev
 ```
 
-### Key Components
+To develop only the shared packages:
 
-- **Main Process**: Handles file system operations and window management
-- **Renderer Process**: React application for the UI
-- **Preload Script**: Safely exposes Electron APIs to the renderer process
+```bash
+npm run dev:packages
+```
+
+To run just the desktop application:
+
+```bash
+npm run tauri:dev
+```
 
 ## Building
 
-The application can be built for multiple platforms:
+The easiest way to build is using the provided build scripts:
 
-- Windows: `npm run electron:build`
-- macOS: `npm run electron:build`
-- Linux: `npm run electron:build`
+```bash
+# On Unix/Linux/macOS
+./build.sh
 
-## Contributing
+# On Windows
+build.bat
+```
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Alternatively, you can run the build steps manually:
+
+```bash
+# Type check all packages and apps
+npm run typecheck
+
+# Build all packages and apps
+npm run build
+
+# Or build just packages
+npm run build:packages
+
+# Or build just apps
+npm run build:apps
+
+# Build the desktop application
+npm run tauri:build
+```
+
+## Technology Stack
+
+- Frontend: React, TypeScript, Vite, TailwindCSS
+- Backend: Tauri (Rust)
+- Map: Leaflet/React-Leaflet
+- Image Processing: ExifReader
+- Build System: Turborepo
+
+## Further Documentation
+
+For more details about the monorepo migration process, see [MONOREPO_MIGRATION.md](./MONOREPO_MIGRATION.md).
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+MIT 

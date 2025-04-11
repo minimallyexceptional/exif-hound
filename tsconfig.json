@@ -6,18 +6,25 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "allowJs": true,
-    "esModuleInterop": true
+    "paths": {
+      "shared-utils": ["./packages/shared-utils/src"],
+      "shared-utils/*": ["./packages/shared-utils/src/*"],
+      "exif-middleware": ["./packages/exif-middleware/src"],
+      "exif-middleware/*": ["./packages/exif-middleware/src/*"]
+    }
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["packages/**/*.ts", "packages/**/*.tsx"],
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./packages/shared-utils" },
+    { "path": "./packages/exif-middleware" },
+    { "path": "./apps/exif-hound-desktop/tsconfig.json" }
+  ]
 }

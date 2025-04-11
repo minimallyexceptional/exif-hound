@@ -1,0 +1,91 @@
+/* Reset and override Leaflet's default popup styles */
+.leaflet-popup {
+  margin-bottom: 5px !important;
+}
+
+.map-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  margin-bottom: -5px !important;
+}
+
+.dark .map-popup .leaflet-popup-content-wrapper {
+  background: #111111 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.map-popup .leaflet-popup-content {
+  margin: 0 !important;
+  width: 280px !important;
+  color: inherit !important;
+}
+
+/* Hide default tip */
+.map-popup .leaflet-popup-tip-container {
+  display: none !important;
+}
+
+/* Custom tip */
+.map-popup .leaflet-popup-content-wrapper::after {
+  content: '';
+  position: absolute !important;
+  bottom: -4px !important;
+  left: 50% !important;
+  transform: translateX(-50%) rotate(45deg) !important;
+  width: 10px !important;
+  height: 10px !important;
+  background: #111111 !important;
+  border-radius: 2px !important;
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.dark .map-popup .leaflet-popup-content-wrapper::after {
+  box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.map-popup .leaflet-popup-close-button {
+  position: absolute !important;
+  right: 0 !important;
+  top: 0 !important;
+  color: white !important;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+  padding: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 20px !important;
+  z-index: 10;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.map-popup .leaflet-popup-close-button:hover {
+  opacity: 1;
+  background: none !important;
+  text-decoration: none !important;
+  border: none !important;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 0;
+  min-width: 200px;
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.custom-popup .glass-panel {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+} 
