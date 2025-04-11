@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Group } from '@visx/group';
 import { scaleTime } from '@visx/scale';
 import { AxisBottom } from '@visx/axis';
 import { Tooltip, defaultStyles } from '@visx/tooltip';
 import { Zoom } from '@visx/zoom';
-import { ImageData } from '../../types';
 import { Camera, MapPin, ZoomIn, ZoomOut, RotateCcw, Filter } from 'lucide-react';
-import { formatDateTime } from '../../utils/date';
+import { formatDateTime } from '../../../utils/date';
+import { useTimelineNodes } from './hooks/useTimelineNodes';
+import type { ImageData } from '../../../types';
 
 interface Props {
   images: ImageData[];
@@ -15,7 +16,7 @@ interface Props {
   showStats?: boolean;
 }
 
-interface TimelineNode {
+interface TooltipNode {
   image: ImageData;
   date: Date;
   x: number;
@@ -23,7 +24,18 @@ interface TimelineNode {
 }
 
 const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = true }) => {
-  const [tooltipData, setTooltipData] = useState<TimelineNode | null>(null);
+  console.log('TimelineAnalysis rendering with props:', { 
+    imageCount: images.length, 
+    width, 
+    height, 
+    showStats 
+  });
+  
+  useEffect(() => {
+    console.log('Images data:', images);
+  }, [images]);
+  
+  const [tooltipData, setTooltipData] = useState<TooltipNode | null>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [visibleImages, setVisibleImages] = useState<Set<string>>(
     new Set(images.map(img => img.file.name))
@@ -38,67 +50,39 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  const timeStats = useMemo(() => {
-    const imagesWithDates = images.filter(img => img.exif.dateTimeOriginal && visibleImages.has(img.file.name));
-    
-    if (imagesWithDates.length === 0) {
-      return {
-        total: 0,
-        earliestDate: null,
-        latestDate: null,
-        timeSpan: null
-      };
-    }
-    
-    const dates = imagesWithDates.map(img => new Date(img.exif.dateTimeOriginal!));
-    const earliestDate = new Date(Math.min(...dates.map(d => d.getTime())));
-    const latestDate = new Date(Math.max(...dates.map(d => d.getTime())));
-    
-    const diffMs = latestDate.getTime() - earliestDate.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return {
-      total: imagesWithDates.length,
-      earliestDate,
-      latestDate,
-      timeSpan: `${diffDays}d ${diffHours}h ${diffMinutes}m`
-    };
-  }, [images, visibleImages]);
+  // Use our custom hook to get the timeline data
+  const timelineResult = useTimelineNodes(
+    images.filter(img => visibleImages.has(img.file.name))
+  );
+  
+  console.log('TimelineResult:', timelineResult);
 
-  const timelineData = useMemo(() => {
-    return images
-      .filter(img => img.exif.dateTimeOriginal && visibleImages.has(img.file.name))
-      .map(img => ({
-        image: img,
-        date: new Date(img.exif.dateTimeOriginal!)
-      }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [images, visibleImages]);
+  const timeStats = {
+    total: timelineResult.totalImagesWithDate,
+    earliestDate: timelineResult.startDate,
+    latestDate: timelineResult.endDate,
+    timeSpan: timelineResult.timespan ? 
+      `${timelineResult.timespan}d` : 
+      null
+  };
 
-  const timeScale = useMemo(() => {
-    if (timelineData.length === 0) return null;
-    
-    const dates = timelineData.map(d => d.date);
-    const domain = [
-      new Date(Math.min(...dates.map(d => d.getTime()))),
-      new Date(Math.max(...dates.map(d => d.getTime())))
-    ];
-    
-    return scaleTime({
-      domain,
-      range: [0, innerWidth],
-      nice: true
-    });
-  }, [timelineData, innerWidth]);
+  const timeScale = timelineResult.nodes.length > 0 && timelineResult.startDate && timelineResult.endDate 
+    ? scaleTime({
+        domain: [timelineResult.startDate, timelineResult.endDate],
+        range: [0, innerWidth],
+        nice: true
+      })
+    : null;
 
   const nodeRadius = 6;
-  const nodes: TimelineNode[] = timelineData.map((d) => ({
-    ...d,
-    x: timeScale ? timeScale(d.date) : 0,
+  const nodes: TooltipNode[] = timelineResult.nodes.map((node) => ({
+    image: node.images[0], // Use the first image from each node
+    date: node.date,
+    x: timeScale ? timeScale(node.date) : 0,
     y: innerHeight / 2
   }));
+
+  console.log('Nodes prepared for rendering:', nodes);
 
   return (
     <div className="w-full h-full relative">
@@ -342,7 +326,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                     <span className="font-medium">{tooltipData.image.file.name}</span>
                   </div>
                   <div className="text-sm text-app-accent-dim mb-1">
-                    {formatDateTime(tooltipData.image.exif.dateTimeOriginal!)}
+                    {tooltipData.image.exif.dateTimeOriginal && formatDateTime(tooltipData.image.exif.dateTimeOriginal)}
                   </div>
                   {tooltipData.image.exif.latitude && tooltipData.image.exif.longitude && (
                     <div className="flex items-center gap-2 text-sm">

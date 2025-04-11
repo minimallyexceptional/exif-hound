@@ -1,96 +1,26 @@
-import React, { useMemo, useState } from 'react';
-import { ImageData } from '../../types';
+import React, { useState } from 'react';
+import { ImageData } from '../../../types';
 import { History, Edit2, AlertTriangle, Check, Info, Filter } from 'lucide-react';
-import { formatDateTime } from '../../utils/date';
+import { formatDateTime } from '../../../utils/date';
+import { useProcessingData } from './hooks/useProcessingData';
+import { useSoftwareList } from './hooks/useSoftwareList';
+import { useFilteredData } from './hooks/useFilteredData';
+import { useProcessingStats } from './hooks/useProcessingStats';
 
 interface Props {
   images: ImageData[];
   showStats?: boolean;
 }
 
-interface ProcessingInfo {
-  software: string | null;
-  originalDate: string | null;
-  lastModified: string;
-  hasBeenEdited: boolean;
-  editingSoftware: string[];
-  anomalies: string[];
-}
-
 const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [selectedSoftware, setSelectedSoftware] = useState<Set<string>>(new Set());
 
-  const processingData = useMemo(() => {
-    return images.map(img => {
-      const info: ProcessingInfo = {
-        software: img.exif.software || null,
-        originalDate: img.exif.dateTimeOriginal || null,
-        lastModified: new Date(img.file.lastModified).toISOString(),
-        hasBeenEdited: false,
-        editingSoftware: [],
-        anomalies: []
-      };
-
-      // Check for editing software
-      if (img.exif.software) {
-        info.editingSoftware.push(img.exif.software);
-      }
-
-      // Check if image has been modified
-      if (info.lastModified && info.originalDate) {
-        const originalDate = new Date(info.originalDate);
-        const modifyDate = new Date(info.lastModified);
-        if (modifyDate.getTime() > originalDate.getTime()) {
-          info.hasBeenEdited = true;
-        }
-      }
-
-      // Check for metadata anomalies
-      if (!img.exif.software && info.hasBeenEdited) {
-        info.anomalies.push('Modified without software info');
-      }
-      if (!img.exif.dateTimeOriginal && info.lastModified) {
-        info.anomalies.push('Missing original timestamp');
-      }
-      if (img.exif.software && !info.lastModified) {
-        info.anomalies.push('Software present but no modification date');
-      }
-
-      return {
-        image: img,
-        info
-      };
-    });
-  }, [images]);
-
-  // Get unique software list
-  const allSoftware = useMemo(() => {
-    const software = new Set<string>();
-    processingData.forEach(data => {
-      if (data.info.software) {
-        software.add(data.info.software);
-      }
-    });
-    return Array.from(software);
-  }, [processingData]);
-
-  // Filter images based on selected software
-  const filteredData = useMemo(() => {
-    if (selectedSoftware.size === 0) return processingData;
-    return processingData.filter(data => 
-      data.info.software && selectedSoftware.has(data.info.software)
-    );
-  }, [processingData, selectedSoftware]);
-
-  const stats = useMemo(() => {
-    const total = filteredData.length;
-    const edited = filteredData.filter(d => d.info.hasBeenEdited).length;
-    const withAnomalies = filteredData.filter(d => d.info.anomalies.length > 0).length;
-    const withSoftware = filteredData.filter(d => d.info.software).length;
-
-    return { total, edited, withAnomalies, withSoftware };
-  }, [filteredData]);
+  // Use our custom hooks
+  const processingData = useProcessingData(images);
+  const allSoftware = useSoftwareList(processingData);
+  const filteredData = useFilteredData(processingData, selectedSoftware);
+  const stats = useProcessingStats(filteredData);
 
   return (
     <div className="w-full h-full relative p-4">

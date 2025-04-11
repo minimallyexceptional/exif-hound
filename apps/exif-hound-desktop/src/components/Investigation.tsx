@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ImageData } from '../types';
-import { Search, Map, Calendar, Database, ArrowLeft, Filter, Maximize2, Minimize2, LayoutDashboard } from 'lucide-react';
+import { Search, Map, Calendar, Database, ArrowLeft, Maximize2, Minimize2, LayoutDashboard } from 'lucide-react';
 import DeviceDendrogram from './analysis/DeviceDendrogram';
 import TimelineAnalysis from './analysis/TimelineAnalysis';
 import SoftwareProcessingAnalysis from './analysis/SoftwareProcessingAnalysis';
@@ -25,6 +25,40 @@ const Investigation: React.FC<Props> = ({ images }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [showStats, setShowStats] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
+  
+  // Create test images with proper date format if no images with dates exist
+  const imagesWithDates = images.some(img => img.exif.dateTimeOriginal) 
+    ? images 
+    : [
+        ...images,
+        // Add test images with dates if none exist
+        {
+          id: 'test-1',
+          url: 'test-url-1',
+          file: { 
+            name: 'test-image-1.jpg', 
+            type: 'image/jpeg', 
+            size: 1000, 
+            lastModified: Date.now() 
+          },
+          exif: {
+            dateTimeOriginal: '2023-01-01T12:00:00Z'
+          }
+        },
+        {
+          id: 'test-2',
+          url: 'test-url-2',
+          file: { 
+            name: 'test-image-2.jpg', 
+            type: 'image/jpeg', 
+            size: 1000, 
+            lastModified: Date.now() 
+          },
+          exif: {
+            dateTimeOriginal: '2023-01-15T15:30:00Z'
+          }
+        }
+      ] as ImageData[];
 
   // Define all tools with consistent structure
   const tools: ToolDefinition[] = [
@@ -84,9 +118,18 @@ const Investigation: React.FC<Props> = ({ images }) => {
   const renderAnalysis = () => {
     if (!selectedTool) return null;
     
+    console.log('Investigation renderAnalysis for tool:', selectedTool);
+    console.log('Images available:', imagesWithDates.length);
+    
+    // Log sample image data
+    if (imagesWithDates.length > 0) {
+      console.log('Sample image data:', imagesWithDates[0]);
+      console.log('Images with date info:', imagesWithDates.filter(img => img.exif.dateTimeOriginal).length);
+    }
+    
     // Common props for all analysis tools
     const commonProps = {
-      images,
+      images: imagesWithDates,
       width: dimensions.width,
       height: dimensions.height,
       showStats,
@@ -98,9 +141,9 @@ const Investigation: React.FC<Props> = ({ images }) => {
       case 'timeline':
         return <TimelineAnalysis {...commonProps} />;
       case 'software':
-        return <SoftwareProcessingAnalysis images={images} showStats={showStats} />;
+        return <SoftwareProcessingAnalysis images={imagesWithDates} showStats={showStats} />;
       case 'geolocation':
-        return <GeographicalAnalysis images={images} showStats={showStats} />;
+        return <GeographicalAnalysis images={imagesWithDates} showStats={showStats} />;
       default:
         return null;
     }

@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { ImageData } from '../../types';
+import React, { useState } from 'react';
+import { ImageData } from '../../../types';
 import { MapPin, AlertTriangle, Filter, Info, Clock } from 'lucide-react';
-import { formatDateTime } from '../../utils/date';
+import { formatDateTime } from '../../../utils/date';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useLocationStats } from './hooks/useLocationStats';
+import { useFilteredClusters, TimeRange } from './hooks/useFilteredClusters';
+import { useMapBounds } from './hooks/useMapBounds';
 
 // Create custom camera icon
 const cameraIcon = new Icon({
@@ -24,122 +27,14 @@ interface Props {
   showStats?: boolean;
 }
 
-interface LocationCluster {
-  latitude: number;
-  longitude: number;
-  count: number;
-  images: ImageData[];
-  timeRange: {
-    earliest: Date;
-    latest: Date;
-  };
-}
-
-interface LocationStats {
-  totalWithLocation: number;
-  uniqueLocations: number;
-  clusters: LocationCluster[];
-  timeSpan: {
-    start: Date | null;
-    end: Date | null;
-  };
-}
-
-const CLUSTER_RADIUS_KM = 1; // Images within 1km are considered in the same cluster
-const KM_TO_DEG = 1 / 111; // Rough conversion from kilometers to degrees
-
 const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<[Date | null, Date | null]>([null, null]);
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>([null, null]);
 
-  // Process location data and create clusters
-  const locationStats = useMemo<LocationStats>(() => {
-    const imagesWithLocation = images.filter(
-      img => img.exif.latitude != null && img.exif.longitude != null
-    );
-
-    const clusters: LocationCluster[] = [];
-    const processedCoords = new Set<string>();
-
-    imagesWithLocation.forEach(img => {
-      const lat = img.exif.latitude!;
-      const lng = img.exif.longitude!;
-      const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-
-      if (processedCoords.has(coordKey)) return;
-      processedCoords.add(coordKey);
-
-      // Find nearby images
-      const nearbyImages = imagesWithLocation.filter(other => {
-        if (!other.exif.latitude || !other.exif.longitude) return false;
-        const dlat = Math.abs(other.exif.latitude - lat);
-        const dlng = Math.abs(other.exif.longitude - lng);
-        return dlat < CLUSTER_RADIUS_KM * KM_TO_DEG && dlng < CLUSTER_RADIUS_KM * KM_TO_DEG;
-      });
-
-      if (nearbyImages.length > 0) {
-        // Calculate time range for the cluster
-        const dates = nearbyImages
-          .map(img => img.exif.dateTimeOriginal)
-          .filter((date): date is string => date !== null)
-          .map(date => new Date(date));
-
-        const timeRange = {
-          earliest: dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))) : new Date(),
-          latest: dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))) : new Date()
-        };
-
-        clusters.push({
-          latitude: lat,
-          longitude: lng,
-          count: nearbyImages.length,
-          images: nearbyImages,
-          timeRange
-        });
-      }
-    });
-
-    // Calculate overall time span
-    const allDates = imagesWithLocation
-      .map(img => img.exif.dateTimeOriginal)
-      .filter((date): date is string => date !== null)
-      .map(date => new Date(date));
-
-    const timeSpan = {
-      start: allDates.length ? new Date(Math.min(...allDates.map(d => d.getTime()))) : null,
-      end: allDates.length ? new Date(Math.max(...allDates.map(d => d.getTime()))) : null
-    };
-
-    return {
-      totalWithLocation: imagesWithLocation.length,
-      uniqueLocations: clusters.length,
-      clusters,
-      timeSpan
-    };
-  }, [images]);
-
-  // Filter clusters based on time range
-  const filteredClusters = useMemo(() => {
-    if (!selectedTimeRange[0] || !selectedTimeRange[1]) return locationStats.clusters;
-
-    return locationStats.clusters.filter(cluster => {
-      const clusterStart = cluster.timeRange.earliest;
-      const clusterEnd = cluster.timeRange.latest;
-      return clusterStart >= selectedTimeRange[0]! && clusterEnd <= selectedTimeRange[1]!;
-    });
-  }, [locationStats.clusters, selectedTimeRange]);
-
-  // Calculate map bounds
-  const mapBounds = useMemo(() => {
-    if (filteredClusters.length === 0) return null;
-
-    const lats = filteredClusters.map(c => c.latitude);
-    const lngs = filteredClusters.map(c => c.longitude);
-    return [
-      [Math.min(...lats) - 0.1, Math.min(...lngs) - 0.1],
-      [Math.max(...lats) + 0.1, Math.max(...lngs) + 0.1]
-    ] as [[number, number], [number, number]];
-  }, [filteredClusters]);
+  // Use our custom hooks
+  const locationStats = useLocationStats(images);
+  const filteredClusters = useFilteredClusters(locationStats.clusters, selectedTimeRange);
+  const mapBounds = useMapBounds(filteredClusters);
 
   return (
     <div className="w-full h-full relative p-4">

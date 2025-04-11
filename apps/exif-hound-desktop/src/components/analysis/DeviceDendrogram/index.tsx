@@ -1,22 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { Group } from '@visx/group';
 import { Cluster } from '@visx/hierarchy';
 import { LinkHorizontal } from '@visx/shape';
 import { hierarchy } from 'd3-hierarchy';
-import { ImageData } from '../../types';
+import { ImageData } from '../../../types';
 import { CircuitBoard, Smartphone, Image } from 'lucide-react';
+import { useDeviceHierarchy } from './hooks/useDeviceHierarchy';
+import { useDeviceStats } from './hooks/useDeviceStats';
 
 interface Props {
   images: ImageData[];
   width: number;
   height: number;
   showStats?: boolean;
-}
-
-interface TreeNode {
-  name: string;
-  children?: TreeNode[];
-  image?: ImageData;
 }
 
 const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = true }) => {
@@ -29,61 +25,9 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  const data = useMemo(() => {
-    // Group images by device (make + model)
-    const deviceGroups = images.reduce((acc, img) => {
-      const deviceName = img.exif.make && img.exif.model
-        ? `${img.exif.make} ${img.exif.model}`.trim()
-        : 'Unknown Device';
-      
-      if (!acc[deviceName]) {
-        acc[deviceName] = [];
-      }
-      acc[deviceName].push(img);
-      return acc;
-    }, {} as Record<string, ImageData[]>);
-
-    // Create tree structure
-    const root: TreeNode = {
-      name: 'Devices',
-      children: Object.entries(deviceGroups).map(([device, deviceImages]) => ({
-        name: device,
-        children: deviceImages.map(img => ({
-          name: img.file.name,
-          image: img
-        }))
-      }))
-    };
-
-    return root;
-  }, [images]);
-  
-  // Calculate some statistics about the devices
-  const deviceStats = useMemo(() => {
-    // Count unique devices
-    const uniqueDevices = new Set<string>();
-    let totalDeviceImages = 0;
-    let unknownDeviceCount = 0;
-    
-    images.forEach(img => {
-      const deviceName = img.exif.make && img.exif.model
-        ? `${img.exif.make} ${img.exif.model}`.trim()
-        : 'Unknown Device';
-        
-      uniqueDevices.add(deviceName);
-      totalDeviceImages++;
-      
-      if (deviceName === 'Unknown Device') {
-        unknownDeviceCount++;
-      }
-    });
-    
-    return {
-      uniqueDeviceCount: uniqueDevices.size,
-      totalImages: totalDeviceImages,
-      unknownCount: unknownDeviceCount
-    };
-  }, [images]);
+  // Use our custom hooks
+  const data = useDeviceHierarchy(images);
+  const deviceStats = useDeviceStats(images, data);
 
   const defaultColor = '#26A69A';
   const defaultNodeColor = '#4A90E2';
@@ -108,10 +52,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
               <div className="text-xs text-app-accent-dim">Most Common</div>
             </div>
             <div className="text-sm font-semibold text-app-white truncate">
-              {data.children && data.children.length > 0 
-                ? data.children.sort((a, b) => 
-                    (b.children?.length || 0) - (a.children?.length || 0))[0].name
-                : 'None'}
+              {deviceStats.mostCommonDevice || 'None'}
             </div>
           </div>
           <div className="glass-panel p-2 rounded-lg flex-1">
@@ -128,7 +69,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
       
       <svg width={width} height={height - (showStats ? 80 : 0)}>
         <Group top={margin.top} left={margin.left}>
-          <Cluster<TreeNode>
+          <Cluster<typeof data>
             root={hierarchy(data)}
             size={[innerHeight, innerWidth]}
           >

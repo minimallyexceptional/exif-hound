@@ -1,4 +1,3 @@
-import { TileLayer } from 'leaflet';
 import { LocationData } from './utils/geocoding';
 
 export interface ExifData {
