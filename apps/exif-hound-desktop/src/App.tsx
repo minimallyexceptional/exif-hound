@@ -39,7 +39,6 @@ function App() {
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [showLicenseModal, setShowLicenseModal] = useState(false);
-  const [licenseError, setLicenseError] = useState<string | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
 
   useEffect(() => {
@@ -74,7 +73,6 @@ function App() {
         
         if (!licenseStatus.isValid) {
           console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
-          setLicenseError(licenseStatus.errorMessage || 'Invalid license');
           setShowLicenseModal(true);
         } else {
           console.log('[APP-DEBUG] License valid, proceeding with application');
@@ -93,7 +91,6 @@ function App() {
   const handleLicenseSuccess = () => {
     console.log('[App] License activation successful');
     setShowLicenseModal(false);
-    setLicenseError(null);
   };
 
   const handleImageUpload = (imageData: ImageData) => {
