@@ -172,7 +172,7 @@ const Investigation: React.FC<Props> = ({ images }) => {
             {tools.map(tool => (
               <button 
                 key={tool.id}
-                className="glass-panel p-3 rounded-lg text-left transition-colors hover:bg-app-gray-light/10 flex flex-col"
+                className="glass-panel p-3 rounded-lg text-left transition-all hover:bg-app-gray-light hover:shadow-lg"
                 onClick={() => setSelectedTool(tool.id)}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -196,7 +196,7 @@ const Investigation: React.FC<Props> = ({ images }) => {
           {/* Compact header */}
           <div className="flex items-center justify-between border-b border-app-gray-light/20 py-2 px-4 bg-app-gray-dark/60">
             <button
-              className="flex items-center gap-2 text-app-accent hover:text-app-accent-bright transition-colors"
+              className="flex items-center gap-2 text-app-accent hover:text-app-white transition-colors"
               onClick={() => setSelectedTool(null)}
             >
               <ArrowLeft className="w-4 h-4" />
@@ -206,16 +206,9 @@ const Investigation: React.FC<Props> = ({ images }) => {
               {tools.find(t => t.id === selectedTool)?.name}
             </h2>
             <div className="flex gap-2">
-              <button 
-                className={`text-xs px-2 py-1 rounded ${showStats ? 'bg-app-accent' : 'text-app-accent border border-app-accent'}`}
-                style={showStats ? { color: 'var(--app-black)' } : undefined}
-                onClick={() => setShowStats(!showStats)}
-                title={showStats ? "Hide statistics" : "Show statistics"}
-              >
-                <LayoutDashboard className="w-3 h-3" />
-              </button>
+
               <button
-                className="text-xs px-2 py-1 rounded text-app-accent border border-app-accent"
+                className="text-xs px-2 py-1 rounded text-app-accent border border-current hover:text-app-white transition-colors"
                 onClick={toggleFullscreen}
                 title={fullscreen ? "Exit fullscreen" : "Fullscreen mode"}
               >

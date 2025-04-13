@@ -9,6 +9,8 @@ export interface TreeNode {
 
 export const useDeviceHierarchy = (images: ImageData[]): TreeNode => {
   return useMemo(() => {
+    console.log('useDeviceHierarchy called with', images.length, 'images');
+    
     // Group images by device (make + model)
     const deviceGroups = images.reduce((acc, img) => {
       const deviceName = img.exif.make && img.exif.model

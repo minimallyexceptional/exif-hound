@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import '../../styles/controls.css';
@@ -11,6 +11,7 @@ interface ReticleLayerProps {
 
 const ReticleLayer: React.FC<ReticleLayerProps> = ({ images, onSelectImage }) => {
   const map = useMap();
+  const [isMoving, setIsMoving] = useState(false);
 
   React.useEffect(() => {
     // Create reticle container
@@ -67,50 +68,56 @@ const ReticleLayer: React.FC<ReticleLayerProps> = ({ images, onSelectImage }) =>
         coordinates.textContent = `${lat}, ${lng} (z${zoom})`;
       }
 
-      // Check if reticle is over an image
-      const reticlePoint = map.latLngToContainerPoint(center);
-      const reticleBounds = L.bounds(
-        reticlePoint.subtract([30, 30]), // Increased from 12 to 30 pixels (60x60 pixel area)
-        reticlePoint.add([30, 30])
-      );
+      // Only check for images if not moving
+      if (!isMoving) {
+        // Check if reticle is over an image
+        const reticlePoint = map.latLngToContainerPoint(center);
+        const reticleBounds = L.bounds(
+          reticlePoint.subtract([30, 30]), // Increased from 12 to 30 pixels (60x60 pixel area)
+          reticlePoint.add([30, 30])
+        );
 
-      // Find the closest image within reticle bounds
-      let closestImage: ImageData | null = null;
-      let minDistance = Infinity;
+        // Find the closest image within reticle bounds
+        let closestImage: ImageData | null = null;
+        let minDistance = Infinity;
 
-      images.forEach(image => {
-        if (image.exif.latitude && image.exif.longitude) {
-          const imagePoint = map.latLngToContainerPoint([image.exif.latitude, image.exif.longitude]);
-          
-          if (reticleBounds.contains(imagePoint)) {
-            const distance = reticlePoint.distanceTo(imagePoint);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestImage = image;
+        images.forEach(image => {
+          if (image.exif.latitude && image.exif.longitude) {
+            const imagePoint = map.latLngToContainerPoint([image.exif.latitude, image.exif.longitude]);
+            
+            if (reticleBounds.contains(imagePoint)) {
+              const distance = reticlePoint.distanceTo(imagePoint);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestImage = image;
+              }
             }
           }
-        }
-      });
+        });
 
-      // Select the closest image if found
-      if (closestImage) {
-        onSelectImage(closestImage, true);
+        // Select the closest image if found
+        if (closestImage) {
+          onSelectImage(closestImage, true);
+        }
       }
     };
 
     // Add smooth transition class when moving
     const handleMoveStart = () => {
+      setIsMoving(true);
       reticleContainer.classList.add('reticle-moving');
     };
 
     const handleMoveEnd = () => {
+      setIsMoving(false);
       reticleContainer.classList.remove('reticle-moving');
+      // Update coordinates and check for images after movement ends
+      updateCoordinates();
     };
 
     map.on('movestart', handleMoveStart);
     map.on('moveend', handleMoveEnd);
     map.on('move', updateCoordinates);
-    map.on('moveend', updateCoordinates);
     map.on('zoom', updateCoordinates);
     map.on('zoomend', updateCoordinates);
 
@@ -121,14 +128,13 @@ const ReticleLayer: React.FC<ReticleLayerProps> = ({ images, onSelectImage }) =>
       map.off('movestart', handleMoveStart);
       map.off('moveend', handleMoveEnd);
       map.off('move', updateCoordinates);
-      map.off('moveend', updateCoordinates);
       map.off('zoom', updateCoordinates);
       map.off('zoomend', updateCoordinates);
       if (reticleContainer.parentNode) {
         reticleContainer.parentNode.removeChild(reticleContainer);
       }
     };
-  }, [map, images, onSelectImage]);
+  }, [map, images, onSelectImage, isMoving]);
 
   return null;
 };

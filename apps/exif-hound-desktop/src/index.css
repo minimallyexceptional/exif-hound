@@ -12,6 +12,8 @@
     --app-white: #ffffff;
     --app-accent: #f5f5f5;
     --app-accent-dim: #858585;
+    --app-overlay: rgba(0, 0, 0, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.1);
   }
 
   :root[data-theme="light"] {
@@ -23,6 +25,8 @@
     --app-white: #212529;
     --app-accent: #495057;
     --app-accent-dim: #6c757d;
+    --app-overlay: rgba(0, 0, 0, 0.1);
+    --glass-border: rgba(0, 0, 0, 0.1);
   }
 
   body {
@@ -38,8 +42,14 @@
 
   .glass-panel {
     background-color: var(--app-gray);
-    border: 1px solid rgba(var(--app-white), 0.1);
+    border: 1px solid var(--glass-border);
     @apply backdrop-blur-md shadow-inner-light;
+  }
+
+  [data-theme="light"] .glass-panel {
+    background-color: var(--app-gray);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 6px -1px var(--app-overlay);
   }
 
   .button-primary {

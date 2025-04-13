@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import { useLocationStats } from './hooks/useLocationStats';
 import { useFilteredClusters, TimeRange } from './hooks/useFilteredClusters';
 import { useMapBounds } from './hooks/useMapBounds';
+import StatsSidebar from '../StatsSidebar';
 
 // Create custom camera icon
 const cameraIcon = new Icon({
@@ -29,6 +30,7 @@ interface Props {
 
 const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showStatsPanel, setShowStatsPanel] = useState(showStats);
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>([null, null]);
 
   // Use our custom hooks
@@ -37,70 +39,121 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
   const mapBounds = useMapBounds(filteredClusters);
 
   return (
-    <div className="w-full h-full relative p-4">
-      {/* Stats Overview - Only show when showStats is true */}
-      {showStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-          <div className="glass-panel p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-5 h-5 text-app-accent" />
-              <h3 className="text-sm font-medium text-app-white">Images with Location</h3>
-            </div>
-            <p className="text-2xl font-semibold text-app-white">{locationStats.totalWithLocation}</p>
+    <div className="w-full h-full relative">
+      {/* Main Content */}
+      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''}`}>
+        <div className="p-4 h-full flex flex-col">
+          {/* Controls */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-app-white">Geographical Analysis</h3>
+            <button
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+              className="p-2 rounded-lg bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filter Time Range</span>
+            </button>
           </div>
-          <div className="glass-panel p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Info className="w-5 h-5 text-app-accent" />
-              <h3 className="text-sm font-medium text-app-white">Unique Locations</h3>
-            </div>
-            <p className="text-2xl font-semibold text-app-white">{locationStats.uniqueLocations}</p>
-          </div>
-          <div className="glass-panel p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-app-accent" />
-              <h3 className="text-sm font-medium text-app-white">Time Span</h3>
-            </div>
-            <p className="text-sm text-app-white">
-              {locationStats.timeSpan.start && locationStats.timeSpan.end ? (
-                <>
-                  {formatDateTime(locationStats.timeSpan.start.toISOString())}
-                  <br />
-                  to
-                  <br />
-                  {formatDateTime(locationStats.timeSpan.end.toISOString())}
-                </>
-              ) : (
-                'No temporal data'
-              )}
-            </p>
-          </div>
-          <div className="glass-panel p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-app-accent" />
-              <h3 className="text-sm font-medium text-app-white">Missing Location</h3>
-            </div>
-            <p className="text-2xl font-semibold text-app-white">
-              {images.length - locationStats.totalWithLocation}
-            </p>
+
+          {/* Map View */}
+          <div className="flex-1 bg-app-gray-dark rounded-lg overflow-hidden">
+            {mapBounds ? (
+              <MapContainer
+                bounds={mapBounds}
+                className="w-full h-full"
+                zoomControl={true}
+                scrollWheelZoom={true}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                {filteredClusters.map((cluster, index) => (
+                  <Marker
+                    key={index}
+                    position={[cluster.latitude, cluster.longitude]}
+                    icon={cameraIcon}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h4 className="font-medium text-sm mb-1">Location Cluster</h4>
+                        <p className="text-xs mb-1">{cluster.count} images</p>
+                        <p className="text-xs mb-1">
+                          {cluster.latitude.toFixed(6)}°, {cluster.longitude.toFixed(6)}°
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Time range:<br />
+                          {formatDateTime(cluster.timeRange.earliest.toISOString())} to<br />
+                          {formatDateTime(cluster.timeRange.latest.toISOString())}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <p className="text-app-accent-dim">No location data available</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Controls */}
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-app-white">Geographical Analysis</h3>
-        <button
-          onClick={() => setShowFilterPanel(!showFilterPanel)}
-          className="p-2 rounded-lg bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors flex items-center gap-2"
-        >
-          <Filter className="w-4 h-4" />
-          <span>Filter Time Range</span>
-        </button>
       </div>
+
+      {/* Stats Sidebar */}
+      <StatsSidebar isOpen={showStatsPanel} onToggle={() => setShowStatsPanel(!showStatsPanel)}>
+        <div className="p-4">
+          <h3 className="text-lg font-medium text-app-white mb-4">Location Stats</h3>
+          <div className="space-y-4">
+            <div className="glass-panel p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="w-5 h-5 text-app-accent" />
+                <h3 className="text-sm font-medium text-app-white">Images with Location</h3>
+              </div>
+              <p className="text-2xl font-semibold text-app-white">{locationStats.totalWithLocation}</p>
+            </div>
+            <div className="glass-panel p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="w-5 h-5 text-app-accent" />
+                <h3 className="text-sm font-medium text-app-white">Unique Locations</h3>
+              </div>
+              <p className="text-2xl font-semibold text-app-white">{locationStats.uniqueLocations}</p>
+            </div>
+            <div className="glass-panel p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-app-accent" />
+                <h3 className="text-sm font-medium text-app-white">Time Span</h3>
+              </div>
+              <p className="text-sm text-app-white">
+                {locationStats.timeSpan.start && locationStats.timeSpan.end ? (
+                  <>
+                    {formatDateTime(locationStats.timeSpan.start.toISOString())}
+                    <br />
+                    to
+                    <br />
+                    {formatDateTime(locationStats.timeSpan.end.toISOString())}
+                  </>
+                ) : (
+                  'No temporal data'
+                )}
+              </p>
+            </div>
+            <div className="glass-panel p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-5 h-5 text-app-accent" />
+                <h3 className="text-sm font-medium text-app-white">Missing Location</h3>
+              </div>
+              <p className="text-2xl font-semibold text-app-white">
+                {images.length - locationStats.totalWithLocation}
+              </p>
+            </div>
+          </div>
+        </div>
+      </StatsSidebar>
 
       {/* Filter Panel */}
       {showFilterPanel && (
-        <div className="absolute top-4 right-4 w-64 bg-app-gray-dark border border-app-gray-light rounded-lg shadow-lg z-10">
+        <div className="absolute top-4 right-4 w-64 bg-app-gray-dark border border-app-gray-light rounded-lg shadow-lg z-20">
           <div className="p-3 border-b border-app-gray-light">
             <h3 className="text-sm font-medium text-app-white">Filter by Time Range</h3>
           </div>
@@ -132,49 +185,6 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
           </div>
         </div>
       )}
-
-      {/* Map View */}
-      <div className="glass-panel rounded-lg overflow-hidden" style={{ height: 'calc(100% - 200px)' }}>
-        {mapBounds ? (
-          <MapContainer
-            bounds={mapBounds}
-            className="w-full h-full"
-            zoomControl={true}
-            scrollWheelZoom={true}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            {filteredClusters.map((cluster, index) => (
-              <Marker
-                key={index}
-                position={[cluster.latitude, cluster.longitude]}
-                icon={cameraIcon}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h4 className="font-medium text-sm mb-1">Location Cluster</h4>
-                    <p className="text-xs mb-1">{cluster.count} images</p>
-                    <p className="text-xs mb-1">
-                      {cluster.latitude.toFixed(6)}°, {cluster.longitude.toFixed(6)}°
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Time range:<br />
-                      {formatDateTime(cluster.timeRange.earliest.toISOString())} to<br />
-                      {formatDateTime(cluster.timeRange.latest.toISOString())}
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <p className="text-app-accent-dim">No location data available</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

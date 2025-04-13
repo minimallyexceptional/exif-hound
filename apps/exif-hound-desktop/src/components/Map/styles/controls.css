@@ -201,4 +201,112 @@
 .leaflet-bar a:focus,
 .leaflet-bar button:focus {
   outline: none !important;
+}
+
+/* Glass Panel Styles */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .glass-panel {
+  background: rgb(31, 31, 31);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Filter Panel Styles */
+.filter-panel {
+  background: rgb(255, 255, 255);
+  backdrop-filter: blur(12px);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .filter-panel {
+  background: rgb(23, 23, 23);
+  backdrop-filter: blur(12px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Filter Panel Elements */
+.filter-panel-header,
+.filter-panel-footer {
+  background: rgb(248, 249, 250);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .filter-panel-header,
+[data-theme="dark"] .filter-panel-footer {
+  background: rgb(31, 31, 31);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.filter-panel-header {
+  border-bottom-width: 1px;
+}
+
+.filter-panel-footer {
+  border-top-width: 1px;
+}
+
+/* Filter Panel Hover States */
+.filter-item {
+  transition: background-color 0.2s ease;
+}
+
+.filter-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .filter-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Filter Panel Checkbox */
+.filter-checkbox {
+  accent-color: rgb(38, 166, 154);
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease;
+}
+
+[data-theme="dark"] .filter-checkbox {
+  accent-color: rgb(38, 166, 154);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.filter-checkbox:checked {
+  border-color: rgb(38, 166, 154);
+}
+
+/* Filter Panel Text */
+.filter-panel-title {
+  color: rgb(17, 24, 39);
+  font-weight: 500;
+}
+
+.dark .filter-panel-title {
+  color: rgb(243, 244, 246);
+}
+
+.filter-panel-text {
+  color: rgb(75, 85, 99);
+}
+
+.dark .filter-panel-text {
+  color: rgb(156, 163, 175);
+}
+
+/* Filter Panel Stats */
+.filter-stats {
+  background: rgb(248, 249, 250);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+[data-theme="dark"] .filter-stats {
+  background: rgb(23, 23, 23);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 } 
