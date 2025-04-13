@@ -4,10 +4,11 @@ import { Cluster } from '@visx/hierarchy';
 import { LinkHorizontal } from '@visx/shape';
 import { hierarchy } from 'd3-hierarchy';
 import { ImageData } from '../../../types';
-import { CircuitBoard, Smartphone, Image, Filter, X, ImageOff, Layers } from 'lucide-react';
+import { CircuitBoard, Smartphone, Image, Filter, Layers } from 'lucide-react';
 import { useDeviceHierarchy } from './hooks/useDeviceHierarchy';
 import { useDeviceStats } from './hooks/useDeviceStats';
 import StatsSidebar from '../StatsSidebar';
+import FilterPanel from '../../common/FilterPanel';
 
 interface Props {
   images: ImageData[];
@@ -109,16 +110,10 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   
-  // Use a ref to track filter changes
-  const filtersRef = React.useRef({
-    devices: [] as string[],
-    showUnknown: true
-  });
-  
-  // Use state for the UI
-  const [filters, setFilters] = useState<FilterState>({
-    devices: [], // Initially empty, will be populated with all devices
-    showUnknown: true
+  // Convert filter state to use the reusable filter panel format
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, Set<string>>>({
+    devices: new Set<string>(),
+    showUnknownToggle: new Set<string>(["enabled"])
   });
   
   // Simple counter to force updates
@@ -130,12 +125,13 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
     setUpdateTrigger(prev => prev + 1);
   }, []);
   
-  // Update filters ref when filters state changes
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
+  // Get the filter state from the selectedFilters format
+  const filters = useMemo(() => ({
+    devices: Array.from(selectedFilters.devices || new Set<string>()),
+    showUnknown: (selectedFilters.showUnknownToggle || new Set<string>()).has("enabled")
+  }), [selectedFilters]);
   
-  // Filter images based on current filter state - use filtersRef for computation
+  // Filter images based on current filter state
   const filteredImages = useMemo(() => {
     console.log("Recalculating filtered images. Update trigger:", updateTrigger);
     console.log("Current filters:", filters.devices.length, "devices,", filters.showUnknown ? "showing" : "hiding", "unknown");
@@ -257,101 +253,45 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
     console.log("Filter key updated:", filterKey);
   }, [filterKey]);
 
-  // Stable callbacks for filter changes
-  const toggleDeviceFilter = useCallback((device: string, checked: boolean) => {
-    console.log('Toggling device filter:', device, checked);
+  // Handle device filter changes from the reusable filter panel
+  const handleFilterChange = useCallback((groupId: string, selectedOptions: Set<string>) => {
+    console.log('Filter change for group:', groupId, 'Selected options:', selectedOptions);
     
-    setFilters(currentFilters => {
-      // Create a new array to ensure reference change
-      const newDevices = [...currentFilters.devices];
-      
-      if (checked) {
-        // Add device if not already present
-        if (!newDevices.includes(device)) {
-          newDevices.push(device);
-        }
-      } else {
-        // Remove device
-        const index = newDevices.indexOf(device);
-        if (index !== -1) {
-          newDevices.splice(index, 1);
-        }
-      }
-      
-      // Only update if there's an actual change
-      if (currentFilters.devices.length !== newDevices.length || 
-          currentFilters.devices.some((d, i) => d !== newDevices[i])) {
-        return {
-          ...currentFilters,
-          devices: newDevices
-        };
-      }
-      
-      // No change needed
-      return currentFilters;
-    });
+    setSelectedFilters(prev => ({
+      ...prev,
+      [groupId]: selectedOptions
+    }));
     
     // Always force a re-render after a small delay to ensure state is updated
     setTimeout(forceUpdate, 0);
   }, [forceUpdate]);
-  
-  // Toggle unknown devices filter
-  const toggleUnknownDevices = useCallback((checked: boolean) => {
-    console.log('Toggling unknown devices:', checked);
-    
-    setFilters(currentFilters => {
-      if (currentFilters.showUnknown === checked) {
-        return currentFilters; // No change needed
-      }
-      
-      return {
-        ...currentFilters,
-        showUnknown: checked
-      };
-    });
-    
-    // Always force a re-render after a small delay to ensure state is updated
-    setTimeout(forceUpdate, 0);
-  }, [forceUpdate]);
-  
-  // Toggle all devices
-  const toggleAllDevices = useCallback((selectAll: boolean) => {
-    console.log('Toggling all devices:', selectAll ? 'select all' : 'deselect all');
-    
-    setFilters(currentFilters => {
-      // Note: This only affects the "devices" filter list, not the "showUnknown" setting
-      const newDevices = selectAll ? [...uniqueDevices] : [];
-      
-      // Only update if there's an actual change
-      if (currentFilters.devices.length !== newDevices.length || 
-          currentFilters.devices.some((d, i) => d !== newDevices[i])) {
-        return {
-          ...currentFilters,
-          devices: newDevices
-          // showUnknown remains unchanged
-        };
-      }
-      
-      // No change needed
-      return currentFilters;
-    });
-    
-    // Always force a re-render after a small delay to ensure state is updated
-    setTimeout(forceUpdate, 0);
-  }, [uniqueDevices, forceUpdate]);
   
   // Clear all filters
-  const clearFilters = useCallback(() => {
+  const handleResetAll = useCallback(() => {
     console.log('Clearing all filters');
     
-    setFilters({
-      devices: [],
-      showUnknown: true
+    setSelectedFilters({
+      devices: new Set<string>(),
+      showUnknownToggle: new Set<string>(["enabled"])
     });
     
     // Always force a re-render after a small delay to ensure state is updated
     setTimeout(forceUpdate, 0);
   }, [forceUpdate]);
+
+  // Create filter configuration for the reusable filter panel
+  const filterGroups = useMemo(() => [
+    {
+      id: 'devices',
+      title: 'Devices',
+      icon: <Smartphone className="w-4 h-4" />,
+      showCount: true,
+      options: uniqueDevices.map(device => ({
+        id: device,
+        label: device
+      }))
+    }
+  ], [uniqueDevices]);
 
   return (
     <div className="w-full h-full relative overflow-hidden">
@@ -402,126 +342,34 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
         </div>
       </StatsSidebar>
 
-      {/* Filter Panel */}
-      <div 
-        className={`fixed top-0 right-0 w-64 h-full filter-panel transform transition-transform duration-300 z-30 ${
-          showFilterPanel ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="h-full flex flex-col">
-          <div className="filter-panel-header p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-800 dark:text-white">Filters</h3>
-              <button
-                onClick={() => setShowFilterPanel(false)}
-                className="p-1.5 rounded-md hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors"
-              >
-                <X className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
-              </button>
-            </div>
-
-            {/* Filter Stats */}
-            <div className="filter-stats p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Total Images</span>
-                <span className="text-sm font-medium text-gray-800 dark:text-white">{filteredImages.length} / {images.length}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-4">
-              {/* Unknown Device Filter */}
-              <div className="glass-panel p-3 rounded-lg">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.showUnknown}
-                    onChange={(e) => toggleUnknownDevices(e.target.checked)}
-                    className="filter-checkbox"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
-                    <span className="text-sm text-gray-800 dark:text-white">Show All Devices</span>
-                  </div>
-                </label>
-                {filters.devices.length === 0 && filters.showUnknown && uniqueDevices.length > 0 && (
-                  <div className="mt-2 text-xs text-app-accent-dim">
-                    Showing all devices. <span className="text-app-accent">Select specific devices below to filter results.</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Device Filters */}
-              <div className="glass-panel p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
-                    <div className="text-sm font-medium text-gray-800 dark:text-white">
-                      Devices
-                      {filters.devices.length > 0 && (
-                        <span className="ml-1 text-xs text-app-accent dark:text-app-accent-bright">
-                          ({filters.devices.length}/{uniqueDevices.length})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => toggleAllDevices(true)}
-                      className="text-xs text-app-accent dark:text-app-accent-bright hover:underline"
-                      title="Select all devices"
-                    >
-                      All
-                    </button>
-                    <span className="text-gray-400 dark:text-gray-500">|</span>
-                    <button 
-                      onClick={() => toggleAllDevices(false)}
-                      className="text-xs text-app-accent dark:text-app-accent-bright hover:underline"
-                      title="Deselect all devices"
-                    >
-                      None
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {uniqueDevices.map(device => (
-                    <label key={device} className="flex items-center gap-3 cursor-pointer filter-item p-1.5 rounded-md">
-                      <input
-                        type="checkbox"
-                        checked={filters.devices.includes(device)}
-                        onChange={(e) => toggleDeviceFilter(device, e.target.checked)}
-                        className="filter-checkbox"
-                      />
-                      <span className="text-sm text-gray-800 dark:text-white">{device}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="filter-panel-footer p-4">
-            {hasNothingSelected ? (
-              <button
-                onClick={clearFilters}
-                className="w-full p-2 rounded-md bg-gray-200 dark:bg-black hover:bg-gray-300 dark:hover:bg-gray-900 transition-colors text-sm font-medium text-gray-800 dark:text-white"
-              >
-                Reset All Filters
-              </button>
-            ) : (
-              <button
-                onClick={clearFilters}
-                className="w-full p-2 rounded-md bg-gray-200 dark:bg-black hover:bg-gray-300 dark:hover:bg-gray-900 transition-colors text-sm font-medium text-gray-800 dark:text-white"
-                disabled={!hasActiveFilters}
-              >
-                Reset All Filters
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Filter Panel using the reusable component */}
+      {showFilterPanel && (
+        <FilterPanel
+          title="Filters"
+          filterGroups={filterGroups}
+          selectedFilters={selectedFilters}
+          onFilterChange={handleFilterChange}
+          onResetAll={handleResetAll}
+          onClose={() => setShowFilterPanel(false)}
+          className="absolute top-0 right-0 h-full"
+          style={{ width: "16rem" }}
+          totalCount={{
+            current: filteredImages.length,
+            total: images.length
+          }}
+          showAllToggle={{
+            isChecked: filters.showUnknown,
+            onChange: (checked) => {
+              // Update the showUnknownToggle filter
+              handleFilterChange('showUnknownToggle', checked ? new Set(["enabled"]) : new Set())
+            },
+            label: "Show All Devices",
+            description: filters.showUnknown 
+              ? "Showing all devices. Select specific devices below to filter results." 
+              : "Check to include unknown devices in results."
+          }}
+        />
+      )}
 
       {/* Main Content */}
       <div className={`dendrogram-container h-full transition-all duration-300 overflow-hidden ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''}`}>
@@ -580,13 +428,13 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                 {hasNothingSelected ? (
                   <>
                     <button
-                      onClick={() => toggleAllDevices(true)}
+                      onClick={() => handleFilterChange('devices', new Set(uniqueDevices))}
                       className="px-4 py-2 rounded-md bg-gray-200 dark:bg-black hover:bg-gray-300 dark:hover:bg-gray-900 text-gray-800 dark:text-white font-medium transition-colors"
                     >
                       Select All Devices
                     </button>
                     <button
-                      onClick={() => toggleUnknownDevices(true)}
+                      onClick={() => handleFilterChange('showUnknownToggle', new Set(["enabled"]))}
                       className="px-4 py-2 rounded-md bg-gray-600 dark:bg-black hover:bg-gray-700 dark:hover:bg-gray-900 text-white dark:text-white font-medium transition-colors"
                     >
                       Show All Devices
@@ -595,14 +443,14 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                 ) : (
                   <>
                     <button
-                      onClick={clearFilters}
+                      onClick={handleResetAll}
                       className="px-4 py-2 rounded-md bg-gray-200 dark:bg-black hover:bg-gray-300 dark:hover:bg-gray-900 text-gray-800 dark:text-white font-medium transition-colors"
                     >
                       Clear All Filters
                     </button>
                     {!filters.showUnknown && (
                       <button
-                        onClick={() => toggleUnknownDevices(true)}
+                        onClick={() => handleFilterChange('showUnknownToggle', new Set(["enabled"]))}
                         className="px-4 py-2 rounded-md bg-gray-600 dark:bg-black hover:bg-gray-700 dark:hover:bg-gray-900 text-white dark:text-white font-medium transition-colors"
                       >
                         Show All Devices
@@ -624,7 +472,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                 </p>
                 <div className="flex gap-3 justify-center">
                   <button
-                    onClick={() => toggleUnknownDevices(true)}
+                    onClick={() => handleFilterChange('showUnknownToggle', new Set(["enabled"]))}
                     className="px-4 py-2 rounded-md bg-app-accent text-app-black font-medium transition-colors hover:bg-app-accent-dim"
                   >
                     Show All Devices

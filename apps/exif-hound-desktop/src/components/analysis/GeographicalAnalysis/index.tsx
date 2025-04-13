@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, ReactNode } from 'react';
 import { ImageData } from '../../../types';
-import { MapPin, AlertTriangle, Filter, Info, Clock } from 'lucide-react';
+import { MapPin, AlertTriangle, Filter, Info, Clock, Calendar } from 'lucide-react';
 import { formatDateTime } from '../../../utils/date';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
@@ -9,6 +9,7 @@ import { useLocationStats } from './hooks/useLocationStats';
 import { useFilteredClusters, TimeRange } from './hooks/useFilteredClusters';
 import { useMapBounds } from './hooks/useMapBounds';
 import StatsSidebar from '../StatsSidebar';
+import FilterPanel, { FilterPanelProps } from '../../common/FilterPanel';
 
 // Create custom camera icon
 const cameraIcon = new Icon({
@@ -22,6 +23,28 @@ const cameraIcon = new Icon({
   iconAnchor: [16, 16],
   popupAnchor: [0, -16],
 });
+
+// Extended FilterPanel that supports custom content
+interface CustomFilterPanelProps extends Omit<FilterPanelProps, 'children'> {
+  children?: ReactNode;
+}
+
+const CustomFilterPanel: React.FC<CustomFilterPanelProps> = ({ children, ...props }) => {
+  return (
+    <div className="flex flex-col shadow-lg z-20 h-full" style={{ 
+      backgroundColor: 'var(--app-dark)',
+      background: 'var(--app-dark)',
+      ...props.style
+    }}>
+      <FilterPanel {...props} />
+      {children && (
+        <div className="px-4 py-3 flex-1" style={{ backgroundColor: 'var(--app-dark)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface Props {
   images: ImageData[];
@@ -38,26 +61,134 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
   const filteredClusters = useFilteredClusters(locationStats.clusters, selectedTimeRange);
   const mapBounds = useMapBounds(filteredClusters);
 
+  // Determine if filters are active
+  const hasActiveFilters = selectedTimeRange[0] !== null || selectedTimeRange[1] !== null;
+  const hasNoData = filteredClusters.length === 0 && locationStats.totalWithLocation > 0;
+
+  // Format date for inputs
+  const formatDateForInput = (date: Date | null): string => {
+    if (!date) return '';
+    return date.toISOString().slice(0, 16);
+  };
+
+  // Custom filter component for the date range
+  const TimeRangeFilterContent = () => (
+    <div className="space-y-3">
+      <div>
+        <label className="text-xs text-app-accent-dim block mb-1">Start Date</label>
+        <input
+          type="datetime-local"
+          className="w-full bg-app-gray rounded border border-app-gray-light p-2 text-sm text-app-white"
+          value={formatDateForInput(selectedTimeRange[0])}
+          onChange={(e) => {
+            const newDate = e.target.value ? new Date(e.target.value) : null;
+            setSelectedTimeRange([newDate, selectedTimeRange[1]]);
+          }}
+        />
+      </div>
+      
+      <div>
+        <label className="text-xs text-app-accent-dim block mb-1">End Date</label>
+        <input
+          type="datetime-local"
+          className="w-full bg-app-gray rounded border border-app-gray-light p-2 text-sm text-app-white"
+          value={formatDateForInput(selectedTimeRange[1])}
+          onChange={(e) => {
+            const newDate = e.target.value ? new Date(e.target.value) : null;
+            setSelectedTimeRange([selectedTimeRange[0], newDate]);
+          }}
+        />
+      </div>
+    </div>
+  );
+
+  // Empty state content
+  const EmptyStateContent = () => (
+    <div className="text-center p-8 max-w-md glass-panel rounded-lg">
+      <Calendar className="w-16 h-16 text-app-accent mx-auto mb-4" />
+      <h3 className="text-xl font-medium text-app-white mb-2">
+        No Locations In Time Range
+      </h3>
+      <p className="text-sm text-app-accent-dim mb-6">
+        No images match your selected time range. Try adjusting the dates or clearing the filters.
+      </p>
+      <div className="flex gap-3 justify-center">
+        <button
+          onClick={() => setSelectedTimeRange([null, null])}
+          className="px-4 py-2 rounded-md bg-app-accent text-app-black font-medium transition-colors hover:bg-app-accent-dim"
+        >
+          Clear Time Filters
+        </button>
+        <button
+          onClick={() => setShowFilterPanel(true)}
+          className="px-4 py-2 rounded-md bg-app-gray-light hover:bg-app-gray-lighter text-app-white font-medium transition-colors"
+        >
+          Open Filters
+        </button>
+      </div>
+    </div>
+  );
+
+  // Handle reset all filters
+  const handleResetAll = () => {
+    setSelectedTimeRange([null, null]);
+  };
+
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative overflow-hidden">
       {/* Main Content */}
-      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''}`}>
-        <div className="p-4 h-full flex flex-col">
+      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''}`}>
+        <div className="p-4 h-full flex flex-col overflow-hidden">
           {/* Controls */}
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-app-white">Geographical Analysis</h3>
+            
+            {/* Filter Toggle Button */}
             <button
               onClick={() => setShowFilterPanel(!showFilterPanel)}
-              className="p-2 rounded-lg bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors flex items-center gap-2"
+              className={`p-2 rounded-lg transition-colors flex items-center gap-2 z-20 
+                ${
+                  hasActiveFilters 
+                    ? 'glass-panel border border-app-accent/50' 
+                    : 'glass-panel'
+                }
+              `}
             >
-              <Filter className="w-4 h-4" />
-              <span>Filter Time Range</span>
+              <Filter className={`w-4 h-4 ${
+                hasActiveFilters 
+                  ? 'text-app-accent' 
+                  : 'text-app-accent-dim'
+              }`} />
+              <span className="text-sm font-medium text-app-white">
+                Filter
+              </span>
+              {hasActiveFilters && (
+                <span className="px-1.5 py-0.5 text-xs rounded-full font-medium bg-app-accent text-app-black">
+                  Active
+                </span>
+              )}
             </button>
           </div>
 
           {/* Map View */}
           <div className="flex-1 bg-app-gray-dark rounded-lg overflow-hidden">
-            {mapBounds ? (
+            {hasNoData ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <EmptyStateContent />
+              </div>
+            ) : !mapBounds ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center p-8 max-w-md glass-panel rounded-lg">
+                  <MapPin className="w-16 h-16 text-app-accent mx-auto mb-4" />
+                  <h3 className="text-xl font-medium text-app-white mb-2">
+                    No Location Data Available
+                  </h3>
+                  <p className="text-sm text-app-accent-dim">
+                    None of your images have geo-location metadata.
+                  </p>
+                </div>
+              </div>
+            ) : (
               <MapContainer
                 bounds={mapBounds}
                 className="w-full h-full"
@@ -91,10 +222,6 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
                   </Marker>
                 ))}
               </MapContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <p className="text-app-accent-dim">No location data available</p>
-              </div>
             )}
           </div>
         </div>
@@ -147,42 +274,61 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
                 {images.length - locationStats.totalWithLocation}
               </p>
             </div>
+            {hasActiveFilters && (
+              <div className="glass-panel p-3 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Filter className="w-5 h-5 text-app-accent" />
+                  <h3 className="text-sm font-medium text-app-white">Time Filter</h3>
+                </div>
+                <p className="text-sm text-app-white">
+                  {selectedTimeRange[0] && (
+                    <>
+                      From: {formatDateTime(selectedTimeRange[0].toISOString())}
+                      <br />
+                    </>
+                  )}
+                  {selectedTimeRange[1] && (
+                    <>
+                      To: {formatDateTime(selectedTimeRange[1].toISOString())}
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </StatsSidebar>
 
-      {/* Filter Panel */}
+      {/* Filter Panel using our custom wrapper component */}
       {showFilterPanel && (
-        <div className="absolute top-4 right-4 w-64 bg-app-gray-dark border border-app-gray-light rounded-lg shadow-lg z-20">
-          <div className="p-3 border-b border-app-gray-light">
-            <h3 className="text-sm font-medium text-app-white">Filter by Time Range</h3>
-          </div>
-          <div className="p-3">
-            <div className="mb-3">
-              <label className="text-xs text-app-accent-dim block mb-1">Start Date</label>
-              <input
-                type="datetime-local"
-                className="w-full bg-app-gray rounded border border-app-gray-light p-1 text-sm text-app-white"
-                value={selectedTimeRange[0]?.toISOString().slice(0, 16) || ''}
-                onChange={(e) => setSelectedTimeRange([new Date(e.target.value), selectedTimeRange[1]])}
-              />
-            </div>
-            <div className="mb-3">
-              <label className="text-xs text-app-accent-dim block mb-1">End Date</label>
-              <input
-                type="datetime-local"
-                className="w-full bg-app-gray rounded border border-app-gray-light p-1 text-sm text-app-white"
-                value={selectedTimeRange[1]?.toISOString().slice(0, 16) || ''}
-                onChange={(e) => setSelectedTimeRange([selectedTimeRange[0], new Date(e.target.value)])}
-              />
-            </div>
-            <button
-              onClick={() => setSelectedTimeRange([null, null])}
-              className="w-full p-2 bg-app-gray hover:bg-app-gray-light text-app-white rounded text-sm"
-            >
-              Clear Filters
-            </button>
-          </div>
+        <div className="absolute top-0 right-0 h-full z-20" style={{ width: "16rem" }}>
+          <CustomFilterPanel
+            title="Time Filters"
+            filterGroups={[]}
+            selectedFilters={{}}
+            onFilterChange={() => {}}
+            onResetAll={handleResetAll}
+            onClose={() => setShowFilterPanel(false)}
+            className="h-full"
+            totalCount={{
+              current: filteredClusters.length,
+              total: locationStats.totalWithLocation
+            }}
+            showAllToggle={{
+              isChecked: !hasActiveFilters,
+              onChange: (checked) => {
+                if (checked) {
+                  setSelectedTimeRange([null, null]);
+                }
+              },
+              label: "Show All Time Periods",
+              description: hasActiveFilters 
+                ? "Filter is active. Clear to show all time periods." 
+                : "Showing all time periods."
+            }}
+          >
+            <TimeRangeFilterContent />
+          </CustomFilterPanel>
         </div>
       )}
     </div>

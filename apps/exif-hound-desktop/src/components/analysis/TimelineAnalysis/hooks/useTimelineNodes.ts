@@ -8,10 +8,40 @@ export interface TimelineNode {
   images: ImageData[];
 }
 
+// Helper function to correctly parse EXIF dates which may have different formats
+const parseExifDate = (dateString: string | undefined | null): Date | null => {
+  if (!dateString) return null;
+  
+  try {
+    // EXIF dates often use colon as separator in the date part (YYYY:MM:DD)
+    // We need to replace them with hyphens for proper parsing
+    const fixedDateString = dateString.replace(/(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
+    const date = new Date(fixedDateString);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date format: ${dateString}`);
+      return null;
+    }
+    
+    return date;
+  } catch (error) {
+    console.error(`Error parsing date: ${dateString}`, error);
+    return null;
+  }
+};
+
 export const useTimelineNodes = (images: ImageData[]) => {
   return useMemo(() => {
-    // Filter images that have datetime info
-    const imagesWithDate = images.filter((img) => !!img.exif.dateTimeOriginal);
+    console.log('Processing timeline nodes for images:', images.length);
+    
+    // Filter images that have datetime info and can be properly parsed
+    const imagesWithDate = images.filter((img) => {
+      const parsedDate = parseExifDate(img.exif.dateTimeOriginal);
+      return parsedDate !== null;
+    });
+    
+    console.log('Images with valid dates:', imagesWithDate.length);
     
     if (imagesWithDate.length === 0) {
       return {
@@ -24,12 +54,14 @@ export const useTimelineNodes = (images: ImageData[]) => {
     }
 
     // Find the min and max dates
-    const sortedImages = [...imagesWithDate].sort(
-      (a, b) => new Date(a.exif.dateTimeOriginal!).getTime() - new Date(b.exif.dateTimeOriginal!).getTime()
-    );
+    const sortedImages = [...imagesWithDate].sort((a, b) => {
+      const dateA = parseExifDate(a.exif.dateTimeOriginal!)!.getTime();
+      const dateB = parseExifDate(b.exif.dateTimeOriginal!)!.getTime();
+      return dateA - dateB;
+    });
     
-    const startDate = startOfDay(new Date(sortedImages[0].exif.dateTimeOriginal!));
-    const endDate = endOfDay(new Date(sortedImages[sortedImages.length - 1].exif.dateTimeOriginal!));
+    const startDate = startOfDay(parseExifDate(sortedImages[0].exif.dateTimeOriginal!)!);
+    const endDate = endOfDay(parseExifDate(sortedImages[sortedImages.length - 1].exif.dateTimeOriginal!)!);
     
     // Calculate time span in days
     const timespan = differenceInDays(endDate, startDate) + 1;
@@ -38,7 +70,10 @@ export const useTimelineNodes = (images: ImageData[]) => {
     const imagesByDay: { [key: string]: ImageData[] } = {};
     
     imagesWithDate.forEach((img) => {
-      const day = startOfDay(new Date(img.exif.dateTimeOriginal!)).toISOString().split('T')[0];
+      const parsedDate = parseExifDate(img.exif.dateTimeOriginal!);
+      if (!parsedDate) return;
+      
+      const day = startOfDay(parsedDate).toISOString().split('T')[0];
       if (!imagesByDay[day]) {
         imagesByDay[day] = [];
       }
@@ -51,6 +86,8 @@ export const useTimelineNodes = (images: ImageData[]) => {
       count: dayImages.length,
       images: dayImages,
     }));
+    
+    console.log('Created timeline nodes:', nodes.length);
     
     return {
       nodes,

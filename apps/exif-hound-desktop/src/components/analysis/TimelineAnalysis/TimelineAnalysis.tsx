@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Group } from '@visx/group';
 import { scaleTime } from '@visx/scale';
 import { AxisBottom } from '@visx/axis';
 import { Tooltip, defaultStyles } from '@visx/tooltip';
 import { Zoom } from '@visx/zoom';
-import { Camera, MapPin, ZoomIn, ZoomOut, RotateCcw, Filter } from 'lucide-react';
+import { Camera, MapPin, ZoomIn, ZoomOut, RotateCcw, Filter, Calendar } from 'lucide-react';
 import { formatDateTime } from '../../../utils/date';
 import { useTimelineNodes } from './hooks/useTimelineNodes';
 import type { ImageData } from '../../../types';
 import StatsSidebar from '../StatsSidebar';
+import FilterPanel from '../../common/FilterPanel';
 
 interface Props {
   images: ImageData[];
@@ -39,10 +40,45 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
   const [tooltipData, setTooltipData] = useState<TooltipNode | null>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showStatsPanel, setShowStatsPanel] = useState(showStats);
-  const [visibleImages, setVisibleImages] = useState<Set<string>>(
-    new Set(images.map(img => img.file.name))
-  );
+  const [selectedFilters, setSelectedFilters] = useState<Record<string, Set<string>>>({
+    images: new Set(images.map(img => img.file.name))
+  });
   
+  // Use the set of selected images as a filter
+  const filteredImages = useMemo(() => {
+    const selectedImageIds = selectedFilters.images || new Set();
+    return images.filter(img => selectedImageIds.has(img.file.name));
+  }, [images, selectedFilters.images]);
+  
+  // Create filter configuration
+  const filterGroups = useMemo(() => [
+    {
+      id: 'images',
+      title: 'Images',
+      icon: <Camera className="w-4 h-4" />,
+      showCount: true,
+      options: images.map(img => ({
+        id: img.file.name,
+        label: img.file.name
+      }))
+    }
+  ], [images]);
+  
+  // Handle filter changes
+  const handleFilterChange = (groupId: string, selectedOptions: Set<string>) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      [groupId]: selectedOptions
+    }));
+  };
+  
+  // Handle reset all filters
+  const handleResetAll = () => {
+    setSelectedFilters({
+      images: new Set(images.map(img => img.file.name))
+    });
+  };
+
   const margin = { 
     top: 30, 
     right: 40, 
@@ -52,10 +88,8 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // Use our custom hook to get the timeline data
-  const timelineResult = useTimelineNodes(
-    images.filter(img => visibleImages.has(img.file.name))
-  );
+  // Use our custom hook to get the timeline data with filtered images
+  const timelineResult = useTimelineNodes(filteredImages);
   
   console.log('TimelineResult:', timelineResult);
 
@@ -87,23 +121,35 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
   console.log('Nodes prepared for rendering:', nodes);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative overflow-hidden">
       {/* Main Content */}
-      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''}`}>
-        <div className="p-4 h-full">
+      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''} overflow-hidden`}>
+        <div className="p-4 h-full overflow-hidden">
+          {/* Controls */}
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-app-white">Timeline Analysis</h3>
+            <button
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+              className="p-2 rounded-lg bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors flex items-center gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filter Images</span>
+            </button>
+          </div>
+
           <Zoom<SVGSVGElement>
             width={width}
-            height={height - 32} // Adjust for padding
+            height={height - 80} // Adjust for padding and controls
             scaleXMin={0.5}
             scaleXMax={4}
             scaleYMin={1}
             scaleYMax={1}
           >
             {(zoom) => (
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full overflow-hidden">
                 <svg
                   width={width}
-                  height={height}
+                  height={height - 80}
                   style={{ cursor: zoom.isDragging ? 'grabbing' : 'grab' }}
                   ref={zoom.containerRef}
                 >
@@ -111,7 +157,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                     x={0}
                     y={0}
                     width={width}
-                    height={height}
+                    height={height - 80}
                     fill="transparent"
                     onTouchStart={zoom.dragStart}
                     onTouchMove={zoom.dragMove}
@@ -134,7 +180,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                         x2={innerWidth}
                         y1={innerHeight / 2}
                         y2={innerHeight / 2}
-                        stroke="#4A5568"
+                        stroke="var(--app-gray-light)"
                         strokeWidth={2}
                         strokeOpacity={0.3}
                       />
@@ -150,7 +196,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                         >
                           <circle
                             r={nodeRadius}
-                            fill="#4A90E2"
+                            fill="var(--app-accent)"
                             opacity={0.6}
                           />
                           <line
@@ -158,7 +204,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                             x2={0}
                             y1={-40}
                             y2={40}
-                            stroke="#4A5568"
+                            stroke="var(--app-gray-light)"
                             strokeWidth={1}
                             strokeOpacity={0.2}
                           />
@@ -167,7 +213,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                             dx={0}
                             fontSize={9}
                             textAnchor="middle"
-                            fill="#E0E0E0"
+                            fill="var(--app-white)"
                             style={{
                               pointerEvents: 'none',
                               userSelect: 'none'
@@ -181,36 +227,59 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                       <AxisBottom
                         top={innerHeight}
                         scale={timeScale}
-                        stroke="#718096"
-                        tickStroke="#718096"
+                        stroke="var(--app-gray-light)"
+                        tickStroke="var(--app-gray-light)"
                         tickLabelProps={{
-                          fill: '#A0AEC0',
+                          fill: 'var(--app-accent-dim)',
                           fontSize: 10,
                           textAnchor: 'middle'
                         }}
                       />
                     </Group>
                   ) : (
-                    <text
-                      x={width / 2}
-                      y={height / 2}
-                      textAnchor="middle"
-                      fill="#718096"
-                      fontSize={14}
+                    <foreignObject 
+                      x={0} 
+                      y={0} 
+                      width={width} 
+                      height={height - 80}
                     >
-                      No images selected to display
-                    </text>
+                      <div className="h-full w-full flex items-center justify-center">
+                        <div className="glass-panel rounded-lg p-8 max-w-md text-center">
+                          <div className="mx-auto w-16 h-16 flex items-center justify-center mb-4 border-2 border-app-accent rounded-lg">
+                            <Camera className="w-8 h-8 text-app-white" />
+                          </div>
+                          
+                          <h2 className="text-xl font-semibold text-app-white mb-2">
+                            No Images Selected
+                          </h2>
+                          
+                          <p className="text-app-accent-dim mb-6">
+                            Please select "Show All Images" or specific image files in the
+                            filter panel to view the timeline analysis visualization.
+                          </p>
+                          
+                          <div className="flex gap-4 justify-center">
+                            <button
+                              onClick={() => handleFilterChange('images', new Set(images.map(img => img.file.name)))}
+                              className="py-2 px-4 bg-app-accent text-app-black font-medium rounded-lg hover:bg-app-accent/90 transition-colors"
+                            >
+                              Show All Images
+                            </button>
+                            
+                            <button
+                              onClick={() => setShowFilterPanel(true)}
+                              className="py-2 px-4 bg-app-gray-light/30 text-app-white font-medium rounded-lg hover:bg-app-gray-light/50 transition-colors"
+                            >
+                              Open Filters
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </foreignObject>
                   )}
                 </svg>
 
                 <div className="absolute bottom-4 right-4 flex gap-2">
-                  <button
-                    onClick={() => setShowFilterPanel(!showFilterPanel)}
-                    className="p-2 rounded-full bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors"
-                    title="Filter images"
-                  >
-                    <Filter className="w-5 h-5" />
-                  </button>
                   {timeScale && nodes.length > 0 && (
                     <>
                       <button
@@ -238,81 +307,30 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                   )}
                 </div>
 
-                {showFilterPanel && (
-                  <div className="absolute top-4 right-4 w-64 bg-app-gray-dark border border-app-gray-light rounded-lg shadow-lg z-20">
-                    <div className="p-3 border-b border-app-gray-light">
-                      <h3 className="text-sm font-medium text-app-white">Filter Images</h3>
-                      <p className="text-xs text-app-accent-dim mt-1">
-                        {visibleImages.size === 0 ? 'No images selected' : `${visibleImages.size} images selected`}
-                      </p>
-                    </div>
-                    <div className="p-2 max-h-[300px] overflow-y-auto">
-                      {images.map(img => (
-                        <label
-                          key={img.file.name}
-                          className="flex items-center gap-2 px-2 py-1.5 hover:bg-app-gray rounded cursor-pointer group"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={visibleImages.has(img.file.name)}
-                            onChange={(e) => {
-                              const newVisibleImages = new Set(visibleImages);
-                              if (e.target.checked) {
-                                newVisibleImages.add(img.file.name);
-                              } else {
-                                newVisibleImages.delete(img.file.name);
-                              }
-                              setVisibleImages(newVisibleImages);
-                            }}
-                            className="rounded border-app-gray-light"
-                          />
-                          <span className="text-sm text-app-white group-hover:text-app-accent truncate">{img.file.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="p-2 border-t border-app-gray-light">
-                      <div className="flex justify-between gap-2">
-                        <button
-                          onClick={() => setVisibleImages(new Set())}
-                          className="px-2 py-1 text-xs bg-app-gray hover:bg-app-gray-light text-app-white rounded"
-                        >
-                          Deselect All
-                        </button>
-                        <button
-                          onClick={() => setVisibleImages(new Set(images.map(img => img.file.name)))}
-                          className="px-2 py-1 text-xs bg-app-gray hover:bg-app-gray-light text-app-white rounded"
-                        >
-                          Select All
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {tooltipData && (
                   <Tooltip
+                    top={tooltipData.y + margin.top - 10}
+                    left={tooltipData.x + margin.left + 10}
                     style={{
                       ...defaultStyles,
-                      backgroundColor: '#1A202C',
-                      color: '#E2E8F0',
-                      border: '1px solid #2D3748',
+                      background: "var(--app-gray-dark)",
+                      border: "1px solid var(--app-gray-light)",
+                      color: "var(--app-white)",
+                      fontSize: 12
                     }}
-                    top={margin.top + tooltipData.y - 120}
-                    left={margin.left + tooltipData.x * zoom.transformMatrix.scaleX + zoom.transformMatrix.translateX}
                   >
-                    <div className="p-2">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Camera className="w-4 h-4 text-app-accent" />
-                        <span className="font-medium">{tooltipData.image.file.name}</span>
-                      </div>
-                      <div className="text-sm text-app-accent-dim mb-1">
-                        {tooltipData.image.exif.dateTimeOriginal && formatDateTime(tooltipData.image.exif.dateTimeOriginal)}
+                    <div className="p-1">
+                      <div className="font-medium">{tooltipData.image.file.name}</div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <Camera className="w-3 h-3 text-app-accent" />
+                        <span>{formatDateTime(tooltipData.image.exif.dateTimeOriginal || "")}</span>
                       </div>
                       {tooltipData.image.exif.latitude && tooltipData.image.exif.longitude && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="w-4 h-4 text-app-accent" />
+                        <div className="mt-1 flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-app-accent" />
                           <span>
-                            {tooltipData.image.exif.latitude.toFixed(6)}°, {tooltipData.image.exif.longitude.toFixed(6)}°
+                            {tooltipData.image.exif.latitude.toFixed(4)},
+                            {tooltipData.image.exif.longitude.toFixed(4)}
                           </span>
                         </div>
                       )}
@@ -327,32 +345,73 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
 
       {/* Stats Sidebar */}
       <StatsSidebar isOpen={showStatsPanel} onToggle={() => setShowStatsPanel(!showStatsPanel)}>
-        <div className="p-4">
+        <div className="p-4 overflow-hidden">
           <h3 className="text-lg font-medium text-app-white mb-4">Timeline Stats</h3>
           <div className="space-y-4">
             <div className="glass-panel p-3 rounded-lg">
-              <div className="text-xs text-app-accent-dim">Images</div>
-              <div className="text-lg font-semibold text-app-white">{timeStats.total}</div>
-            </div>
-            <div className="glass-panel p-3 rounded-lg">
-              <div className="text-xs text-app-accent-dim">Earliest</div>
-              <div className="text-sm font-semibold text-app-white">
-                {timeStats.earliestDate ? formatDateTime(timeStats.earliestDate.toISOString()) : '-'}
+              <div className="flex items-center gap-2 mb-2">
+                <Camera className="w-5 h-5 text-app-accent" />
+                <h3 className="text-sm font-medium text-app-white">Images with Dates</h3>
               </div>
+              <p className="text-2xl font-semibold text-app-white">{timeStats.total}</p>
             </div>
-            <div className="glass-panel p-3 rounded-lg">
-              <div className="text-xs text-app-accent-dim">Latest</div>
-              <div className="text-sm font-semibold text-app-white">
-                {timeStats.latestDate ? formatDateTime(timeStats.latestDate.toISOString()) : '-'}
+            {timeStats.earliestDate && (
+              <div className="glass-panel p-3 rounded-lg">
+                <h3 className="text-sm font-medium text-app-white mb-2">Earliest Date</h3>
+                <p className="text-md font-medium text-app-white">
+                  {formatDateTime(timeStats.earliestDate.toISOString())}
+                </p>
               </div>
-            </div>
-            <div className="glass-panel p-3 rounded-lg">
-              <div className="text-xs text-app-accent-dim">Time Span</div>
-              <div className="text-sm font-semibold text-app-white">{timeStats.timeSpan || '-'}</div>
-            </div>
+            )}
+            {timeStats.latestDate && (
+              <div className="glass-panel p-3 rounded-lg">
+                <h3 className="text-sm font-medium text-app-white mb-2">Latest Date</h3>
+                <p className="text-md font-medium text-app-white">
+                  {formatDateTime(timeStats.latestDate.toISOString())}
+                </p>
+              </div>
+            )}
+            {timeStats.timeSpan && (
+              <div className="glass-panel p-3 rounded-lg">
+                <h3 className="text-sm font-medium text-app-white mb-2">Time Span</h3>
+                <p className="text-md font-medium text-app-white">{timeStats.timeSpan}</p>
+              </div>
+            )}
           </div>
         </div>
       </StatsSidebar>
+
+      {/* Filter Panel */}
+      {showFilterPanel && (
+        <FilterPanel
+          title="Filters"
+          filterGroups={filterGroups}
+          selectedFilters={selectedFilters}
+          onFilterChange={handleFilterChange}
+          onResetAll={handleResetAll}
+          onClose={() => setShowFilterPanel(false)}
+          className="absolute top-0 right-0 h-full"
+          style={{ width: "16rem" }}
+          totalCount={{
+            current: selectedFilters.images?.size || 0,
+            total: images.length
+          }}
+          showAllToggle={{
+            isChecked: selectedFilters.images?.size === images.length,
+            onChange: (checked) => {
+              if (checked) {
+                handleFilterChange('images', new Set(images.map(img => img.file.name)));
+              } else {
+                handleFilterChange('images', new Set());
+              }
+            },
+            label: "Show All Images",
+            description: selectedFilters.images?.size === images.length 
+              ? "Showing all images." 
+              : "Select specific images below to filter results."
+          }}
+        />
+      )}
     </div>
   );
 };
