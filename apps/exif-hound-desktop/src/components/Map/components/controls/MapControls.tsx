@@ -45,11 +45,13 @@ interface MapControlsProps {
   showRoute?: boolean;
   showHeatmap?: boolean;
   showClusters?: boolean;
+  showReticle?: boolean;
   onToggleRoute?: () => void;
   onToggleFullscreen?: () => void;
   onOpenImport?: () => void;
   onToggleHeatmap?: () => void;
   onToggleClusters?: () => void;
+  onToggleReticle?: () => void;
   fullscreenPosition?: L.ControlPosition;
 }
 
@@ -58,11 +60,13 @@ export const MapControls: React.FC<MapControlsProps> = ({
   showRoute = false,
   showHeatmap = false,
   showClusters = true,
+  showReticle = false,
   onToggleRoute = () => {},
   onToggleFullscreen = () => {},
   onOpenImport = () => {},
   onToggleHeatmap = () => {},
   onToggleClusters = () => {},
+  onToggleReticle = () => {},
   fullscreenPosition = 'topleft'
 }) => {
   return (
@@ -73,6 +77,18 @@ export const MapControls: React.FC<MapControlsProps> = ({
       <div className="leaflet-control-container">
         <div className="leaflet-top leaflet-right">
           <div className="leaflet-control leaflet-bar">
+            <button 
+              onClick={onToggleReticle}
+              className={`border-b ${showReticle ? 'toggle-active' : 'toggle-inactive'}`}
+              title={showReticle ? "Hide Reticle" : "Show Reticle"}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="2" x2="12" y2="22" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+              </svg>
+            </button>
+
             <button 
               onClick={onToggleRoute}
               className={`border-b ${showRoute ? 'toggle-active' : 'toggle-inactive'}`}

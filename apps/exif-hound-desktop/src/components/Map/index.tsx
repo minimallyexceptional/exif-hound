@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, useMap } from 'react-leaflet';
 import { ImageData } from '../../types';
 import { MapLayers } from './components/layers/MapLayers';
@@ -11,6 +11,7 @@ import { useMapCenter } from './hooks/useMapCenter';
 import { useMapImages } from './hooks/useMapImages';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
 import { ImportedPoint, ImportedData } from '../../utils/importData';
+import ReticleLayer from './components/layers/ReticleLayer';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
@@ -28,11 +29,14 @@ interface MapProps {
 }
 
 // Add a new component to handle map interactions
-const MapInteractionHandler: React.FC<{ selectedImage: ImageData | null }> = ({ selectedImage }) => {
+const MapInteractionHandler: React.FC<{ 
+  selectedImage: ImageData | null;
+  fromReticle?: boolean;
+}> = ({ selectedImage, fromReticle }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (selectedImage && selectedImage.exif.latitude && selectedImage.exif.longitude) {
+    if (selectedImage && selectedImage.exif.latitude && selectedImage.exif.longitude && !fromReticle) {
       map.flyTo(
         [selectedImage.exif.latitude, selectedImage.exif.longitude],
         16, // Zoom level
@@ -42,7 +46,7 @@ const MapInteractionHandler: React.FC<{ selectedImage: ImageData | null }> = ({ 
         }
       );
     }
-  }, [selectedImage, map]);
+  }, [selectedImage, map, fromReticle]);
 
   return null;
 };
@@ -59,7 +63,9 @@ const Map: React.FC<MapProps> = ({
   const { imagesWithLocation, sortedImages } = useMapImages(images);
   const { center, isFullscreen, setIsFullscreen } = useMapCenter(selectedImage, imagesWithLocation);
   const [showHeatmap, setShowHeatmap] = React.useState(false);
-  const [showClusters, setShowClusters] = React.useState(true);
+  const [showClusters, setShowClusters] = React.useState(false);
+  const [showReticle, setShowReticle] = React.useState(true);
+  const [fromReticle, setFromReticle] = React.useState(false);
 
   // Separate CSV data
   const csvData = images.filter((image): image is ImportedPoint => 
@@ -84,6 +90,15 @@ const Map: React.FC<MapProps> = ({
     setShowClusters(!showClusters);
   };
 
+  const handleReticleToggle = () => {
+    setShowReticle(!showReticle);
+  };
+
+  const handleImageSelect = (image: ImageData, fromReticle?: boolean) => {
+    setFromReticle(!!fromReticle);
+    onSelectImage(image);
+  };
+
   return (
     <MapErrorBoundary>
       <MapContainer
@@ -91,7 +106,7 @@ const Map: React.FC<MapProps> = ({
         zoom={13}
         className={`w-full h-full ${isFullscreen ? 'fullscreen' : ''}`}
       >
-        <MapInteractionHandler selectedImage={selectedImage} />
+        <MapInteractionHandler selectedImage={selectedImage} fromReticle={fromReticle} />
         <MapLayers 
           defaultLayer="OpenStreetMap"
           csvData={csvData}
@@ -101,11 +116,13 @@ const Map: React.FC<MapProps> = ({
           showRoute={showRoute}
           showHeatmap={showHeatmap}
           showClusters={showClusters}
+          showReticle={showReticle}
           onToggleRoute={handleRouteToggle}
           onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
           onOpenImport={onOpenImport}
           onToggleHeatmap={handleHeatmapToggle}
           onToggleClusters={handleClusterToggle}
+          onToggleReticle={handleReticleToggle}
         />
         
         <MapZoomHandler showRoute={showRoute} images={sortedImages} />
@@ -115,13 +132,20 @@ const Map: React.FC<MapProps> = ({
         ) : (
           <ImageCluster
             images={imagesWithLocation}
-            onSelectImage={onSelectImage}
+            onSelectImage={handleImageSelect}
             enableClustering={showClusters}
           />
         )}
 
         {showRoute && sortedImages.length > 1 && (
           <ImageRoute images={sortedImages} />
+        )}
+
+        {showReticle && (
+          <ReticleLayer 
+            images={imagesWithLocation}
+            onSelectImage={handleImageSelect}
+          />
         )}
       </MapContainer>
     </MapErrorBoundary>

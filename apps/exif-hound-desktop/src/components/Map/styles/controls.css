@@ -112,6 +112,91 @@
   color: white !important;
 }
 
+/* Reticle styles */
+.reticle-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s ease-out;
+}
+
+.reticle-container.reticle-moving {
+  transition: none;
+}
+
+.reticle-circle {
+  width: 24px;
+  height: 24px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.reticle-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200%;
+  height: 200%;
+}
+
+.reticle-vertical,
+.reticle-horizontal {
+  position: absolute;
+  background-color: currentColor;
+}
+
+.reticle-vertical {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+  transform: translateX(-0.5px);
+}
+
+.reticle-horizontal {
+  height: 1px;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-0.5px);
+}
+
+.reticle-coordinates {
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  margin-top: 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  white-space: nowrap;
+  color: #111111;
+}
+
+/* Light mode reticle */
+.reticle-container {
+  color: #111111;
+}
+
+/* Dark mode reticle */
+.dark .reticle-container {
+  color: white;
+}
+
+.dark .reticle-coordinates {
+  background-color: rgba(26, 26, 26, 0.9);
+  color: white;
+}
+
 /* Disable default focus styles */
 .leaflet-bar a:focus,
 .leaflet-bar button:focus {
