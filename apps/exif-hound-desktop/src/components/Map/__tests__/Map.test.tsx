@@ -33,6 +33,14 @@ jest.mock('../components/MapErrorBoundary', () => ({
   MapErrorBoundary: ({ children }: { children: React.ReactNode }) => <div data-testid="map-error-boundary">{children}</div>,
 }));
 
+// Add mock for ReticleLayer component
+jest.mock('../components/layers/ReticleLayer', () => {
+  return {
+    __esModule: true,
+    default: () => <div data-testid="reticle-layer">Reticle Layer Component</div>
+  };
+});
+
 // Mock the react-leaflet components
 jest.mock('react-leaflet', () => ({
   MapContainer: ({ children }: { children: React.ReactNode }) => (

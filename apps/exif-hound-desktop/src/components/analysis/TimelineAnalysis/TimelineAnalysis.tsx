@@ -4,7 +4,7 @@ import { scaleTime } from '@visx/scale';
 import { AxisBottom } from '@visx/axis';
 import { Tooltip, defaultStyles } from '@visx/tooltip';
 import { Zoom } from '@visx/zoom';
-import { Camera, MapPin, ZoomIn, ZoomOut, RotateCcw, Filter, Calendar } from 'lucide-react';
+import { Camera, MapPin, Filter } from 'lucide-react';
 import { formatDateTime } from '../../../utils/date';
 import { useTimelineNodes } from './hooks/useTimelineNodes';
 import type { ImageData } from '../../../types';
@@ -279,34 +279,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                   )}
                 </svg>
 
-                <div className="absolute bottom-4 right-4 flex gap-2">
-                  {timeScale && nodes.length > 0 && (
-                    <>
-                      <button
-                        onClick={() => zoom.scale({ scaleX: zoom.transformMatrix.scaleX * 1.2 })}
-                        className="p-2 rounded-full bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors"
-                        title="Zoom in"
-                      >
-                        <ZoomIn className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => zoom.scale({ scaleX: zoom.transformMatrix.scaleX / 1.2 })}
-                        className="p-2 rounded-full bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors"
-                        title="Zoom out"
-                      >
-                        <ZoomOut className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={zoom.reset}
-                        className="p-2 rounded-full bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors"
-                        title="Reset zoom"
-                      >
-                        <RotateCcw className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
-                </div>
-
                 {tooltipData && (
                   <Tooltip
                     top={tooltipData.y + margin.top - 10}
@@ -414,10 +386,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
       )}
     </div>
   );
-};
-
-TimelineAnalysis.defaultProps = {
-  showStats: true
 };
 
 export default TimelineAnalysis; 

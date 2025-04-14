@@ -4,8 +4,8 @@ import { Cluster } from '@visx/hierarchy';
 import { LinkHorizontal } from '@visx/shape';
 import { hierarchy } from 'd3-hierarchy';
 import { ImageData } from '../../../types';
-import { CircuitBoard, Smartphone, Image, Filter, Layers } from 'lucide-react';
-import { useDeviceHierarchy } from './hooks/useDeviceHierarchy';
+import { CircuitBoard, Smartphone, Image, Filter } from 'lucide-react';
+import { TreeNode, useDeviceHierarchy } from './hooks/useDeviceHierarchy';
 import { useDeviceStats } from './hooks/useDeviceStats';
 import StatsSidebar from '../StatsSidebar';
 import FilterPanel from '../../common/FilterPanel';
@@ -17,9 +17,18 @@ interface Props {
   showStats?: boolean;
 }
 
-interface FilterState {
-  devices: string[];
-  showUnknown: boolean;
+
+interface Dimensions {
+  width: number;
+  height: number;
+  margin: {
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+  };
+  innerWidth: number;
+  innerHeight: number;
 }
 
 // Define DendrogramVisualization outside the main component
@@ -31,8 +40,8 @@ const DendrogramVisualization = React.memo(({
   defaultNodeColor,
   filterKey
 }: { 
-  data: any, 
-  dimensions: any, 
+  data: TreeNode, 
+  dimensions: Dimensions, 
   defaultColor: string, 
   defaultNodeColor: string,
   filterKey: string
