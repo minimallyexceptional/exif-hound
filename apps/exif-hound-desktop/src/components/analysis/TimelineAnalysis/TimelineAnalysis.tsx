@@ -10,8 +10,7 @@ import { useTimelineNodes } from './hooks/useTimelineNodes';
 import type { ImageData } from '../../../types';
 import StatsSidebar from '../StatsSidebar';
 import FilterPanel from '../../common/FilterPanel';
-
-interface Props {
+ interface Props {
   images: ImageData[];
   width: number;
   height: number;
