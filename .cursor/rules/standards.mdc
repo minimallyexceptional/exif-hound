@@ -1,0 +1,20 @@
+---
+alwaysApply: true
+---
+## Objectives
+- Keep a consistent structure across projects.
+
+## Directives
+- Suggested structure:
+  - `src/` (app code), `tests/` (mirrors src structure), `docs/`, `scripts/`, `infra/`, `configs/`
+  - `docs/adrs/` for decisions; `tickets/` for implementation tasks.
+- Code style: formatter (Prettier/Black), linter (ESLint/Flake8), types (TypeScript/MyPy).
+- Commit messages: Conventional Commits; automated CHANGELOG generation.
+- Versioning: SemVer; release tags by CI.
+
+## Deliverables
+- Template skeletons; repo-level config files.
+- Pre-commit hooks and editor settings.
+
+## Constraints
+- No ad hoc scripts checked in without `scripts/README.md`.

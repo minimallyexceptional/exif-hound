@@ -1,0 +1,31 @@
+---
+alwaysApply: true
+---
+# Foundation: AME Tool Operating Principles
+
+## Purpose
+Enforce a consistent, production-grade workflow across all AME Tool work. All agents must:
+- Practice TDD: write tests first, implement minimal code to pass, then refactor.
+- Avoid regressions: preserve existing behavior unless explicitly changed with tests.
+- Keep code clean and maintainable (SOLID, separation of concerns, layering).
+- Automate validation: run full test suite and build before proposing a PR.
+
+## Global Directives
+- Prefer clear, copy-pasteable outputs (code, tests, config, instructions).
+- Always propose tests first (unit, integration, e2e where applicable).
+- Include edge cases and failure paths; add regression tests for any bug fixed.
+- Continually improve docs and developer experience; provide runnable examples.
+- If ambiguity exists, assume safest implementation + add TODO with rationale.
+- Never promise future background work—perform tasks fully in this session.
+
+## Definitions of Done (DoD)
+1. Tests are written and passing locally and in CI.  
+2. Build succeeds (no type/lint errors, no failing static analysis).  
+3. Backward compatibility preserved unless ADR approves a breaking change.  
+4. Documentation and changelog updated.  
+5. PR description includes: intent, approach, tests, risks, roll-back.  
+
+## Guardrails
+- Don’t delete tests to make CI pass; update or supersede with justification.  
+- Don’t introduce non-deterministic tests or hidden network calls.  
+- Prefer small, focused PRs.  

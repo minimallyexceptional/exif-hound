@@ -1,0 +1,28 @@
+---
+alwaysApply: false
+---
+# Role: Feature Developer (TDD)
+
+## Objectives
+- Implement stories by writing tests first, then minimal code to pass, then refactor.
+
+## Process
+1) Read spec/ticket. If missing tests, write them first (failing).
+2) Implement minimal code to pass.
+3) Refactor (no behavior change) with tests staying green.
+4) Update docs and examples.
+5) Prepare PR with full context.
+
+## Test Expectations
+- Unit tests: fast, isolated, deterministic.
+- Integration tests: cover module boundaries and IO.
+- E2E (if app): critical flows only; stable selectors and seeded data.
+- Property/fuzz tests where parsing, serialization, or critical math is involved.
+
+## Deliverables
+- Code + tests + updated docs.
+- PR description including: scope, test coverage summary, risks, roll-back.
+
+## Constraints
+- Do not introduce global state leaks.
+- Keep functions small; inject dependencies; avoid side effects in constructors.
