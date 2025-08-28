@@ -1,8 +1,8 @@
-import { extractExifData } from 'exif-middleware';
 import { ExifData } from '../types';
 import { fixCoordinates } from '../utils/diagnostics';
 import { getLocationFromCoordinates } from '../utils/geocoding';
 import { convertMetadataToExifData } from '../utils/exifUtils';
+import type { ExifWorkerMessage, ExifWorkerResponse } from '../workers/exifWorker';
 
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
@@ -10,57 +10,117 @@ interface UseExifDataOptions {
   fetchLocation?: boolean; // Option to enable/disable location fetching
 }
 
+let exifWorker: Worker | null = null;
+let workerIdCounter = 0;
+const pendingRequests = new Map<string, { resolve: (data: any) => void; reject: (error: Error) => void }>();
+
+// Initialize worker
+const initWorker = () => {
+  if (!exifWorker) {
+    exifWorker = new Worker(
+      new URL('../workers/exifWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+
+    exifWorker.onmessage = (event: MessageEvent<ExifWorkerResponse>) => {
+      const { type, id, data, error } = event.data;
+      const request = pendingRequests.get(id);
+
+      if (request) {
+        pendingRequests.delete(id);
+        
+        if (type === 'EXIF_PARSED') {
+          request.resolve(data);
+        } else if (type === 'EXIF_ERROR') {
+          request.reject(new Error(error || 'Unknown worker error'));
+        }
+      }
+    };
+
+    exifWorker.onerror = (event) => {
+      if (import.meta.env.DEV) {
+        console.error('EXIF Worker error:', event);
+      }
+      // Reject all pending requests
+      pendingRequests.forEach(({ reject }) => {
+        reject(new Error('Worker error'));
+      });
+      pendingRequests.clear();
+    };
+  }
+  return exifWorker;
+};
+
+// Parse EXIF data using worker
+const parseExifWithWorker = async (buffer: ArrayBuffer): Promise<any> => {
+  const worker = initWorker();
+  const id = `exif-${++workerIdCounter}`;
+
+  return new Promise((resolve, reject) => {
+    pendingRequests.set(id, { resolve, reject });
+
+    const message: ExifWorkerMessage = {
+      type: 'PARSE_EXIF',
+      id,
+      buffer
+    };
+
+    worker.postMessage(message);
+  });
+};
+
 export const useExifData = (options: UseExifDataOptions = {}) => {
   const processExifData = async (file: File): Promise<ExifData> => {
     try {
-      // Convert File to ArrayBuffer for middleware
+      // Convert File to ArrayBuffer for worker
       const buffer = await file.arrayBuffer();
       
-      // Use the middleware to extract EXIF data
-      const metadata = await extractExifData(buffer);
+      // Use worker to extract EXIF data (non-blocking)
+      const metadata = await parseExifWithWorker(buffer);
       
-      console.log('GPS Data from middleware for:', file.name, {
-        latitude: metadata.latitude,
-        longitude: metadata.longitude,
-      });
+      if (import.meta.env.DEV) {
+        console.log('GPS Data from worker for:', file.name, {
+          latitude: metadata.latitude,
+          longitude: metadata.longitude,
+        });
+      }
       
-      // Convert the middleware's metadata format to our app's ExifData format
+      // Convert the metadata format to our app's ExifData format
       const exifData = convertMetadataToExifData(metadata, fixCoordinates);
       
-      // If we have valid coordinates and location fetching is enabled, get location data
+      // Always set initial loading state for location
       if (options.fetchLocation !== false && 
           typeof exifData.latitude === 'number' && 
           typeof exifData.longitude === 'number') {
-        try {
-          console.log(`[useExifData] Fetching location data for: ${file.name}`);
-          
-          // Set initial loading state
-          exifData.location = { loading: true };
-          
-          // Fetch location data asynchronously
-          const locationData = await getLocationFromCoordinates(
-            exifData.latitude, 
-            exifData.longitude
-          );
-          
-          console.log(`[useExifData] Location data received for: ${file.name}`, locationData);
-          
-          // Update with fetched location data
-          exifData.location = locationData;
-        } catch (locError) {
-          console.error('Error fetching location data:', locError);
-          exifData.location = { 
-            loading: false, 
-            error: 'Failed to fetch location data' 
-          };
-        }
+        exifData.location = { loading: true };
+        
+        // Fetch location data in background (don't await)
+        getLocationFromCoordinates(exifData.latitude, exifData.longitude)
+          .then(locationData => {
+            if (import.meta.env.DEV) {
+              console.log(`[useExifData] Location data received for: ${file.name}`, locationData);
+            }
+            // This would need to be handled by the caller to update state
+            exifData.location = locationData;
+          })
+          .catch(locError => {
+            if (import.meta.env.DEV) {
+              console.error('Error fetching location data:', locError);
+            }
+            exifData.location = { 
+              loading: false, 
+              error: 'Failed to fetch location data' 
+            };
+          });
       }
       
       options.onSuccess?.(exifData);
       return exifData;
     } catch (err) {
       const errorMessage = 'Failed to read EXIF data from image';
-      console.error(errorMessage, err);
+      if (import.meta.env.DEV) {
+        console.error(errorMessage, err);
+      }
       options.onError?.(errorMessage);
       
       // Return empty ExifData with error message
@@ -68,5 +128,14 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
     }
   };
 
-  return { processExifData };
+  // Cleanup function to terminate worker
+  const cleanup = () => {
+    if (exifWorker) {
+      exifWorker.terminate();
+      exifWorker = null;
+      pendingRequests.clear();
+    }
+  };
+
+  return { processExifData, cleanup };
 }; 

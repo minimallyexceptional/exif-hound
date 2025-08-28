@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
-import Map from './components/Map';
 import ExifPanel from './components/ExifPanel';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
-import Investigation from './components/Investigation';
 import ExportModal from './components/ExportModal';
 import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
@@ -18,6 +16,10 @@ import { ImageComparison } from './components/ImageComparison';
 import { LicenseActivationModal } from './components/LicenseActivationModal';
 import { hasLicense, verifyLicense } from './utils/licenseManager';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
+
+// Lazy load heavy components for code splitting
+const Map = lazy(() => import('./components/Map'));
+const Investigation = lazy(() => import('./components/Investigation'));
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -42,43 +44,56 @@ function App() {
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2500);
-
-    return () => clearTimeout(timer);
+    // Remove artificial delay - app should be interactive immediately
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
     const checkLicense = async () => {
       // If early access mode is enabled, skip license check
       if (earlyAccess) {
-        console.log('[APP-DEBUG] Early access mode enabled, bypassing license check');
+        if (import.meta.env.DEV) {
+          console.log('[APP-DEBUG] Early access mode enabled, bypassing license check');
+        }
         return;
       }
       
       try {
-        console.log('[APP-DEBUG] Starting license check');
+        if (import.meta.env.DEV) {
+          console.log('[APP-DEBUG] Starting license check');
+        }
         const hasExistingLicense = await hasLicense();
         
         if (!hasExistingLicense) {
-          console.log('[APP-DEBUG] No license found, showing activation modal');
+          if (import.meta.env.DEV) {
+            console.log('[APP-DEBUG] No license found, showing activation modal');
+          }
           setShowLicenseModal(true);
           return;
         }
         
-        console.log('[APP-DEBUG] License found, verifying...');
+        if (import.meta.env.DEV) {
+          console.log('[APP-DEBUG] License found, verifying...');
+        }
         const licenseStatus = await verifyLicense();
-        console.log('[APP-DEBUG] License verification result:', licenseStatus);
+        if (import.meta.env.DEV) {
+          console.log('[APP-DEBUG] License verification result:', licenseStatus);
+        }
         
         if (!licenseStatus.isValid) {
-          console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
+          if (import.meta.env.DEV) {
+            console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
+          }
           setShowLicenseModal(true);
         } else {
-          console.log('[APP-DEBUG] License valid, proceeding with application');
+          if (import.meta.env.DEV) {
+            console.log('[APP-DEBUG] License valid, proceeding with application');
+          }
         }
       } catch (error) {
-        console.error('[APP-DEBUG] Error checking license:', error);
+        if (import.meta.env.DEV) {
+          console.error('[APP-DEBUG] Error checking license:', error);
+        }
         setShowLicenseModal(true);
       }
     };
@@ -89,7 +104,9 @@ function App() {
   }, [isLoading, earlyAccess]);
 
   const handleLicenseSuccess = () => {
-    console.log('[App] License activation successful');
+    if (import.meta.env.DEV) {
+      console.log('[App] License activation successful');
+    }
     setShowLicenseModal(false);
   };
 
@@ -125,7 +142,9 @@ function App() {
         setImages(prevImages => [...prevImages, ...points]);
       }
     } catch (error) {
-      console.error('Failed to import data:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to import data:', error);
+      }
       // TODO: Show error to user
     }
   };
@@ -147,15 +166,19 @@ function App() {
     switch (viewMode) {
       case 'map':
         return (
-          <Map
-            images={images}
-            selectedImage={selectedImage}
-            showRoute={showRoute}
-            onToggleRoute={handleRouteClick}
-            onSelectImage={setSelectedImage}
-            onOpenImport={() => setShowImportModal(true)}
-            importedData={importedData}
-          />
+          <Suspense fallback={<div className="flex items-center justify-center h-full">
+            <div className="text-app-white">Loading map...</div>
+          </div>}>
+            <Map
+              images={images}
+              selectedImage={selectedImage}
+              showRoute={showRoute}
+              onToggleRoute={handleRouteClick}
+              onSelectImage={setSelectedImage}
+              onOpenImport={() => setShowImportModal(true)}
+              importedData={importedData}
+            />
+          </Suspense>
         );
       case 'list':
         return (
@@ -167,7 +190,11 @@ function App() {
         );
       case 'investigation':
         return (
-          <Investigation images={images} />
+          <Suspense fallback={<div className="flex items-center justify-center h-full">
+            <div className="text-app-white">Loading investigation tools...</div>
+          </div>}>
+            <Investigation images={images} />
+          </Suspense>
         );
       default:
         return null;

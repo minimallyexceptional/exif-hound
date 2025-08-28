@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { createControlComponent } from '@react-leaflet/core';
 import L from 'leaflet';
 import 'leaflet-fullscreen';
@@ -55,7 +55,7 @@ interface MapControlsProps {
   fullscreenPosition?: L.ControlPosition;
 }
 
-export const MapControls: React.FC<MapControlsProps> = ({
+const MapControlsComponent: React.FC<MapControlsProps> = ({
   showFullscreen = true,
   showRoute = false,
   showHeatmap = false,
@@ -138,4 +138,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
       </div>
     </>
   );
-}; 
+};
+
+// Export memoized component to prevent unnecessary re-renders
+export const MapControls = memo(MapControlsComponent); 

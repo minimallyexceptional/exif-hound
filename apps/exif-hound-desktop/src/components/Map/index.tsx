@@ -12,6 +12,8 @@ import { useMapImages } from './hooks/useMapImages';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
 import { ImportedPoint, ImportedData } from '../../utils/importData';
 import ReticleLayer from './components/layers/ReticleLayer';
+
+// Lazy load CSS imports only when Map component is loaded
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Popup } from 'react-leaflet';
 import { ImageData } from '../../../../types';
 import { formatDateTime } from '../../../../utils/date';
@@ -7,7 +7,7 @@ interface ImagePopupProps {
   image: ImageData;
 }
 
-export const ImagePopup: React.FC<ImagePopupProps> = ({ image }) => {
+const ImagePopupComponent: React.FC<ImagePopupProps> = ({ image }) => {
   return (
     <Popup className="map-popup">
       <div className="bg-black text-white">
@@ -33,4 +33,7 @@ export const ImagePopup: React.FC<ImagePopupProps> = ({ image }) => {
       </div>
     </Popup>
   );
-}; 
+};
+
+// Export memoized component to prevent unnecessary re-renders
+export const ImagePopup = memo(ImagePopupComponent);
