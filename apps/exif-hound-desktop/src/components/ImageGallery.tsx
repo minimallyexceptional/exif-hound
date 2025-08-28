@@ -64,10 +64,10 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   }
 
   return (
-    <div className="relative group h-full py-12">
+    <div className="relative group h-full">
       <div 
         ref={containerRef}
-        className="h-full overflow-y-auto overflow-x-hidden scroll-smooth px-4"
+        className="h-full overflow-y-auto overflow-x-hidden scroll-smooth px-4 pt-12 pb-12"
       >
         <div className="flex flex-col gap-4">
           {imagesWithImages.map((image) => (
@@ -108,11 +108,11 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
         </div>
       </div>
 
-      {/* Scroll indicators */}
-      <div className={`absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-app-black to-transparent pointer-events-none transition-opacity duration-200 ${
+      {/* Scroll indicators (non-obstructive) */}
+      <div className={`pointer-events-none absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-app-black to-transparent transition-opacity duration-200 ${
         isScrolled ? 'opacity-100' : 'opacity-0'
-      }`} />
-      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-app-black to-transparent pointer-events-none" />
+      }`} aria-hidden="true" />
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-app-black to-transparent" aria-hidden="true" />
     </div>
   );
 };

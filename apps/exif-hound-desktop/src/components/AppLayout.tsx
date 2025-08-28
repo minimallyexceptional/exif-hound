@@ -44,8 +44,8 @@ export const AppLayout: React.FC<Props> = ({
         <div 
           className={`flex-none bg-app-gray border-b lg:border-b-0 lg:border-r border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isGalleryCollapsed 
-              ? 'lg:w-12 h-12 lg:h-[calc(100vh-3.5rem)]' 
-              : 'lg:w-[280px] h-[240px] lg:h-[calc(100vh-3.5rem)]'
+              ? 'lg:w-12 h-12 lg:h-[calc(100vh-4.5rem)]' 
+              : 'lg:w-[280px] h-[240px] lg:h-[calc(100vh-4.5rem)]'
           }`}
         >
           <div className="flex flex-col h-full">
@@ -80,17 +80,19 @@ export const AppLayout: React.FC<Props> = ({
             </div>
 
             {/* Sidebar Content */}
-            <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
-              isGalleryCollapsed ? 'w-0 lg:h-full' : 'w-full lg:h-full'
-            }`}>
-              {sidebar}
+            <div
+              className={`flex-1 min-h-0 overflow-hidden transition-all duration-300 ease-in-out ${
+                isGalleryCollapsed ? 'w-0 lg:h-full pointer-events-none' : 'w-full lg:h-full'
+              }`}
+            >
+              {!isGalleryCollapsed && sidebar}
             </div>
           </div>
         </div>
       )}
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 h-[calc(100vh-3.5rem)]">
+      <div className="flex-1 min-w-0 h-[calc(100vh-4.5rem)]">
         <div className="h-full p-4 sm:p-6">
           <Panel className="h-full flex flex-col">
             {children}
