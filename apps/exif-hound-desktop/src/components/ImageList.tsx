@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
 import { ArrowUpDown, Camera, Calendar, MapPin, Clock, Info, Shield, Settings2, Check } from 'lucide-react';
 import { formatFileSize } from '../utils/formatters';
@@ -145,37 +146,86 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     });
   };
 
-  const handleSort = (field: SortField) => {
+  const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
-  };
+  }, [sortField]);
 
-  const sortedImages = [...images].sort((a, b) => {
-    const multiplier = sortDirection === 'asc' ? 1 : -1;
-    
-    switch (sortField) {
-      case 'name':
-        return multiplier * a.file.name.localeCompare(b.file.name);
-      case 'date': {
-        const dateA = a.exif.dateTimeOriginal ? new Date(a.exif.dateTimeOriginal).getTime() : 0;
-        const dateB = b.exif.dateTimeOriginal ? new Date(b.exif.dateTimeOriginal).getTime() : 0;
-        return multiplier * (dateA - dateB);
+  // Memoize sorted images to avoid re-sorting on every render
+  const sortedImages = useMemo(() => {
+    return [...images].sort((a, b) => {
+      const multiplier = sortDirection === 'asc' ? 1 : -1;
+      
+      switch (sortField) {
+        case 'name':
+          return multiplier * a.file.name.localeCompare(b.file.name);
+        case 'date': {
+          const dateA = a.exif.dateTimeOriginal ? new Date(a.exif.dateTimeOriginal).getTime() : 0;
+          const dateB = b.exif.dateTimeOriginal ? new Date(b.exif.dateTimeOriginal).getTime() : 0;
+          return multiplier * (dateA - dateB);
+        }
+        case 'size':
+          return multiplier * (a.file.size - b.file.size);
+        case 'make': {
+          const makeA = (a.exif.make || '') + (a.exif.model || '');
+          const makeB = (b.exif.make || '') + (b.exif.model || '');
+          return multiplier * makeA.localeCompare(makeB);
+        }
+        default:
+          return 0;
       }
-      case 'size':
-        return multiplier * (a.file.size - b.file.size);
-      case 'make': {
-        const makeA = (a.exif.make || '') + (a.exif.model || '');
-        const makeB = (b.exif.make || '') + (b.exif.model || '');
-        return multiplier * makeA.localeCompare(makeB);
-      }
-      default:
-        return 0;
-    }
+    });
+  }, [images, sortField, sortDirection]);
+
+  // Filter out items without images - memoized
+  const imagesWithImages = useMemo(() => {
+    return sortedImages.filter(image => {
+      const isImportedPoint = 'hasImage' in image;
+      return isImportedPoint ? image.hasImage : true;
+    });
+  }, [sortedImages]);
+
+  // Virtual list setup
+  const parentRef = useRef<HTMLDivElement>(null);
+  
+  const virtualizer = useVirtualizer({
+    count: imagesWithImages.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80, // Estimated row height
+    overscan: 5, // Render 5 extra items for smooth scrolling
   });
+
+  // Memoized row component to prevent unnecessary re-renders
+  const ImageListRow = React.memo<{
+    image: ImageData;
+    isSelected: boolean;
+    onSelect: (image: ImageData) => void;
+    activeColumns: ColumnConfig[];
+  }>(({ image, isSelected, onSelect, activeColumns }) => (
+    <tr
+      onClick={() => onSelect(image)}
+      className={`hover:bg-app-gray-light/30 cursor-pointer transition-colors duration-200 ${
+        isSelected ? 'bg-app-gray-light/20' : ''
+      }`}
+    >
+      <td className="px-4 py-3">
+        <div className="relative w-12 h-12 rounded overflow-hidden border border-app-gray-light/30">
+          <img src={image.url} alt="" className="w-full h-full object-cover" />
+        </div>
+      </td>
+      {activeColumns.map(column => (
+        <td key={column.id} className="px-4 py-3">
+          {column.render(image)}
+        </td>
+      ))}
+    </tr>
+  ));
+
+  ImageListRow.displayName = 'ImageListRow';
 
   const formatTimestamps = (image: ImageData) => {
     const created = image.exif.dateTimeOriginal;
@@ -248,12 +298,6 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     return info.length > 0 ? info.join(' • ') : 'No technical data';
   };
 
-  // Filter out items without images
-  const imagesWithImages = images.filter(image => {
-    const isImportedPoint = 'hasImage' in image;
-    return isImportedPoint ? image.hasImage : true;
-  });
-
   if (imagesWithImages.length === 0) {
     return (
       <div className="glass-panel p-6">
@@ -268,7 +312,7 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const activeColumns = columnConfigs.filter(col => enabledColumns.includes(col.id));
 
   return (
-    <div className="overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       <div className="flex justify-end mb-4">
         <div className="relative">
           <button
@@ -312,58 +356,78 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead className="bg-app-gray/50">
-            <tr>
-              <th className="w-16 px-4 py-2"></th>
-              {activeColumns.map(column => (
-                <th 
-                  key={column.id} 
-                  className={`px-4 py-2 text-left ${column.sortField ? 'cursor-pointer hover:bg-app-gray-light/50' : ''}`}
-                  onClick={() => column.sortField && handleSort(column.sortField)}
-                >
-                  <div className="flex items-center space-x-1">
-                    {column.icon}
-                    <span className="text-app-white font-medium">{column.label}</span>
-                    {column.sortField && (
-                      <ArrowUpDown className={`w-4 h-4 ${
-                        sortField === column.sortField 
-                          ? 'text-app-white' 
-                          : 'text-app-accent-dim'
-                      }`} />
-                    )}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedImages.filter(image => {
-              const isImportedPoint = 'hasImage' in image;
-              return isImportedPoint ? image.hasImage : true;
-            }).map((image) => (
-              <tr
-                key={image.id}
-                onClick={() => onSelect(image)}
-                className={`hover:bg-app-gray-light/30 cursor-pointer transition-colors duration-200 ${
-                  selectedImage?.id === image.id ? 'bg-app-gray-light/20' : ''
-                }`}
-              >
-                <td className="px-4 py-3">
-                  <div className="relative w-12 h-12 rounded overflow-hidden border border-app-gray-light/30">
-                    <img src={image.url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                </td>
+      <div className="flex-1 overflow-hidden">
+        <div className="overflow-x-auto h-full">
+          <table className="w-full border-collapse">
+            <thead className="bg-app-gray/50 sticky top-0 z-10">
+              <tr>
+                <th className="w-16 px-4 py-2"></th>
                 {activeColumns.map(column => (
-                  <td key={column.id} className="px-4 py-3">
-                    {column.render(image)}
-                  </td>
+                  <th 
+                    key={column.id} 
+                    className={`px-4 py-2 text-left ${column.sortField ? 'cursor-pointer hover:bg-app-gray-light/50' : ''}`}
+                    onClick={() => column.sortField && handleSort(column.sortField)}
+                  >
+                    <div className="flex items-center space-x-1">
+                      {column.icon}
+                      <span className="text-app-white font-medium">{column.label}</span>
+                      {column.sortField && (
+                        <ArrowUpDown className={`w-4 h-4 ${
+                          sortField === column.sortField 
+                            ? 'text-app-white' 
+                            : 'text-app-accent-dim'
+                        }`} />
+                      )}
+                    </div>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+          </table>
+          
+          {/* Virtualized table body */}
+          <div
+            ref={parentRef}
+            className="h-full overflow-auto"
+            style={{ height: 'calc(100% - 56px)' }} // Account for header height
+          >
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              <table className="w-full border-collapse">
+                <tbody>
+                  {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const image = imagesWithImages[virtualItem.index];
+                    return (
+                      <tr
+                        key={virtualItem.key}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: `${virtualItem.size}px`,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <ImageListRow
+                          image={image}
+                          isSelected={selectedImage?.id === image.id}
+                          onSelect={onSelect}
+                          activeColumns={activeColumns}
+                        />
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

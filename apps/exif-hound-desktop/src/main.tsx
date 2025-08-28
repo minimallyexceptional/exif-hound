@@ -6,26 +6,14 @@ import { SettingsProvider } from './context/SettingsContext';
 import { TauriProvider } from './context/TauriContext';
 import './index.css';
 
-// Wait for Tauri to be fully initialized before rendering
-const initApp = async () => {
+// Initialize app immediately - TauriProvider handles availability detection
+const initApp = () => {
   try {
-    console.log('[Main] Starting app initialization...');
-    console.log('[Main] Window objects:', Object.keys(window));
-    
-    // Give Tauri time to fully initialize
-    if (typeof window !== 'undefined') {
-      console.log('[Main] Waiting for Tauri to initialize...');
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Log Tauri availability
+    if (import.meta.env.DEV) {
+      console.log('[Main] Starting app initialization...');
       console.log('[Main] Tauri available:', !!window.__TAURI__);
-      if (window.__TAURI__) {
-        console.log('[Main] Tauri keys:', Object.keys(window.__TAURI__));
-      }
     }
     
-    // Render the app
-    console.log('[Main] Rendering app...');
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
         <ThemeProvider>
@@ -38,7 +26,9 @@ const initApp = async () => {
       </StrictMode>
     );
   } catch (error) {
-    console.error('[Main] Error initializing app:', error);
+    if (import.meta.env.DEV) {
+      console.error('[Main] Error initializing app:', error);
+    }
     
     // Render the app anyway, TauriProvider will handle unavailability
     createRoot(document.getElementById('root')!).render(
@@ -55,5 +45,5 @@ const initApp = async () => {
   }
 };
 
-// Start initialization
+// Start initialization immediately
 initApp();

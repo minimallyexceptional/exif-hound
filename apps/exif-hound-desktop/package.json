@@ -49,6 +49,7 @@
     "shared-utils": "*"
   },
   "devDependencies": {
+    "@tanstack/react-virtual": "^3.5.1",
     "@eslint/js": "^9.9.1",
     "@tauri-apps/cli": "^2.0.0",
     "@testing-library/jest-dom": "^6.6.3",

@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
 import { ChevronUp, ChevronDown, Camera } from 'lucide-react';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
 import { useTheme } from '../context/ThemeContext';
 import { formatShortDateTime } from '../utils/date';
 import { ImportedPoint } from '../utils/importData';
@@ -13,16 +12,72 @@ interface Props {
   onSelect: (image: ImageData) => void;
 }
 
+// Memoized gallery item component to prevent unnecessary re-renders
+const GalleryItem = React.memo<{
+  image: ImageData;
+  isSelected: boolean;
+  onSelect: (image: ImageData) => void;
+}>(({ image, isSelected, onSelect }) => (
+  <div
+    className="flex-none"
+    onClick={() => onSelect(image)}
+  >
+    <div className={`relative cursor-pointer transition-transform duration-200 ${
+      isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
+    }`}>
+      <div className="aspect-[3/2] rounded-lg overflow-hidden shadow-lg">
+        <img
+          src={image.url}
+          alt={image.file.name}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={(e) => {
+            // Hide the image if it fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+            }
+          }}
+        />
+        <div className={`absolute inset-0 ${
+          isSelected 
+            ? 'ring-2 ring-app-accent' 
+            : 'group-hover:bg-app-black/10'
+        } transition-all duration-200`} />
+      </div>
+    </div>
+  </div>
+));
+
+GalleryItem.displayName = 'GalleryItem';
+
 const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme } = useTheme();
 
-  // Filter out items without valid images
-  const imagesWithImages = images.filter(image => {
-    const isImportedPoint = 'hasImage' in image;
-    return isImportedPoint ? image.hasImage : true;
+  // Filter out items without valid images - memoized
+  const imagesWithImages = useMemo(() => {
+    return images.filter(image => {
+      const isImportedPoint = 'hasImage' in image;
+      return isImportedPoint ? image.hasImage : true;
+    });
+  }, [images]);
+
+  // Setup virtualizer for vertical scrolling
+  const virtualizer = useVirtualizer({
+    count: imagesWithImages.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 200, // Estimated item height including gap
+    overscan: 3, // Render 3 extra items for smooth scrolling
   });
+
+  // Memoized select handler
+  const handleSelect = useCallback((image: ImageData) => {
+    onSelect(image);
+  }, [onSelect]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -36,21 +91,18 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToImage = (imageId: string) => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const imageElement = container.querySelector(`[data-image-id="${imageId}"]`);
-    if (imageElement) {
-      imageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const scrollToImage = useCallback((imageId: string) => {
+    const imageIndex = imagesWithImages.findIndex(img => img.id === imageId);
+    if (imageIndex !== -1) {
+      virtualizer.scrollToIndex(imageIndex, { align: 'center' });
     }
-  };
+  }, [imagesWithImages, virtualizer]);
 
   useEffect(() => {
     if (selectedImage) {
       scrollToImage(selectedImage.id);
     }
-  }, [selectedImage]);
+  }, [selectedImage, scrollToImage]);
 
   if (imagesWithImages.length === 0) {
     return (
@@ -69,42 +121,38 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
         ref={containerRef}
         className="h-full overflow-y-auto overflow-x-hidden scroll-smooth px-4 pt-12 pb-12"
       >
-        <div className="flex flex-col gap-4">
-          {imagesWithImages.map((image) => (
-            <div
-              key={image.id}
-              data-image-id={image.id}
-              className="flex-none"
-              onClick={() => onSelect(image)}
-            >
-              <div className={`relative cursor-pointer transition-transform duration-200 ${
-                selectedImage?.id === image.id ? 'scale-[1.02]' : 'hover:scale-[1.02]'
-              }`}>
-                <div className="aspect-[3/2] rounded-lg overflow-hidden shadow-lg">
-                  <img
-                    src={image.url}
-                    alt={image.file.name}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      // Hide the image if it fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-                      }
-                    }}
-                  />
-                  <div className={`absolute inset-0 ${
-                    selectedImage?.id === image.id 
-                      ? 'ring-2 ring-app-accent' 
-                      : 'group-hover:bg-app-black/10'
-                  } transition-all duration-200`} />
-                </div>
+        {/* Virtualized list container */}
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const image = imagesWithImages[virtualItem.index];
+            return (
+              <div
+                key={virtualItem.key}
+                data-image-id={image.id}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                  paddingBottom: '16px', // Gap between items
+                }}
+              >
+                <GalleryItem
+                  image={image}
+                  isSelected={selectedImage?.id === image.id}
+                  onSelect={handleSelect}
+                />
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
