@@ -62,11 +62,10 @@ describe('Virtualization Performance', () => {
       />
     );
 
-    // Should only render 3 visible items (mocked virtual items).
-    // Each virtual item renders a wrapper <tr> containing an inner <tr>,
-    // so role="row" counts 3 wrappers + 3 inner rows + 1 header = 7.
+    // Should only render 3 visible items (mocked virtual items):
+    // 1 header row + 3 data rows, all flat (role="row")
     const imageElements = screen.getAllByRole('row');
-    expect(imageElements).toHaveLength(7);
+    expect(imageElements).toHaveLength(4);
   });
 
   test('ImageList row selection should trigger selection callback', () => {
@@ -80,13 +79,11 @@ describe('Virtualization Performance', () => {
       />
     );
     
-    // Click the first data row (virtual rows render a wrapper <tr>
-    // containing the interactive inner <tr>)
+    // Click the first data row (flat grid row with an onClick handler)
     const rows = screen.getAllByRole('row');
     const firstDataRow = rows.find(row => row.textContent?.includes('test-image-0.jpg'));
     expect(firstDataRow).toBeTruthy();
-    const clickable = (firstDataRow!.querySelector('tr') as HTMLElement) ?? firstDataRow!;
-    fireEvent.click(clickable);
+    fireEvent.click(firstDataRow!);
     
     // Selecting a row must notify the parent
     expect(onSelect).toHaveBeenCalled();

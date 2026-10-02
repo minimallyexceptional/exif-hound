@@ -114,7 +114,15 @@ function App() {
   };
 
   const handleImageUpload = (imageData: ImageData) => {
-    setImages(prev => [...prev, imageData]);
+    // ImageUploader emits each image twice (placeholder while processing, then
+    // the EXIF-filled result) — upsert by id instead of appending duplicates.
+    setImages(prev => {
+      const index = prev.findIndex(img => img.id === imageData.id);
+      if (index === -1) return [...prev, imageData];
+      const next = [...prev];
+      next[index] = imageData;
+      return next;
+    });
     setSelectedImage(imageData);
   };
 
