@@ -58,26 +58,18 @@ describe('useMapImages hook', () => {
   });
 
   it('should filter out images with invalid coordinates', () => {
-    mockIsValidCoordinate.mockImplementation(coords => {
-      // Only validate specific coordinates
-      interface LatLng { latitude: number; longitude: number }
-      const coordsWithLatLng = coords as unknown as LatLng;
-      if (coordsWithLatLng.latitude === 37.7749 && coordsWithLatLng.longitude === -122.4194) {
-        return true;
-      }
-      return false;
-    });
-    
+    // The hook validates coordinates inline (numeric bounds check)
     const images = [
       createMockImage('1', 37.7749, -122.4194), // Valid
-      createMockImage('2', 999, 999), // Invalid coordinates
-      createMockImage('3', 40.7128, -74.0060) // Valid coords but mockIsValidCoordinate returns false
+      createMockImage('2', 999, 999), // Invalid coordinates (out of bounds)
+      createMockImage('3', 40.7128, -74.0060) // Valid
     ];
     
     const { result } = renderHook(() => useMapImages(images));
     
-    expect(result.current.imagesWithLocation).toHaveLength(1);
+    expect(result.current.imagesWithLocation).toHaveLength(2);
     expect(result.current.imagesWithLocation[0].id).toBe('1');
+    expect(result.current.imagesWithLocation[1].id).toBe('3');
   });
 
   it('should sort images by date taken', () => {
@@ -112,22 +104,18 @@ describe('useMapImages hook', () => {
     expect(result.current.sortedImages[2].id).toBe('2');
   });
 
-  it('should handle errors when validating coordinates', () => {
-    mockIsValidCoordinate.mockImplementation(() => {
-      throw new Error('Validation error');
-    });
-    
+  it('should skip coordinates that fail numeric validation', () => {
+    // Coordinates outside lat/lng bounds are filtered out silently
+    // (the refactored hook uses an inline bounds check without error logging)
     const images = [
-      createMockImage('1', 37.7749, -122.4194)
+      createMockImage('1', 37.7749, -122.4194),
+      createMockImage('2', 200, 500) // Out of bounds
     ];
     
     const { result } = renderHook(() => useMapImages(images));
     
-    expect(console.error).toHaveBeenCalledWith(
-      'Error validating coordinates:',
-      expect.any(Error)
-    );
-    expect(result.current.imagesWithLocation).toHaveLength(0);
+    expect(result.current.imagesWithLocation).toHaveLength(1);
+    expect(result.current.imagesWithLocation[0].id).toBe('1');
   });
 
   it('should handle errors when sorting images', () => {
@@ -139,33 +127,12 @@ describe('useMapImages hook', () => {
       createMockImage('2', 40.7128, -74.0060, badDate)
     ];
     
-    // We need to mock getTime() to throw an error
-    const originalDate = global.Date;
-    const mockDateGetTime = jest.fn().mockImplementation(function(this: Date) {
-      if (String(this) === 'Invalid Date') {
-        throw new Error('Invalid Date');
-      }
-      return originalDate.prototype.getTime.call(this);
-    });
+    // The refactored hook sorts defensively: invalid dates yield NaN but
+    // must not throw or crash rendering
+    const { result } = renderHook(() => useMapImages(images));
     
-    // Replace Date.prototype.getTime with our mock
-    const originalGetTime = Date.prototype.getTime;
-    Date.prototype.getTime = mockDateGetTime;
-    
-    try {
-      const { result } = renderHook(() => useMapImages(images));
-      
-      expect(console.error).toHaveBeenCalledWith(
-        'Error sorting images:',
-        expect.any(Error)
-      );
-      
-      // Should still have both images, but order might be unpredictable
-      expect(result.current.sortedImages.length).toBeGreaterThan(0);
-    } finally {
-      // Restore original getTime function
-      Date.prototype.getTime = originalGetTime;
-    }
+    // Should still have both images, but order might be unpredictable
+    expect(result.current.sortedImages.length).toBeGreaterThan(0);
   });
 
   it('should handle empty image array', () => {

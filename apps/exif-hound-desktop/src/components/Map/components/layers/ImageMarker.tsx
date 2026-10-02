@@ -39,7 +39,7 @@ export const ImageMarker: React.FC<ImageMarkerProps> = ({ image, onClick }) => {
         <div className="overflow-hidden bg-white dark:bg-[#111111]">
           <div className="relative">
             <img 
-              src={URL.createObjectURL(image.file)} 
+              src={URL.createObjectURL(image.file as unknown as Blob)} 
               alt={image.file.name}
               className="w-full h-auto"
             />

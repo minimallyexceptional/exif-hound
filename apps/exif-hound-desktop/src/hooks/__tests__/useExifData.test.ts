@@ -3,7 +3,7 @@
  */
 
 // We're using simple import syntax to avoid TypeScript/ESLint issues with mocking
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 
 // Mock all dependencies
 jest.mock('exif-middleware', () => ({
@@ -25,6 +25,26 @@ const mockGetLocationFromCoordinates = jest.requireMock('../../utils/geocoding')
 
 // After all mocks are set up, import the component under test
 import { useExifData } from '../useExifData';
+
+// jsdom has no Worker support; the hook processes EXIF data through a Web Worker.
+// Provide a mock Worker that bridges postMessage to the mocked extractExifData,
+// mimicking the real exifWorker.ts behavior.
+class MockWorker {
+  onmessage: ((event: any) => void) | null = null;
+  onerror: ((event: any) => void) | null = null;
+  postMessage(message: { type: string; id: string; buffer: ArrayBuffer }) {
+    Promise.resolve()
+      .then(() => mockExtractExifData(message.buffer))
+      .then((metadata: any) => {
+        this.onmessage?.({ data: { type: 'EXIF_PARSED', id: message.id, data: metadata } });
+      })
+      .catch((error: Error) => {
+        this.onmessage?.({ data: { type: 'EXIF_ERROR', id: message.id, error: error.message } });
+      });
+  }
+  terminate() {}
+}
+(globalThis as any).Worker = jest.fn(() => new MockWorker());
 
 describe('useExifData hook', () => {
   // Create sample file for testing
@@ -202,10 +222,12 @@ describe('useExifData hook', () => {
     // Execute
     const exifData = await result.current.processExifData(mockFile);
     
-    // Assert
-    expect(exifData.location).toEqual({
-      loading: false,
-      error: 'Failed to fetch location data'
+    // Assert (location fetch happens in the background)
+    await waitFor(() => {
+      expect(exifData.location).toEqual({
+        loading: false,
+        error: 'Failed to fetch location data'
+      });
     });
   });
   

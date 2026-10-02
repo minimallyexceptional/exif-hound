@@ -23,12 +23,12 @@ export const useMapImages = (images: ImageData[]) => {
       if (!isValidCoordinate(lat, lng)) return false;
       
       // Apply hemisphere correction if needed
-      const corrected = fixCoordinates({ latitude: lat, longitude: lng });
+      const [correctedLat, correctedLng] = fixCoordinates(lat, lng);
       
       // Update the image with corrected coordinates
-      if (corrected.latitude !== lat || corrected.longitude !== lng) {
-        img.exif.latitude = corrected.latitude;
-        img.exif.longitude = corrected.longitude;
+      if (correctedLat !== lat || correctedLng !== lng) {
+        img.exif.latitude = correctedLat;
+        img.exif.longitude = correctedLng;
       }
       
       return true;

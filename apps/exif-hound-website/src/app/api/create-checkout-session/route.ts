@@ -51,7 +51,9 @@ export async function POST() {
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}`,
-    });
+      // `payment_method_types` was removed from newer Stripe API type definitions
+      // but remains valid for the pinned 2023-10-16 API version.
+    } as any);
 
     // Return the session ID to be used by the client
     return NextResponse.json({ sessionId: session.id });

@@ -1,6 +1,18 @@
 // Add Jest-DOM custom matchers
 import '@testing-library/jest-dom';
 
+// Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
+// Kept false in tests to mirror production behavior and silence dev logging.
+(globalThis as any).__DEV__ = false;
+
+// jsdom does not implement blob URL methods
+if (typeof URL.createObjectURL !== 'function') {
+  (URL as any).createObjectURL = jest.fn(() => 'mock-object-url');
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+  (URL as any).revokeObjectURL = jest.fn();
+}
+
 // Mock the Leaflet library
 jest.mock('leaflet', () => {
   return {

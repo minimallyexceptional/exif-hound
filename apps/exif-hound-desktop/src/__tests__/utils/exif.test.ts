@@ -86,7 +86,7 @@ describe('exif utility', () => {
   
   describe('prepareExifForDisplay', () => {
     it('should format metadata for display using the shared utility', () => {
-      const metadata = {
+      const metadata: any = {
         make: 'Canon',
         model: 'EOS 5D Mark IV',
         iso: '100',

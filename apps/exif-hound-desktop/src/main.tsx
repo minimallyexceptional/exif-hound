@@ -9,7 +9,7 @@ import './index.css';
 // Initialize app immediately - TauriProvider handles availability detection
 const initApp = () => {
   try {
-    if (import.meta.env.DEV) {
+    if (__DEV__) {
       console.log('[Main] Starting app initialization...');
       console.log('[Main] Tauri available:', !!window.__TAURI__);
     }
@@ -26,7 +26,7 @@ const initApp = () => {
       </StrictMode>
     );
   } catch (error) {
-    if (import.meta.env.DEV) {
+    if (__DEV__) {
       console.error('[Main] Error initializing app:', error);
     }
     

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
 const isDev = process.env.TAURI_DEBUG === 'true';
@@ -9,7 +10,12 @@ const packagesDir = path.resolve(__dirname, '../../packages');
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  define: {
+    // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
+    // (ts-jest/Jest 30 treat files containing import.meta as ESM).
+    __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
+  },
   optimizeDeps: {
     include: [
       '@tauri-apps/api',

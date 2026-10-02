@@ -124,7 +124,7 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
         
         // We're in a desktop app, so we can't rely on window.location
         // Use development server (localhost) for testing
-        const useLocalDev = import.meta.env.DEV || process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+        const useLocalDev = __DEV__ || process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
         
         const websiteUrl = useLocalDev 
           ? 'http://localhost:3000' 
@@ -132,7 +132,7 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
           
         console.log('[SERVER-CHECK] License server URL:', websiteUrl, {
           isDev: useLocalDev,
-          env: import.meta.env.DEV ? 'development' : 'production',
+          env: __DEV__ ? 'development' : 'production',
           hostname: window.location.hostname
         });
         

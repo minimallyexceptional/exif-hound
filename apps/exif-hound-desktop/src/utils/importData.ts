@@ -25,7 +25,7 @@ export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Pr
               return null;
             }
           }
-        });
+        } as any);
         resolve({
           type: 'kml',
           data: data.data,
@@ -74,7 +74,7 @@ export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Pr
               exposureTime: row['exposure time'] || '',
               fNumber: row['f-number'] || '',
               iso: row['iso'] || '',
-              focalLength: row['focal length'] || '',
+              focalLength: row['focal length'] ? parseFloat(row['focal length']) : null,
               gpsAltitude: parseFloat(row['gps altitude']),
               gpsAltitudeRef: row['gps altitude ref'] || '',
               imageWidth: parseInt(row['image width']),

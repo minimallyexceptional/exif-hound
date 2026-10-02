@@ -52,46 +52,46 @@ function App() {
     const checkLicense = async () => {
       // If early access mode is enabled, skip license check
       if (earlyAccess) {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] Early access mode enabled, bypassing license check');
         }
         return;
       }
       
       try {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] Starting license check');
         }
         const hasExistingLicense = await hasLicense();
         
         if (!hasExistingLicense) {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log('[APP-DEBUG] No license found, showing activation modal');
           }
           setShowLicenseModal(true);
           return;
         }
         
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] License found, verifying...');
         }
         const licenseStatus = await verifyLicense();
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] License verification result:', licenseStatus);
         }
         
         if (!licenseStatus.isValid) {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
           }
           setShowLicenseModal(true);
         } else {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log('[APP-DEBUG] License valid, proceeding with application');
           }
         }
       } catch (error) {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.error('[APP-DEBUG] Error checking license:', error);
         }
         setShowLicenseModal(true);
@@ -104,7 +104,7 @@ function App() {
   }, [isLoading, earlyAccess]);
 
   const handleLicenseSuccess = () => {
-    if (import.meta.env.DEV) {
+    if (__DEV__) {
       console.log('[App] License activation successful');
     }
     setShowLicenseModal(false);
@@ -142,7 +142,7 @@ function App() {
         setImages(prevImages => [...prevImages, ...points]);
       }
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if (__DEV__) {
         console.error('Failed to import data:', error);
       }
       // TODO: Show error to user

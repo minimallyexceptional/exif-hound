@@ -335,8 +335,4 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
   );
 };
 
-GeographicalAnalysis.defaultProps = {
-  showStats: true
-};
-
 export default GeographicalAnalysis; 
