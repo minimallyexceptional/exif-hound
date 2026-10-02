@@ -15,21 +15,21 @@ export default function Dashboard() {
   // Mock available downloads
   const availableDownloads = [
     {
-      name: "EXIF Hound v2.4.1",
+      name: "EXIF Hound v2.5.1",
       platform: "Windows",
       size: "34.2 MB",
       date: "March 15, 2023",
       icon: "/windows.svg",
     },
     {
-      name: "EXIF Hound v2.4.1",
+      name: "EXIF Hound v2.5.1",
       platform: "macOS",
       size: "38.5 MB",
       date: "March 15, 2023",
       icon: "/apple.svg",
     },
     {
-      name: "EXIF Hound v2.4.1",
+      name: "EXIF Hound v2.5.1",
       platform: "Linux",
       size: "31.8 MB",
       date: "March 15, 2023",
@@ -54,11 +54,11 @@ export default function Dashboard() {
   // Recent activity feed
   const activityFeed = [
     {
-      action: "Downloaded EXIF Hound v2.4.1 for Windows",
+      action: "Downloaded EXIF Hound v2.5.1 for Windows",
       date: "3 days ago",
     },
     {
-      action: "Received update to v2.4.1",
+      action: "Received update to v2.5.1",
       date: "14 days ago",
     },
     {

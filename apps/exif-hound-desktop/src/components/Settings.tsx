@@ -144,7 +144,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {__APP_NAME__} is a powerful tool for exploring and analyzing image metadata.
                   Built with privacy in mind, all processing happens locally in your browser.
                 </p>
-                <p>Version 2.5.0</p>
+                <p>Version 2.5.1</p>
               </div>
             </section>
           </div>

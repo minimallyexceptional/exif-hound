@@ -225,7 +225,7 @@ export default function Documentation() {
                   </ol>
 
                   <div className="bg-gray-900 text-white p-4 rounded-lg my-4 overflow-x-auto">
-                    <code>sudo dpkg -i exif-hound_2.4.1_amd64.deb</code>
+                    <code>sudo dpkg -i exif-hound_2.5.1_amd64.deb</code>
                   </div>
 
                   <p>
