@@ -13,7 +13,7 @@ const LOCAL_STORAGE_KEY = 'exif_hound_license';
 // Determine if we're in development mode by checking for specific conditions
 // For Tauri desktop app, we need to detect dev mode properly
 // This will properly detect when running with tauri:dev command
-const isDev = import.meta.env.DEV || process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+const isDev = __DEV__ || process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
 
 // Set the API URL based on the environment
 const WEBSITE_URL = isDev
@@ -24,7 +24,7 @@ const WEBSITE_URL = isDev
 console.log('[LICENSE-CONFIG] Environment settings:', { 
   WEBSITE_URL, 
   isDev, 
-  env: import.meta.env.DEV ? 'development' : 'production',
+  env: __DEV__ ? 'development' : 'production',
   hostname: window.location.hostname
 });
 

@@ -19,6 +19,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // New opinionated rules introduced in eslint-plugin-react-hooks v7:
+      // downgrade to warn until the flagged patterns are refactored.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/static-components': 'warn',
+      'react-hooks/purity': 'warn',
+      'react-hooks/incompatible-library': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

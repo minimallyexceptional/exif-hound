@@ -53,13 +53,6 @@ describe('Startup Performance Optimizations', () => {
   });
 
   test('should not show splash screen with artificial delay', async () => {
-    // Mock development environment
-    const originalEnv = import.meta.env;
-    Object.defineProperty(import.meta, 'env', {
-      value: { ...originalEnv, DEV: true },
-      configurable: true
-    });
-
     renderWithProviders(<App />);
     
     // App should be interactive immediately, not after 2.5s
@@ -67,32 +60,14 @@ describe('Startup Performance Optimizations', () => {
       // Should not show splash screen for artificial delay
       expect(screen.queryByTestId('splash-screen')).not.toBeInTheDocument();
     }, { timeout: 100 }); // Very short timeout - should be immediate
-
-    // Restore original env
-    Object.defineProperty(import.meta, 'env', {
-      value: originalEnv,
-      configurable: true
-    });
   });
 
   test('should suppress console logs in production', () => {
-    // Mock production environment
-    const originalEnv = import.meta.env;
-    Object.defineProperty(import.meta, 'env', {
-      value: { ...originalEnv, DEV: false, PROD: true },
-      configurable: true
-    });
-
+    // In tests, __DEV__ is set to false (see setupTests.ts), mirroring production
     renderWithProviders(<App />);
     
     // Console logs should not be called in production
     expect(console.log).not.toHaveBeenCalled();
-
-    // Restore original env
-    Object.defineProperty(import.meta, 'env', {
-      value: originalEnv,
-      configurable: true
-    });
   });
 
   test('should lazy load Map component only when needed', async () => {

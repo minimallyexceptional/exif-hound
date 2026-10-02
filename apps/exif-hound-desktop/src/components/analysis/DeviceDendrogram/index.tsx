@@ -512,8 +512,4 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   );
 };
 
-DeviceDendrogram.defaultProps = {
-  showStats: true
-};
-
 export default DeviceDendrogram; 

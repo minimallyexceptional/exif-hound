@@ -75,14 +75,16 @@ export const AppHeader: React.FC<Props> = ({
                 List View
               </Button>
               
-              <Button
-                variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                icon={<Search className="w-4 h-4" />}
-                onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                Investigation
-              </Button>
+              {__EDITION__ === 'pro' && (
+                <Button
+                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                  icon={<Search className="w-4 h-4" />}
+                  onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
+                  fullWidth
+                >
+                  Investigation
+                </Button>
+              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-app-white">Theme</span>
@@ -113,7 +115,7 @@ export const AppHeader: React.FC<Props> = ({
             <Logomark className="w-9 h-9" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
-                Exif Hound Pro
+                {__APP_NAME__}
               </h1>
               <p className="text-xs text-app-accent-dim hidden sm:block">
                 Tracking digital footprints in every image
@@ -161,13 +163,15 @@ export const AppHeader: React.FC<Props> = ({
                   List View
                 </Button>
                 
-                <Button
-                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={() => onSetView('investigation')}
-                >
-                  Investigation
-                </Button>
+                {__EDITION__ === 'pro' && (
+                  <Button
+                    variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                    icon={<Search className="w-4 h-4" />}
+                    onClick={() => onSetView('investigation')}
+                  >
+                    Investigation
+                  </Button>
+                )}
               </div>
             )}
 

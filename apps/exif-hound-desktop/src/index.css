@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-app-black: var(--app-black);
+  --color-app-dark: var(--app-dark);
+  --color-app-gray: var(--app-gray);
+  --color-app-gray-light: var(--app-gray-light);
+  --color-app-gray-lighter: var(--app-gray-lighter);
+  --color-app-white: var(--app-white);
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-dim: var(--app-accent-dim);
+  --shadow-inner-light: inset 0 0 20px rgba(128, 128, 128, 0.1);
+  --shadow-inner-white: inset 0 0 30px rgba(128, 128, 128, 0.05);
+}
 
 @layer base {
   :root {

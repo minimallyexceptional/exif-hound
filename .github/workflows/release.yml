@@ -1,0 +1,111 @@
+name: Release
+
+# Builds a GitHub release with installers for BOTH editions (pro + community)
+# on Windows, Linux and macOS (Apple Silicon only).
+#
+# Triggers:
+#  - automatically after the CI workflow succeeds on main
+#  - manually via workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Read app version
+    runs-on: ubuntu-latest
+    # Only run when CI passed (or on manual dispatch)
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: |
+          VERSION=$(node -p "require('./apps/exif-hound-desktop/src-tauri/tauri.conf.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION"
+
+  build:
+    name: ${{ matrix.edition }} · ${{ matrix.os }}
+    needs: version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-14 runners are Apple Silicon (aarch64) — Intel is not supported
+        os: [macos-14, ubuntu-latest, windows-latest]
+        edition: [pro, community]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Linux dependencies (webkit2gtk / gtk)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/exif-hound-desktop/src-tauri
+
+      - name: Set Rust target (current hardware)
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS)  echo "TARGET=aarch64-apple-darwin"     >> "$GITHUB_ENV" ;;
+            Linux)  echo "TARGET=x86_64-unknown-linux-gnu" >> "$GITHUB_ENV" ;;
+            Windows) echo "TARGET=x86_64-pc-windows-msvc"  >> "$GITHUB_ENV" ;;
+            *) echo "Unsupported runner OS: $RUNNER_OS" && exit 1 ;;
+          esac
+
+      - name: Build ${{ matrix.edition }} edition and upload installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Drives the frontend edition switch (vite define __EDITION__)
+          EDITION: ${{ matrix.edition }}
+        with:
+          projectPath: apps/exif-hound-desktop
+          tagName: ${{ matrix.edition }}-v${{ needs.version.outputs.version }}
+          releaseName: "Exif Hound ${{ matrix.edition == 'pro' && 'Pro' || 'Community' }} v${{ needs.version.outputs.version }}"
+          releaseBody: >
+            Installers for the ${{ matrix.edition }} edition.
+            macOS builds are for Apple Silicon (M-series).
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ env.TARGET }} ${{ matrix.edition == 'community' && '--config src-tauri/tauri.community.conf.json' || '' }}

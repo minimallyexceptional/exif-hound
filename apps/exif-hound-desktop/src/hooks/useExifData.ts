@@ -1,6 +1,7 @@
 import { ExifData } from '../types';
 import { fixCoordinates } from '../utils/diagnostics';
 import { getLocationFromCoordinates } from '../utils/geocoding';
+import exifWorkerUrl from '../workers/exifWorker?worker&url';
 import { convertMetadataToExifData } from '../utils/exifUtils';
 import type { ExifWorkerMessage, ExifWorkerResponse } from '../workers/exifWorker';
 
@@ -18,7 +19,7 @@ const pendingRequests = new Map<string, { resolve: (data: any) => void; reject: 
 const initWorker = () => {
   if (!exifWorker) {
     exifWorker = new Worker(
-      new URL('../workers/exifWorker.ts', import.meta.url),
+      exifWorkerUrl,
       { type: 'module' }
     );
 
@@ -38,7 +39,7 @@ const initWorker = () => {
     };
 
     exifWorker.onerror = (event) => {
-      if (import.meta.env.DEV) {
+      if (__DEV__) {
         console.error('EXIF Worker error:', event);
       }
       // Reject all pending requests
@@ -78,7 +79,7 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       // Use worker to extract EXIF data (non-blocking)
       const metadata = await parseExifWithWorker(buffer);
       
-      if (import.meta.env.DEV) {
+      if (__DEV__) {
         console.log('GPS Data from worker for:', file.name, {
           latitude: metadata.latitude,
           longitude: metadata.longitude,
@@ -97,14 +98,14 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
         // Fetch location data in background (don't await)
         getLocationFromCoordinates(exifData.latitude, exifData.longitude)
           .then(locationData => {
-            if (import.meta.env.DEV) {
+            if (__DEV__) {
               console.log(`[useExifData] Location data received for: ${file.name}`, locationData);
             }
             // This would need to be handled by the caller to update state
             exifData.location = locationData;
           })
           .catch(locError => {
-            if (import.meta.env.DEV) {
+            if (__DEV__) {
               console.error('Error fetching location data:', locError);
             }
             exifData.location = { 
@@ -118,7 +119,7 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       return exifData;
     } catch (err) {
       const errorMessage = 'Failed to read EXIF data from image';
-      if (import.meta.env.DEV) {
+      if (__DEV__) {
         console.error(errorMessage, err);
       }
       options.onError?.(errorMessage);

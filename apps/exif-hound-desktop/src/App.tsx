@@ -19,7 +19,10 @@ import { parseImportData, ImportedData, ImportedPoint } from './utils/importData
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
-const Investigation = lazy(() => import('./components/Investigation'));
+// Pro-only view: in community builds the edition constant folds to null and
+// rollup tree-shakes the Investigation chunk out of the bundle entirely.
+const Investigation =
+  __EDITION__ === 'pro' ? lazy(() => import('./components/Investigation')) : null;
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -52,46 +55,46 @@ function App() {
     const checkLicense = async () => {
       // If early access mode is enabled, skip license check
       if (earlyAccess) {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] Early access mode enabled, bypassing license check');
         }
         return;
       }
       
       try {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] Starting license check');
         }
         const hasExistingLicense = await hasLicense();
         
         if (!hasExistingLicense) {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log('[APP-DEBUG] No license found, showing activation modal');
           }
           setShowLicenseModal(true);
           return;
         }
         
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] License found, verifying...');
         }
         const licenseStatus = await verifyLicense();
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log('[APP-DEBUG] License verification result:', licenseStatus);
         }
         
         if (!licenseStatus.isValid) {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
           }
           setShowLicenseModal(true);
         } else {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log('[APP-DEBUG] License valid, proceeding with application');
           }
         }
       } catch (error) {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.error('[APP-DEBUG] Error checking license:', error);
         }
         setShowLicenseModal(true);
@@ -104,14 +107,22 @@ function App() {
   }, [isLoading, earlyAccess]);
 
   const handleLicenseSuccess = () => {
-    if (import.meta.env.DEV) {
+    if (__DEV__) {
       console.log('[App] License activation successful');
     }
     setShowLicenseModal(false);
   };
 
   const handleImageUpload = (imageData: ImageData) => {
-    setImages(prev => [...prev, imageData]);
+    // ImageUploader emits each image twice (placeholder while processing, then
+    // the EXIF-filled result) — upsert by id instead of appending duplicates.
+    setImages(prev => {
+      const index = prev.findIndex(img => img.id === imageData.id);
+      if (index === -1) return [...prev, imageData];
+      const next = [...prev];
+      next[index] = imageData;
+      return next;
+    });
     setSelectedImage(imageData);
   };
 
@@ -142,7 +153,7 @@ function App() {
         setImages(prevImages => [...prevImages, ...points]);
       }
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if (__DEV__) {
         console.error('Failed to import data:', error);
       }
       // TODO: Show error to user
@@ -156,7 +167,7 @@ function App() {
       case 'list':
         return 'Image Details';
       case 'investigation':
-        return 'Investigation';
+        return __EDITION__ === 'pro' ? 'Investigation' : '';
       default:
         return '';
     }
@@ -189,6 +200,8 @@ function App() {
           />
         );
       case 'investigation':
+        // Pro-only view: tree-shaken out of community builds
+        if (__EDITION__ !== 'pro') return null;
         return (
           <Suspense fallback={<div className="flex items-center justify-center h-full">
             <div className="text-app-white">Loading investigation tools...</div>
@@ -216,7 +229,7 @@ function App() {
         onToggleView={() => {
           setViewMode(prev => {
             if (prev === 'map') return 'list';
-            if (prev === 'list') return 'investigation';
+            if (prev === 'list') return __EDITION__ === 'pro' ? 'investigation' : 'map';
             return 'map';
           });
         }}

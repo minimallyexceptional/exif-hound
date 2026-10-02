@@ -46,9 +46,10 @@ self.onmessage = async (event: MessageEvent<ExifWorkerMessage>) => {
   }
 };
 
-// Export worker class for type checking (not used in worker context)
+// Export worker class for type checking (not used in worker context).
+// The actual worker URL is resolved via Vite's ?worker&url import where needed.
 export default class ExifWorker extends Worker {
-  constructor() {
-    super(new URL('./exifWorker.ts', import.meta.url), { type: 'module' });
+  constructor(workerUrl?: string) {
+    super(workerUrl ?? '', { type: 'module' });
   }
 }

@@ -42,32 +42,8 @@ export interface ImageData {
   id: string;
   url: string;
   file: ImageFile;
-  exif: {
-    latitude?: number;
-    longitude?: number;
-    dateTimeOriginal?: string;
-    make?: string;
-    model?: string;
-    exposureTime?: string;
-    fNumber?: string;
-    iso?: string;
-    focalLength?: string;
-    gpsAltitude?: number;
-    gpsAltitudeRef?: string;
-    imageWidth?: number;
-    imageHeight?: number;
-    orientation?: number;
-    software?: string;
-    artist?: string;
-    copyright?: string;
-    description?: string;
-    lensModel?: string;
-    flash?: string;
-    meteringMode?: string;
-    whiteBalance?: string;
-    imageDescription?: string;
-    userComment?: string;
-  };
+  exif: ExifData;
+  isProcessing?: boolean;
 }
 
 export interface MapStyle {
