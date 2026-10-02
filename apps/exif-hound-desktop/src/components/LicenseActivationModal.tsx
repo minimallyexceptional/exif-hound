@@ -463,7 +463,7 @@ export function LicenseActivationModal({ onSuccess }: LicenseActivationModalProp
   };
 
   return (
-    <Modal title="Activate Exif Hound Pro" size="sm" onClose={() => {/* No-op: user must activate license */}}>
+    <Modal title={`Activate ${__APP_NAME__}`} size="sm" onClose={() => {/* No-op: user must activate license */}}>
       <div className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-app-accent-dim">

@@ -13,6 +13,9 @@ const edition = (process.env.EDITION ?? 'pro').toLowerCase();
 if (edition !== 'pro' && edition !== 'community') {
   throw new Error(`Invalid EDITION "${edition}" — expected "pro" or "community"`);
 }
+const appName = edition === 'community' ? 'Exif Hound Community' : 'Exif Hound Pro';
+// Exposes the app name for %VITE_APP_NAME% replacement in index.html
+process.env.VITE_APP_NAME = appName;
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -24,6 +27,8 @@ export default defineConfig({
     // Build-time edition switch: 'pro' | 'community'. In community builds the
     // pro-only Investigation view is tree-shaken out of the bundle.
     __EDITION__: JSON.stringify(edition),
+    // User-facing app name, switches with the edition
+    __APP_NAME__: JSON.stringify(appName),
   },
   optimizeDeps: {
     include: [

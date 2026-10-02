@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 (globalThis as any).__DEV__ = false;
 // Default edition for tests (pro includes all features)
 (globalThis as any).__EDITION__ = 'pro';
+(globalThis as any).__APP_NAME__ = 'Exif Hound Pro';
 
 // jsdom does not implement blob URL methods
 if (typeof URL.createObjectURL !== 'function') {
