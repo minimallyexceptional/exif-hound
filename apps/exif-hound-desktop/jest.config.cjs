@@ -6,11 +6,13 @@ module.exports = {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
         jsx: 'react-jsx',
+        module: 'commonjs',
         esModuleInterop: true,
       }
     }]
   },
   moduleNameMapper: {
+    '\\?worker&url$': '<rootDir>/src/__mocks__/fileMock.cjs',
     '\\.(css|less|scss)$': '<rootDir>/src/__mocks__/styleMock.cjs',
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/src/__mocks__/fileMock.cjs',
   },

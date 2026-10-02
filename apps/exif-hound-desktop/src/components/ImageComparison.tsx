@@ -84,7 +84,7 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
               for (let i = 0; i < len; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
               }
-              return bytes.buffer;
+              return bytes.buffer as ArrayBuffer;
             }
             
             // Check if the tag has a value property
@@ -105,10 +105,10 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
                 for (let i = 0; i < len; i++) {
                   bytes[i] = binaryString.charCodeAt(i);
                 }
-                return bytes.buffer;
+                return bytes.buffer as ArrayBuffer;
               } else if (value instanceof Uint8Array) {
                 console.log(`${tagName} is Uint8Array, length:`, value.length);
-                return value.buffer;
+                return value.buffer as ArrayBuffer;
               }
             }
             

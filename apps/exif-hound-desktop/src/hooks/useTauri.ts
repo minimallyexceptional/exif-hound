@@ -12,9 +12,15 @@ export function useTauri() {
     const checkTauri = async () => {
       try {
         // Check if Tauri is available
-        const available = typeof window !== 'undefined' && 
-                         'window' in globalThis && 
-                         window.__TAURI__ !== undefined;
+        // Guard against accessors that throw (e.g. mocked/test environments);
+        // an access error means we cannot confirm availability.
+        let exists = false;
+        try {
+          exists = window.__TAURI__ !== undefined;
+        } catch {
+          exists = false;
+        }
+        const available = typeof window !== 'undefined' && 'window' in globalThis && exists;
         
         console.log(`[useTauri] Tauri available: ${available}`);
         setIsTauriAvailable(available);

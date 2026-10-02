@@ -9,22 +9,22 @@
     "dist/**"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --clean --external shared-utils",
-    "dev": "tsup src/index.ts --format esm,cjs --watch --external shared-utils",
+    "build": "tsup src/index.ts --format esm,cjs --clean --dts --external shared-utils",
+    "dev": "tsup src/index.ts --format esm,cjs --watch --dts --external shared-utils",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit --project tsconfig.typecheck.json"
   },
   "dependencies": {
-    "exifreader": "^4.21.1",
-    "geolib": "^3.3.4"
+    "exifreader": "^4.46.0",
+    "geolib": "^3.3.14"
   },
   "peerDependencies": {
     "shared-utils": "*"
   },
   "devDependencies": {
-    "eslint": "^9.9.1",
+    "eslint": "^9.39.5",
     "shared-utils": "*",
-    "tsup": "^8.0.1",
-    "typescript": "^5.5.3"
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }

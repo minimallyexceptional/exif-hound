@@ -63,9 +63,10 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
     setIsProcessing(true);
     setProcessingCount(fileArray.length);
 
-    // Process all files concurrently
+    // Process all files concurrently, bounded by a shared concurrency limiter
+    const limiter = concurrencyLimiter();
     const processingPromises = fileArray.map(file => 
-      concurrencyLimiter().add(async () => {
+      limiter.add(async () => {
         try {
           // Create image immediately with loading state
           const imageId = Math.random().toString(36).substring(7);
@@ -99,14 +100,14 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
           
           onImageUpload(updatedImage);
           
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.log(`Processed image: ${file.name}`, { 
               hasLocation: !!exif.location,
               coordinates: `${exif.latitude}, ${exif.longitude}`
             });
           }
         } catch (error) {
-          if (import.meta.env.DEV) {
+          if (__DEV__) {
             console.error('Error processing image:', error);
           }
           

@@ -5,7 +5,7 @@
 
 import ExifReader from 'exifreader';
 // Use relative path to avoid TypeScript path resolution issues during build
-import { formatFileSize, formatDate } from '../../shared-utils/src';
+import { formatFileSize, formatDate } from 'shared-utils';
 
 export interface ExifMetadata {
   make?: string;

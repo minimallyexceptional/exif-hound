@@ -36,8 +36,8 @@ export function convertMetadataToExifData(
     make: metadata.make ?? null,
     model: metadata.model ?? null,
     exposureTime: metadata.exposureTime ?? null,
-    fNumber: metadata.fNumber ?? null,
-    iso: metadata.iso ?? null,
+    fNumber: metadata.fNumber != null ? String(metadata.fNumber) : null,
+    iso: metadata.iso != null ? String(metadata.iso) : null,
     focalLength: typeof metadata.focalLength === 'string' ? parseFloat(metadata.focalLength) : 
                  typeof metadata.focalLength === 'number' ? metadata.focalLength : null,
     error: error ?? null,

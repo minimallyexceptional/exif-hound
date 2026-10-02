@@ -286,8 +286,4 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true 
   );
 };
 
-SoftwareProcessingAnalysis.defaultProps = {
-  showStats: true
-};
-
 export default SoftwareProcessingAnalysis; 

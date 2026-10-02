@@ -1,0 +1,6 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Exif Hound Community",
+  "version": "0.1.1",
+  "identifier": "com.exifhound.community"
+}

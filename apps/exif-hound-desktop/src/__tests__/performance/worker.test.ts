@@ -24,12 +24,12 @@ describe('EXIF Worker Performance', () => {
   });
 
   test('should create worker for EXIF parsing', () => {
-    const worker = new Worker(new URL('../../workers/exifWorker.ts', import.meta.url), { 
+    const worker = new Worker('../../workers/exifWorker.ts', { 
       type: 'module' 
     });
     
     expect(Worker).toHaveBeenCalledWith(
-      'mock-blob-url',
+      '../../workers/exifWorker.ts',
       { type: 'module' }
     );
     expect(worker).toBeDefined();

@@ -39,7 +39,7 @@ class LocationUpdateService {
       const request = this.queue.shift()!;
       
       try {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log(`[LocationService] Processing location update for image ${request.imageId}`);
         }
 
@@ -51,11 +51,11 @@ class LocationUpdateService {
         // Call the update callback
         request.onUpdate(request.imageId, locationData);
 
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.log(`[LocationService] Location updated for image ${request.imageId}:`, locationData);
         }
       } catch (error) {
-        if (import.meta.env.DEV) {
+        if (__DEV__) {
           console.error(`[LocationService] Failed to update location for image ${request.imageId}:`, error);
         }
 

@@ -1,9 +1,9 @@
-import { ImageData } from '../types';
+import { ImageData, ExifData } from '../types';
 
 declare global {
   interface Window {
     api: {
-      readFile: (filePath: string) => Promise<ExifData | null>;
+      readFile: (filePath: string) => Promise<ReadFileResult | null>;
       getFileUrl: (filePath: string) => string;
       selectFiles: () => Promise<string[]>;
       selectExportDirectory: () => Promise<string | null>;
@@ -11,6 +11,15 @@ declare global {
       setStoreValue: (key: string, value: unknown) => Promise<void>;
     };
   }
+}
+
+interface ReadFileResult {
+  fileData: {
+    base64: string;
+    mimeType: string;
+    fileName: string;
+  };
+  exif: ExifData;
 }
 
 export async function readFile(filePath: string): Promise<ImageData | null> {
