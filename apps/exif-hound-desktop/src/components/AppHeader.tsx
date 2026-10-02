@@ -75,14 +75,16 @@ export const AppHeader: React.FC<Props> = ({
                 List View
               </Button>
               
-              <Button
-                variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                icon={<Search className="w-4 h-4" />}
-                onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                Investigation
-              </Button>
+              {__EDITION__ === 'pro' && (
+                <Button
+                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                  icon={<Search className="w-4 h-4" />}
+                  onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
+                  fullWidth
+                >
+                  Investigation
+                </Button>
+              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-app-white">Theme</span>
@@ -161,13 +163,15 @@ export const AppHeader: React.FC<Props> = ({
                   List View
                 </Button>
                 
-                <Button
-                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={() => onSetView('investigation')}
-                >
-                  Investigation
-                </Button>
+                {__EDITION__ === 'pro' && (
+                  <Button
+                    variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                    icon={<Search className="w-4 h-4" />}
+                    onClick={() => onSetView('investigation')}
+                  >
+                    Investigation
+                  </Button>
+                )}
               </div>
             )}
 

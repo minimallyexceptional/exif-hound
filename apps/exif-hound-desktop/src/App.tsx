@@ -19,7 +19,10 @@ import { parseImportData, ImportedData, ImportedPoint } from './utils/importData
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
-const Investigation = lazy(() => import('./components/Investigation'));
+// Pro-only view: in community builds the edition constant folds to null and
+// rollup tree-shakes the Investigation chunk out of the bundle entirely.
+const Investigation =
+  __EDITION__ === 'pro' ? lazy(() => import('./components/Investigation')) : null;
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -156,7 +159,7 @@ function App() {
       case 'list':
         return 'Image Details';
       case 'investigation':
-        return 'Investigation';
+        return __EDITION__ === 'pro' ? 'Investigation' : '';
       default:
         return '';
     }
@@ -189,6 +192,8 @@ function App() {
           />
         );
       case 'investigation':
+        // Pro-only view: tree-shaken out of community builds
+        if (__EDITION__ !== 'pro') return null;
         return (
           <Suspense fallback={<div className="flex items-center justify-center h-full">
             <div className="text-app-white">Loading investigation tools...</div>
@@ -216,7 +221,7 @@ function App() {
         onToggleView={() => {
           setViewMode(prev => {
             if (prev === 'map') return 'list';
-            if (prev === 'list') return 'investigation';
+            if (prev === 'list') return __EDITION__ === 'pro' ? 'investigation' : 'map';
             return 'map';
           });
         }}
