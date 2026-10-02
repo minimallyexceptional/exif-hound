@@ -364,6 +364,7 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                       width: '100%',
                       height: ROW_HEIGHT,
                       transform: `translateY(${virtualItem.start}px)`,
+                      gridTemplateColumns,
                       boxShadow: isSelected ? 'inset 2px 0 0 var(--app-accent-dim)' : undefined,
                     }}
                   >
