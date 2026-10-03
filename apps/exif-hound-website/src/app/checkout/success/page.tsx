@@ -196,7 +196,7 @@ export default function CheckoutSuccess() {
                 Connect with other EXIF Hound users, share tips, and get help when needed.
               </p>
               <Link
-                href="/community"
+                href="/support#community"
                 className="mt-auto text-green-600 font-medium hover:text-green-800"
               >
                 Join Community →

@@ -1,5 +1,5 @@
 [package]
-name = "exif-hound-pro"
+name = "exif-hound"
 version = "2.5.1"
 description = "Exif metadata explorer and map visualization tool"
 authors = ["Exif Hound Team"]

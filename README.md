@@ -103,10 +103,10 @@ npm run tauri:build
 
 ## Automatic Updates
 
-Community and Pro receive automatic updates through separate, signed feeds
-(`updates.exifhound.com/<edition>/<channel>/latest.json`). The updater is
-privacy-first and anonymous — see [docs/updater.md](./docs/updater.md) for the
-architecture, privacy contract, signing keys, and release runbooks.
+Exif Hound receives automatic updates through one signed feed per channel
+(`updates.exifhound.com/<channel>/latest.json`). The updater is privacy-first
+and anonymous — see [docs/updater.md](./docs/updater.md) for the architecture,
+privacy contract, signing key, and release runbook.
 
 ## Further Documentation
 
@@ -114,4 +114,4 @@ For more details about the monorepo migration process, see [MONOREPO_MIGRATION.m
 
 ## License
 
-MIT 
+MIT

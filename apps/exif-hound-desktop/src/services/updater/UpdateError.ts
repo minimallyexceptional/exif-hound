@@ -6,7 +6,7 @@
  * checks swallow these entirely; manual checks surface `userMessage`.
  *
  * There is deliberately no "ignore signature" path. An artifact whose
- * minisign signature does not match the edition's baked-in public key can
+ * minisign signature does not match the app's baked-in public key can
  * never be installed; the Rust updater enforces this before the frontend
  * ever sees the bytes, and the frontend maps it to VERIFY_FAILED purely
  * for error reporting.

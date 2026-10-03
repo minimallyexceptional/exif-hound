@@ -13,26 +13,17 @@ import { AppLayout } from './components/AppLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
 import { ImageComparison } from './components/ImageComparison';
-import { LicenseActivationModal } from './components/LicenseActivationModal';
-import { hasLicense, verifyLicense } from './utils/licenseManager';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
-// Pro-only view: in community builds the edition constant folds to null and
-// rollup tree-shakes the Investigation chunk out of the bundle entirely.
-const Investigation =
-  __EDITION__ === 'pro' ? lazy(() => import('./components/Investigation')) : null;
+const Investigation = lazy(() => import('./components/Investigation'));
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
 function App() {
-  // Temporary early access mode - set to true to bypass license check
-  // TODO: Remove this before production release
-  const earlyAccess = true;
-  
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [showRoute, setShowRoute] = useState(false);
@@ -45,75 +36,12 @@ function App() {
   const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
-  const [showLicenseModal, setShowLicenseModal] = useState(false);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
 
   useEffect(() => {
     // Remove artificial delay - app should be interactive immediately
     setIsLoading(false);
   }, []);
-
-  useEffect(() => {
-    const checkLicense = async () => {
-      // If early access mode is enabled, skip license check
-      if (earlyAccess) {
-        if (__DEV__) {
-          console.log('[APP-DEBUG] Early access mode enabled, bypassing license check');
-        }
-        return;
-      }
-      
-      try {
-        if (__DEV__) {
-          console.log('[APP-DEBUG] Starting license check');
-        }
-        const hasExistingLicense = await hasLicense();
-        
-        if (!hasExistingLicense) {
-          if (__DEV__) {
-            console.log('[APP-DEBUG] No license found, showing activation modal');
-          }
-          setShowLicenseModal(true);
-          return;
-        }
-        
-        if (__DEV__) {
-          console.log('[APP-DEBUG] License found, verifying...');
-        }
-        const licenseStatus = await verifyLicense();
-        if (__DEV__) {
-          console.log('[APP-DEBUG] License verification result:', licenseStatus);
-        }
-        
-        if (!licenseStatus.isValid) {
-          if (__DEV__) {
-            console.log('[APP-DEBUG] License invalid:', licenseStatus.errorMessage);
-          }
-          setShowLicenseModal(true);
-        } else {
-          if (__DEV__) {
-            console.log('[APP-DEBUG] License valid, proceeding with application');
-          }
-        }
-      } catch (error) {
-        if (__DEV__) {
-          console.error('[APP-DEBUG] Error checking license:', error);
-        }
-        setShowLicenseModal(true);
-      }
-    };
-    
-    if (!isLoading) {
-      checkLicense();
-    }
-  }, [isLoading, earlyAccess]);
-
-  const handleLicenseSuccess = () => {
-    if (__DEV__) {
-      console.log('[App] License activation successful');
-    }
-    setShowLicenseModal(false);
-  };
 
   const handleImageUpload = (imageData: ImageData) => {
     // ImageUploader emits each image twice (placeholder while processing, then
@@ -169,7 +97,7 @@ function App() {
       case 'list':
         return 'Image Details';
       case 'investigation':
-        return __EDITION__ === 'pro' ? 'Investigation' : '';
+        return 'Investigation';
       default:
         return '';
     }
@@ -202,8 +130,6 @@ function App() {
           />
         );
       case 'investigation':
-        // Pro-only view: tree-shaken out of community builds
-        if (__EDITION__ !== 'pro') return null;
         return (
           <Suspense fallback={<div className="flex items-center justify-center h-full">
             <div className="text-app-white">Loading investigation tools...</div>
@@ -341,13 +267,6 @@ function App() {
           }}
         />
       )}
-
-      {showLicenseModal && !earlyAccess && (
-        <LicenseActivationModal
-          onSuccess={handleLicenseSuccess}
-        />
-      )}
-
       {/*
         Auto-update discovery + update dialogs. Fully silent unless an
         update is found or the user initiates an action; loaded images are

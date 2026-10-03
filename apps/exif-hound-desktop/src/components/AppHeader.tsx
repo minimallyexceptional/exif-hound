@@ -82,16 +82,14 @@ export const AppHeader: React.FC<Props> = ({
                 List View
               </Button>
               
-              {__EDITION__ === 'pro' && (
-                <Button
-                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
-                  fullWidth
-                >
-                  Investigation
-                </Button>
-              )}
+              <Button
+                variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                icon={<Search className="w-4 h-4" />}
+                onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                Investigation
+              </Button>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-app-white">Theme</span>
@@ -131,7 +129,7 @@ export const AppHeader: React.FC<Props> = ({
             <Logomark className="w-9 h-9" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
-                {__APP_NAME__}
+                Exif Hound
               </h1>
               <p className="text-xs text-app-accent-dim hidden sm:block">
                 Tracking digital footprints in every image
@@ -179,15 +177,13 @@ export const AppHeader: React.FC<Props> = ({
                   List View
                 </Button>
                 
-                {__EDITION__ === 'pro' && (
-                  <Button
-                    variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                    icon={<Search className="w-4 h-4" />}
-                    onClick={() => onSetView('investigation')}
-                  >
-                    Investigation
-                  </Button>
-                )}
+                <Button
+                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                  icon={<Search className="w-4 h-4" />}
+                  onClick={() => onSetView('investigation')}
+                >
+                  Investigation
+                </Button>
               </div>
             )}
 
@@ -234,7 +230,7 @@ export const AppHeader: React.FC<Props> = ({
                           className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-app-gray-light text-app-white text-sm transition-colors"
                         >
                           <Info className="w-4 h-4" />
-                          About {__APP_NAME__}
+                          About Exif Hound
                         </button>
                       </div>
                     </Panel>

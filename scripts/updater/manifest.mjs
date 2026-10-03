@@ -12,16 +12,13 @@
  *     }
  *   }
  *
- * Edition separation is enforced here at the artifact-name level: Community
- * artifacts are named "Exif Hound Community…" and Pro artifacts "Exif Hound
- * Pro…". A Community manifest that accidentally references a Pro artifact
- * fails validation, and vice versa — defense in depth on top of the separate
- * per-edition signing keys compiled into each client.
+ * Artifact names are checked against the consolidated "Exif Hound" product
+ * name. Legacy Community/Pro artifacts are rejected so an old edition build
+ * cannot accidentally enter the single-app update feed.
  */
 
 import { isValidSemver, isPrerelease } from './semver.mjs';
 
-export const EDITIONS = ['community', 'pro'];
 export const CHANNELS = ['stable', 'beta', 'internal'];
 
 /** Targets the updater schema can express (superset). */
@@ -37,25 +34,16 @@ export const SUPPORTED_TARGETS = [
 /** Targets the release pipeline actually builds today. */
 export const RELEASED_TARGETS = ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64'];
 
-export function feedUrl(edition, channel) {
-  return `https://updates.exifhound.com/${edition}/${channel}/latest.json`;
+export function feedUrl(channel) {
+  return `https://updates.exifhound.com/${channel}/latest.json`;
 }
 
-// Artifact naming by edition. Derived from the Tauri productName
-// ("Exif Hound Community" / "Exif Hound Pro") used across NSIS, AppImage
-// and macOS updater artifacts.
-const EDITION_NAME_PATTERN = {
-  community: /exif[ _-]?hound[ _-]?community/i,
-  pro: /exif[ _-]?hound[ _-]?pro(?![a-z])/i,
-};
+const APP_NAME_PATTERN = /exif[ _-]?hound/i;
+const LEGACY_EDITION_PATTERN = /exif[ _-]?hound[ _-]?(?:community|pro)(?![a-z])/i;
 
-/** True when the artifact filename belongs to the given edition. */
-export function artifactMatchesEdition(edition, filename) {
-  const pattern = EDITION_NAME_PATTERN[edition];
-  if (!pattern) return false;
-  // Reject artifacts that match the OTHER edition's name.
-  const other = edition === 'pro' ? EDITION_NAME_PATTERN.community : EDITION_NAME_PATTERN.pro;
-  return pattern.test(filename) && !other.test(filename);
+/** True when the artifact belongs to the consolidated Exif Hound app. */
+export function artifactMatchesApp(filename) {
+  return APP_NAME_PATTERN.test(filename) && !LEGACY_EDITION_PATTERN.test(filename);
 }
 
 /** Safely extracts one artifact filename from a manifest URL. */
@@ -105,7 +93,6 @@ export function buildManifest({ version, notes, pubDate, platforms }) {
  * options:
  *   manifest       parsed manifest object
  *   rawText        optional raw manifest text, for duplicate-key detection
- *   edition        expected edition
  *   channel        expected channel ('stable' | 'beta' | 'internal')
  *   version        expected release version (must equal manifest.version)
  *   targets        expected platform target keys (default RELEASED_TARGETS)
@@ -116,7 +103,6 @@ export function validateManifest(options) {
   const {
     manifest,
     rawText,
-    edition,
     channel,
     version,
     targets = RELEASED_TARGETS,
@@ -226,8 +212,8 @@ export function validateManifest(options) {
       if (!ARTIFACT_PATTERNS[target]?.test(filename)) {
         add(`platform ${target} artifact does not match the expected updater artifact naming: ${filename}`);
       }
-      if (!artifactMatchesEdition(edition, filename)) {
-        add(`platform ${target} artifact does not belong to edition "${edition}": ${filename}`);
+      if (!artifactMatchesApp(filename)) {
+        add(`platform ${target} artifact does not belong to the consolidated Exif Hound app: ${filename}`);
       }
     }
   }

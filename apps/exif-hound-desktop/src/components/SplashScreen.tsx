@@ -39,7 +39,7 @@ const SplashScreen: React.FC = () => {
           showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}>
           <h1 className="text-3xl font-bold text-app-white mb-2">
-            EXIF HOUND PRO
+            EXIF HOUND
           </h1>
           <p className="text-app-accent-dim font-mono">
             INITIALIZING METADATA ANALYSIS...

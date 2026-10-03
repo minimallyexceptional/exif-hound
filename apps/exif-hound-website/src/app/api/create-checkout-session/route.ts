@@ -35,7 +35,7 @@ export async function POST() {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'EXIF Hound Pro License',
+              name: 'Exif Hound License',
               description: 'One-time purchase with 1 year of updates',
               images: ['https://your-domain.com/product-image.jpg'], // Replace with actual image URL
             },
@@ -45,7 +45,7 @@ export async function POST() {
         },
       ],
       metadata: {
-        productId: 'exif-hound-pro',
+        productId: 'exif-hound',
         productType: 'pro'
       },
       mode: 'payment',

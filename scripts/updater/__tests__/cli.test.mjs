@@ -17,12 +17,12 @@ beforeEach(() => {
   for (const target of ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64']) {
     fs.mkdirSync(path.join(staging, target), { recursive: true });
   }
-  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound Community.app.tar.gz'), 'mac-bytes');
-  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound Community.app.tar.gz.sig'), 'SIG-MAC');
-  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound Community_2.7.0_x64-setup.exe'), 'win-bytes');
-  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound Community_2.7.0_x64-setup.exe.sig'), 'SIG-WIN');
-  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound Community_2.7.0_amd64.AppImage'), 'linux-bytes');
-  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound Community_2.7.0_amd64.AppImage.sig'), 'SIG-LINUX');
+  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz'), 'mac-bytes');
+  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz.sig'), 'SIG-MAC');
+  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe'), 'win-bytes');
+  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe.sig'), 'SIG-WIN');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage'), 'linux-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage.sig'), 'SIG-LINUX');
 });
 
 afterEach(() => {
@@ -31,10 +31,9 @@ afterEach(() => {
 
 function baseArgs() {
   return [
-    '--edition', 'community',
     '--channel', 'stable',
     '--version', '2.7.0',
-    '--tag', 'community-v2.7.0',
+    '--tag', 'v2.7.0',
     '--repo', 'acme/exif-hound',
     '--staging-dir', staging,
     '--pub-date', '2026-10-12T18:00:00Z',
@@ -55,11 +54,10 @@ function validateManifestCli(extraArgs = []) {
   return execFileAsync(process.execPath, [
     path.join(SCRIPTS_DIR, 'validate-update-manifest.mjs'),
     path.join(staging, 'latest.json'),
-    '--edition', 'community',
     '--channel', 'stable',
     '--version', '2.7.0',
     '--repo', 'acme/exif-hound',
-    '--tag', 'community-v2.7.0',
+    '--tag', 'v2.7.0',
     '--staging-dir', staging,
     ...extraArgs,
   ]);
@@ -70,9 +68,6 @@ async function assertCliRejects(run, pattern) {
     await run();
     assert.fail('expected CLI command to fail');
   } catch (error) {
-    // Newer Node versions no longer include child stderr in Error.message.
-    // Assert against every diagnostic field so failures remain meaningful
-    // across the Node versions used by developers and CI.
     const diagnostic = [error?.message, error?.stdout, error?.stderr]
       .filter(Boolean)
       .join('\n');
@@ -88,17 +83,16 @@ test('generate produces a valid manifest from staged artifacts; validate accepts
   assert.equal(manifest.pub_date, '2026-10-12T18:00:00Z');
   assert.equal(
     manifest.platforms['darwin-aarch64'].url,
-    'https://github.com/acme/exif-hound/releases/download/community-v2.7.0/Exif%20Hound%20Community.app.tar.gz'
+    'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound.app.tar.gz'
   );
   assert.equal(manifest.platforms['darwin-aarch64'].signature, 'SIG-MAC');
   assert.equal(manifest.platforms['windows-x86_64'].signature, 'SIG-WIN');
   assert.equal(manifest.platforms['linux-x86_64'].signature, 'SIG-LINUX');
-
   await assert.doesNotReject(() => validateManifestCli());
 });
 
 test('generate fails when a signature is missing', async () => {
-  fs.rmSync(path.join(staging, 'darwin-aarch64', 'Exif Hound Community.app.tar.gz.sig'));
+  fs.rmSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz.sig'));
   await assertCliRejects(() => generate(), /missing updater signature/);
 });
 
@@ -108,30 +102,30 @@ test('generate fails when an artifact is missing for an expected target', async 
 });
 
 test('generate fails when a platform dir has no recognizable updater artifact', async () => {
-  fs.rmSync(path.join(staging, 'windows-x86_64', 'Exif Hound Community_2.7.0_x64-setup.exe'));
+  fs.rmSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe'));
   await assertCliRejects(() => generate(), /no updater artifact found/);
 });
 
 test('generated manifest is rejected when a staged artifact is removed afterwards', async () => {
   await generate();
-  fs.rmSync(path.join(staging, 'linux-x86_64', 'Exif Hound Community_2.7.0_amd64.AppImage'));
+  fs.rmSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage'));
   await assertCliRejects(() => validateManifestCli(), /artifact missing from staging/);
 });
 
 test('generated manifest is rejected when a signature file is emptied afterwards', async () => {
   await generate();
-  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound Community_2.7.0_amd64.AppImage.sig'), '');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage.sig'), '');
   await assertCliRejects(() => validateManifestCli(), /signature missing or empty/);
 });
 
-test('validate rejects a pro artifact inside a community manifest', async () => {
+test('validate rejects a legacy edition artifact', async () => {
   await generate();
   const file = path.join(staging, 'latest.json');
   const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
   manifest.platforms['darwin-aarch64'].url =
-    'https://github.com/acme/exif-hound/releases/download/community-v2.7.0/Exif%20Hound%20Pro.app.tar.gz';
+    'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound%20Pro.app.tar.gz';
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
-  await assertCliRejects(() => validateManifestCli(), /edition "community"/);
+  await assertCliRejects(() => validateManifestCli(), /consolidated Exif Hound app/);
 });
 
 test('validate rejects a manifest whose version does not match --version', async () => {
@@ -141,14 +135,12 @@ test('validate rejects a manifest whose version does not match --version', async
   manifest.version = '9.9.9';
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
   await assertCliRejects(
-    () =>
-      execFileAsync(process.execPath, [
-        path.join(SCRIPTS_DIR, 'validate-update-manifest.mjs'),
-        file,
-        '--edition', 'community',
-        '--channel', 'stable',
-        '--version', '2.7.0',
-      ]),
+    () => execFileAsync(process.execPath, [
+      path.join(SCRIPTS_DIR, 'validate-update-manifest.mjs'),
+      file,
+      '--channel', 'stable',
+      '--version', '2.7.0',
+    ]),
     /does not match release version/
   );
 });

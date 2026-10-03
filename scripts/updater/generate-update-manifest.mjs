@@ -6,9 +6,9 @@
  * Expected staging layout (one directory per platform target):
  *
  *   staging/
- *     darwin-aarch64/  Exif Hound Pro.app.tar.gz (+ .sig, .dmg)
- *     windows-x86_64/  Exif Hound Pro_2.7.0_x64-setup.exe (+ .sig, .msi)
- *     linux-x86_64/    Exif Hound Pro_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm)
+ *     darwin-aarch64/  Exif Hound.app.tar.gz (+ .sig, .dmg)
+ *     windows-x86_64/  Exif Hound_2.7.0_x64-setup.exe (+ .sig, .msi)
+ *     linux-x86_64/    Exif Hound_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm)
  *
  * The manifest references GitHub Release download URLs — binaries are hosted
  * there while clients permanently trust updates.exifhound.com, so storage can
@@ -16,8 +16,8 @@
  *
  * Usage:
  *   node scripts/updater/generate-update-manifest.mjs \
- *     --edition pro --channel stable --version 2.7.0 \
- *     --tag pro-v2.7.0 --repo OWNER/NAME \
+ *     --channel stable --version 2.7.0 \
+ *     --tag v2.7.0 --repo OWNER/NAME \
  *     --staging-dir ./staging --out ./latest.json \
  *     [--notes-file notes.md] [--notes "..."] [--pub-date RFC3339] \
  *     [--targets darwin-aarch64,windows-x86_64,linux-x86_64]
@@ -27,7 +27,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import {
-  EDITIONS,
   CHANNELS,
   RELEASED_TARGETS,
   ARTIFACT_PATTERNS,
@@ -43,7 +42,6 @@ function fail(message) {
 
 const { values } = parseArgs({
   options: {
-    edition: { type: 'string' },
     channel: { type: 'string' },
     version: { type: 'string' },
     tag: { type: 'string' },
@@ -57,7 +55,6 @@ const { values } = parseArgs({
   },
 });
 
-const edition = values.edition;
 const channel = values.channel ?? 'stable';
 const version = values.version;
 const tag = values.tag;
@@ -65,7 +62,6 @@ const repo = values.repo;
 const stagingDir = values['staging-dir'];
 const out = values.out ?? 'latest.json';
 
-if (!EDITIONS.includes(edition)) fail(`--edition must be one of: ${EDITIONS.join(', ')}`);
 if (!CHANNELS.includes(channel)) fail(`--channel must be one of: ${CHANNELS.join(', ')}`);
 if (!version || !isValidSemver(version)) fail(`--version must be valid SemVer, got: ${version}`);
 if (!tag) fail('--tag is required');
@@ -126,7 +122,7 @@ const manifest = buildManifest({ version, notes, pubDate, platforms });
 
 // Self-validate before writing — a bad manifest must never leave the script.
 const rawText = JSON.stringify(manifest, null, 2);
-const result = validateManifest({ manifest, rawText, edition, channel, version, targets, repo, tag });
+const result = validateManifest({ manifest, rawText, channel, version, targets, repo, tag });
 if (!result.valid) {
   fail(`generated manifest failed validation:\n  - ${result.errors.join('\n  - ')}`);
 }
@@ -136,4 +132,4 @@ console.log(`✔ wrote ${out}`);
 for (const target of targets) {
   console.log(`  ${target.padEnd(16)} ${platforms[target].url}`);
 }
-console.log(`  edition: ${edition} · channel: ${channel} · version: ${version} · pub_date: ${pubDate}`);
+console.log(`  channel: ${channel} · version: ${version} · pub_date: ${pubDate}`);

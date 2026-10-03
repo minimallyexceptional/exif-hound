@@ -151,7 +151,7 @@ export default function Support() {
             </div>
 
             {/* Community Card */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+            <div id="community" className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
                 <svg
                   width="28"
@@ -175,7 +175,7 @@ export default function Support() {
                 Join discussions with other users, share tips, and get help from the community.
               </p>
               <Link
-                href="/community"
+                href="#community"
                 className="mt-auto text-purple-600 font-medium hover:text-purple-800"
               >
                 Join the Community →
