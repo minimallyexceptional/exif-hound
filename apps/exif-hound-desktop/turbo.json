@@ -1,0 +1,26 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["EDITION", "EXIFHOUND_UPDATE_CHANNEL"]
+    },
+    "tauri:build": {
+      "cache": false,
+      "env": [
+        "EDITION",
+        "EXIFHOUND_UPDATE_CHANNEL",
+        "TAURI_BUNDLES",
+        "TAURI_TARGET"
+      ],
+      "passThroughEnv": [
+        "APPLE_ID",
+        "APPLE_PASSWORD",
+        "APPLE_SIGNING_IDENTITY",
+        "APPLE_TEAM_ID",
+        "TAURI_SIGNING_PRIVATE_KEY",
+        "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+      ]
+    }
+  }
+}

@@ -16,6 +16,8 @@ import { ImageComparison } from './components/ImageComparison';
 import { LicenseActivationModal } from './components/LicenseActivationModal';
 import { hasLicense, verifyLicense } from './utils/licenseManager';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
+import { UpdateNotification } from './components/updater/UpdateNotification';
+import { getUpdateService } from './services/updater';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -223,19 +225,16 @@ function App() {
       <AppHeader
         imagesCount={images.length}
         viewMode={viewMode}
-        showRoute={showRoute}
         onUpload={handleUploadClick}
         onExport={() => setShowExportModal(true)}
-        onToggleView={() => {
-          setViewMode(prev => {
-            if (prev === 'map') return 'list';
-            if (prev === 'list') return __EDITION__ === 'pro' ? 'investigation' : 'map';
-            return 'map';
-          });
-        }}
-        onToggleRoute={handleRouteClick}
         onOpenSettings={() => setShowSettings(true)}
         onSetView={(view: ViewMode) => setViewMode(view)}
+        onCheckForUpdates={() => {
+          // Keep manual checks observable: Settings shows checking/current
+          // status while the global updater surface handles updates/errors.
+          setShowSettings(true);
+          void getUpdateService().check({ silent: false });
+        }}
       />
 
       <ImageUploader 
@@ -348,6 +347,14 @@ function App() {
           onSuccess={handleLicenseSuccess}
         />
       )}
+
+      {/*
+        Auto-update discovery + update dialogs. Fully silent unless an
+        update is found or the user initiates an action; loaded images are
+        in-memory only, so any loaded content counts as unsaved work and
+        the updater will confirm before restarting.
+      */}
+      <UpdateNotification hasUnsavedWork={() => images.length > 0} />
     </div>
   );
 }

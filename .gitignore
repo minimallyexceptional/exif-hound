@@ -26,6 +26,12 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# Updater signing keys (private keys must NEVER be committed) and local
+# developer config overrides (see docs/updater.md)
+*.key
+*.key.pub
+**/src-tauri/tauri.*.local.conf.json
+
 # IDE
 .idea
 .vscode
