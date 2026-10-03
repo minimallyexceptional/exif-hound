@@ -122,6 +122,10 @@ Run the Release workflow manually and choose `internal`. Internal runs merge
 https://updates.exifhound.com/internal/latest.json
 ```
 
+On Windows, internal prereleases build the NSIS installer only. WiX/MSI does
+not accept textual SemVer prerelease identifiers such as `test.1`; NSIS is the
+Windows artifact used by the updater and supports the internal version scheme.
+
 For an actual update-chain test, use increasing SemVer prerelease versions
 (for example `2.6.0-test.1` then `2.6.0-test.2`). A client will not offer an
 update whose manifest version is equal to or older than its installed version.
