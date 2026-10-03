@@ -33,7 +33,10 @@ import {
 import { isValidSemver } from './semver.mjs';
 
 function fail(messages) {
-  for (const message of messages) console.error(`✖ ${message}`);
+  fs.writeSync(
+    process.stderr.fd,
+    `${messages.map(message => `✖ ${message}`).join('\n')}\n`
+  );
   process.exit(1);
 }
 

@@ -36,7 +36,7 @@ import {
 import { isValidSemver } from './semver.mjs';
 
 function fail(message) {
-  console.error(`\n✖ ${message}`);
+  fs.writeSync(process.stderr.fd, `\n✖ ${message}\n`);
   process.exit(1);
 }
 
