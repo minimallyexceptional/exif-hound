@@ -3,8 +3,8 @@
  * Validates a Tauri static update manifest (latest.json) before publication.
  *
  * Structural validation is the default and is fully offline: SemVer, RFC 3339
- * date, expected edition/channel, target names, HTTPS-only URLs, non-empty
- * signatures, artifact/edition naming cross-checks and (with raw text)
+ * date, expected channel, target names, HTTPS-only URLs, non-empty
+ * signatures, artifact naming cross-checks and (with raw text)
  * duplicate platform keys.
  *
  * Optional flags:
@@ -16,7 +16,7 @@
  *
  * Usage:
  *   node scripts/updater/validate-update-manifest.mjs latest.json \
- *     --edition pro --channel stable --version 2.7.0 \
+ *     --channel stable --version 2.7.0 \
  *     [--staging-dir ./staging] [--check-urls]
  */
 
@@ -24,7 +24,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import {
-  EDITIONS,
   CHANNELS,
   RELEASED_TARGETS,
   ARTIFACT_PATTERNS,
@@ -41,7 +40,6 @@ function fail(messages) {
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    edition: { type: 'string' },
     channel: { type: 'string' },
     version: { type: 'string' },
     repo: { type: 'string' },
@@ -53,12 +51,10 @@ const { values, positionals } = parseArgs({
 });
 
 const file = positionals[0];
-if (!file) fail(['usage: validate-update-manifest.mjs <latest.json> --edition <e> --channel <c> --version <v>']);
+if (!file) fail(['usage: validate-update-manifest.mjs <latest.json> --channel <c> --version <v>']);
 
-const edition = values.edition;
 const channel = values.channel ?? 'stable';
 const version = values.version;
-if (!EDITIONS.includes(edition)) fail([`--edition must be one of: ${EDITIONS.join(', ')}`]);
 if (!CHANNELS.includes(channel)) fail([`--channel must be one of: ${CHANNELS.join(', ')}`]);
 if (!version || !isValidSemver(version)) fail([`--version must be valid SemVer, got: ${version}`]);
 
@@ -78,7 +74,6 @@ try {
 const result = validateManifest({
   manifest,
   rawText,
-  edition,
   channel,
   version,
   targets,
@@ -128,5 +123,5 @@ if (values['check-urls']) {
 if (!result.valid || result.errors.length > 0) fail(result.errors);
 
 console.log(`✔ manifest ${file} is valid`);
-console.log(`  edition: ${edition} · channel: ${channel} · version: ${version}`);
+console.log(`  channel: ${channel} · version: ${version}`);
 console.log(`  platforms: ${Object.keys(manifest.platforms).join(', ')}`);

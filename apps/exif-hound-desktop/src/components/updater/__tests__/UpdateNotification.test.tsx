@@ -47,7 +47,7 @@ describe('UpdateNotification', () => {
       await service.check({ silent: true }); // backend preloaded with 2.7.0
     });
 
-    expect(screen.getByText('Exif Hound Pro 2.7.0 is available.')).toBeInTheDocument();
+    expect(screen.getByText('Exif Hound 2.7.0 is available.')).toBeInTheDocument();
     expect(screen.getByText('Improved map tools')).toBeInTheDocument();
     expect(screen.getByText('Fixed Linux compatibility')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Later' })).toBeInTheDocument();

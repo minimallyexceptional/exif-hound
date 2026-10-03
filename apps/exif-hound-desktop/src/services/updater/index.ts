@@ -10,7 +10,7 @@
  *
  * PRIVACY CONTRACT (see docs/updater.md)
  *   Update checks perform exactly one anonymous HTTPS GET of a static
- *   manifest (e.g. https://updates.exifhound.com/community/stable/latest.json)
+ *   manifest (e.g. https://updates.exifhound.com/stable/latest.json)
  *   and compare versions locally. No analytics, telemetry, persistent
  *   identifiers, license data, filenames, image metadata, or investigation
  *   data is ever transmitted, stored, or correlated.
@@ -38,13 +38,12 @@ export {
 } from './UpdateState';
 export type { UpdateInfo, UpdateState, UpdateStateName, DownloadProgress } from './UpdateState';
 export {
-  EDITIONS,
   UPDATE_CHANNELS,
   UPDATE_FEED_BASE_URL,
   getUpdateConfiguration,
   resolveFeedUrl,
 } from './UpdateConfiguration';
-export type { Edition, UpdateChannel, UpdateConfiguration } from './UpdateConfiguration';
+export type { UpdateChannel, UpdateConfiguration } from './UpdateConfiguration';
 
 import { UpdateService } from './UpdateService';
 import { TauriUpdaterBackend } from './UpdateBackend';

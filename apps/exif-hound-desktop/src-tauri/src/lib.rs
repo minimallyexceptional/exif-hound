@@ -5,7 +5,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_http::init())
         // Auto-update support: the updater plugin verifies minisign signatures
-        // against the edition-specific public key baked into the Tauri config
+        // against the public key baked into the Tauri config
         // before any artifact is installed. The process plugin provides relaunch.
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())

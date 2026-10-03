@@ -21,7 +21,7 @@ export default function TermsOfService() {
     resources: [
       { name: "Documentation", href: "/docs" },
       { name: "API", href: "/api-docs" },
-      { name: "Community", href: "/community" },
+      { name: "Community", href: "/support#community" },
       { name: "Downloads", href: "/download" },
     ],
     support: [

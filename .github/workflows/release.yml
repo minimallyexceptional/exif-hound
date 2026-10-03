@@ -1,29 +1,14 @@
 name: Release
 
-# Release flow (see docs/updater.md):
-#
-#   1. push a tag: community-v2.7.0 or pro-v2.7.0
-#   2. prepare validates the tag against the app version and the updater keys
-#   3. build compiles every platform for the edition, signs the updater
-#      artifacts (TAURI_SIGNING_PRIVATE_KEY_<EDITION>) and uploads them as
-#      workflow artifacts — nothing is visible to users yet
-#   4. publish generates latest.json from the staged artifacts, validates it,
-#      then creates a draft GitHub release, uploads ALL artifacts + manifest,
-#      and makes the release public only after every upload succeeds.
-
+# Builds one signed Exif Hound app for Windows, Linux, and Apple Silicon.
+# Stable releases are triggered by v<version> tags. Manual runs can target
+# the stable or internal update channel. See docs/updater.md.
 on:
   push:
     tags:
-      - 'community-v*'
-      - 'pro-v*'
+      - 'v*'
   workflow_dispatch:
     inputs:
-      edition:
-        description: 'Edition to release'
-        required: true
-        default: 'pro'
-        type: choice
-        options: [pro, community]
       channel:
         description: 'Update channel (internal is for pre-release testing)'
         required: true
@@ -43,7 +28,6 @@ jobs:
     name: Validate release
     runs-on: ubuntu-latest
     outputs:
-      edition: ${{ steps.prepare.outputs.edition }}
       channel: ${{ steps.prepare.outputs.channel }}
       version: ${{ steps.prepare.outputs.version }}
       tag: ${{ steps.prepare.outputs.tag }}
@@ -55,8 +39,8 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
-          INPUT_EDITION: ${{ github.event.inputs.edition }}
           INPUT_CHANNEL: ${{ github.event.inputs.channel }}
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -64,57 +48,49 @@ jobs:
           echo "App version: $VERSION"
 
           if [ "$EVENT_NAME" = "push" ]; then
-            # Tag-driven: edition comes from the tag itself.
-            case "$REF_NAME" in
-              community-v*) EDITION=community ;;
-              pro-v*)       EDITION=pro ;;
-              *) echo "Unrecognized tag: $REF_NAME" && exit 1 ;;
-            esac
             CHANNEL=stable
             TAG="$REF_NAME"
-            # CI FAILURE CONDITION: tag version must match the app version.
-            EXPECTED_TAG="${EDITION}-v${VERSION}"
+            EXPECTED_TAG="v${VERSION}"
             if [ "$TAG" != "$EXPECTED_TAG" ]; then
               echo "::error::Tag $TAG does not match app version $VERSION (expected $EXPECTED_TAG)"
               exit 1
             fi
           else
-            EDITION="$INPUT_EDITION"
             CHANNEL="$INPUT_CHANNEL"
-            TAG="${EDITION}-v${VERSION}"
+            if [ "$CHANNEL" = "stable" ]; then
+              TAG="v${VERSION}"
+            else
+              TAG="internal-v${VERSION}"
+            fi
           fi
 
-          # CI FAILURE CONDITION: published releases must not ship placeholder
-          # updater public keys. Internal CI builds use the edition key too.
-          CONFIG="apps/exif-hound-desktop/src-tauri/tauri.${EDITION}.conf.json"
+          CONFIG=apps/exif-hound-desktop/src-tauri/tauri.conf.json
           if grep -q 'PLACEHOLDER_' "$CONFIG"; then
             echo "::error::$CONFIG still contains a placeholder updater public key."
-            echo "Generate the edition signing keys and paste the PUBLIC key into the config (docs/updater.md)."
             exit 1
           fi
 
-          # NOTE: updater signing secrets are checked in the build job (fail
-          # fast with a clear message) and createUpdaterArtifacts fails the
-          # build if they are absent.
-          echo "edition=$EDITION"   >> "$GITHUB_OUTPUT"
-          echo "channel=$CHANNEL"   >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG"           >> "$GITHUB_OUTPUT"
           PRERELEASE=false
-          if [[ "$VERSION" == *-* ]]; then PRERELEASE=true; fi
-          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          if [ "$CHANNEL" != "stable" ] || [[ "$VERSION" == *-* ]]; then
+            PRERELEASE=true
+          fi
 
-          echo "Prepared: edition=$EDITION channel=$CHANNEL version=$VERSION tag=$TAG"
+          echo "channel=$CHANNEL"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"               >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "Prepared: channel=$CHANNEL version=$VERSION tag=$TAG"
 
   build:
-    name: ${{ needs.prepare.outputs.edition }} · ${{ matrix.os }}
+    name: ${{ matrix.os }}
     needs: prepare
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # macos-14 runners are Apple Silicon (aarch64) — Intel is not built
+        # macos-14 runners are Apple Silicon (aarch64); Intel is not built.
         os: [macos-14, ubuntu-latest, windows-latest]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -126,7 +102,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Linux dependencies (webkit2gtk / gtk)
+      - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
@@ -167,73 +143,62 @@ jobs:
             *) echo "Unsupported runner OS: $RUNNER_OS" && exit 1 ;;
           esac
 
-      # The updater signing keys are per-edition on purpose: a Community
-      # client only trusts Community-signed artifacts and vice versa.
-      # Secrets may contain newlines, so use heredoc-style env entries.
-      - name: Select updater signing key for edition
+      # The consolidated app continues to trust the former Community key.
+      # Secrets may contain newlines, so copy them through GITHUB_ENV blocks.
+      - name: Configure updater signing key
         env:
-          EDITION: ${{ needs.prepare.outputs.edition }}
-          KEY_PRO: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PRO }}
-          PASSWORD_PRO: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD_PRO }}
-          KEY_COMMUNITY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_COMMUNITY }}
-          PASSWORD_COMMUNITY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD_COMMUNITY }}
+          KEY_VALUE: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_COMMUNITY }}
+          PASSWORD_VALUE: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD_COMMUNITY }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$EDITION" = "pro" ]; then
-            KEY_VALUE="$KEY_PRO"; PASSWORD_VALUE="$PASSWORD_PRO"
-          else
-            KEY_VALUE="$KEY_COMMUNITY"; PASSWORD_VALUE="$PASSWORD_COMMUNITY"
-          fi
           if [ -z "$KEY_VALUE" ]; then
-            echo "::error::The updater signing key for the $EDITION edition is missing (see docs/updater.md)."
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY_COMMUNITY is missing."
             exit 1
           fi
           {
-            echo "TAURI_SIGNING_PRIVATE_KEY<<EOF"
+            echo "TAURI_SIGNING_PRIVATE_KEY<<TAURI_KEY_EOF"
             printf '%s\n' "$KEY_VALUE"
-            printf '%s\n' "EOF"
-            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD<<EOF"
+            echo "TAURI_KEY_EOF"
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD<<TAURI_PASSWORD_EOF"
             printf '%s\n' "$PASSWORD_VALUE"
-            printf '%s\n' "EOF"
+            echo "TAURI_PASSWORD_EOF"
           } >> "$GITHUB_ENV"
 
-      - name: Build ${{ needs.prepare.outputs.edition }} edition (${{ needs.prepare.outputs.channel }})
+      - name: Build Exif Hound (${{ needs.prepare.outputs.channel }})
         env:
-          EDITION: ${{ needs.prepare.outputs.edition }}
           EXIFHOUND_UPDATE_CHANNEL: ${{ needs.prepare.outputs.channel }}
-          # Apple code signing / notarization: applied automatically by the
-          # Tauri bundler when these secrets are configured. Without them the
-          # build succeeds unsigned (macOS users must right-click -> Open).
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         shell: bash
         run: |
-          if [ "$EDITION" = "pro" ]; then
-            node scripts/build.mjs pro
-          else
-            node scripts/build.mjs community
+          set -euo pipefail
+          CONFIG_ARGS=()
+          if [ "$EXIFHOUND_UPDATE_CHANNEL" != "stable" ]; then
+            CONFIG_ARGS=(--config "src-tauri/tauri.${EXIFHOUND_UPDATE_CHANNEL}.conf.json")
           fi
+          npm run tauri --workspace=exif-hound-desktop -- \
+            build --target "$TAURI_TARGET" "${CONFIG_ARGS[@]}"
 
-      - name: Stage release artifacts (installers + signed updater artifacts)
+      - name: Stage release artifacts
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "staging/${UPDATER_TARGET}"
-          find "apps/exif-hound-desktop/src-tauri/target/${TAURI_TARGET}/release/bundle" -type f \
-            \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \
-               -o -name '*.exe' -o -name '*.msi' -o -name '*.exe.sig' -o -name '*.msi.sig' \
-               -o -name '*.AppImage' -o -name '*.AppImage.sig' \
-               -o -name '*.deb' -o -name '*.rpm' \) \
-            -print0 | xargs -0 -I{} cp {} "staging/${UPDATER_TARGET}/"
-          echo "Staged artifacts:"
+          while IFS= read -r -d '' artifact; do
+            cp "$artifact" "staging/${UPDATER_TARGET}/"
+          done < <(
+            find "apps/exif-hound-desktop/src-tauri/target/${TAURI_TARGET}/release/bundle" -type f \
+              \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \
+                 -o -name '*.exe' -o -name '*.msi' -o -name '*.exe.sig' -o -name '*.msi.sig' \
+                 -o -name '*.AppImage' -o -name '*.AppImage.sig' \
+                 -o -name '*.deb' -o -name '*.rpm' \) -print0
+          )
           ls -la "staging/${UPDATER_TARGET}"
 
-      # CI FAILURE CONDITION: the signed updater artifact must exist for
-      # every updater platform this runner is responsible for.
-      - name: Verify updater artifact and signature exist
+      - name: Verify updater signature exists
         shell: bash
         run: |
           set -euo pipefail
@@ -242,15 +207,15 @@ jobs:
             Windows) PATTERN='*-setup.exe.sig' ;;
             Linux)   PATTERN='*.AppImage.sig' ;;
           esac
-          ls "staging/${UPDATER_TARGET}"/$PATTERN >/dev/null || {
-            echo "::error::Missing updater signature artifact $PATTERN in staging/${UPDATER_TARGET}"
+          compgen -G "staging/${UPDATER_TARGET}/$PATTERN" >/dev/null || {
+            echo "::error::Missing updater signature $PATTERN for ${UPDATER_TARGET}"
             exit 1
           }
 
       - name: Upload staged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ needs.prepare.outputs.edition }}-${{ matrix.os }}
+          name: release-${{ matrix.os }}
           path: staging/
           retention-days: 7
           if-no-files-found: error
@@ -265,33 +230,30 @@ jobs:
       - name: Download all staged artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: release-${{ needs.prepare.outputs.edition }}-*
+          pattern: release-*
           path: staging/
           merge-multiple: true
 
-      - name: Verify all expected platform directories are present
+      - name: Verify all expected platforms
         env:
           EXPECTED_TARGETS: 'darwin-aarch64 windows-x86_64 linux-x86_64'
+        shell: bash
         run: |
           set -euo pipefail
           for target in $EXPECTED_TARGETS; do
-            [ -d "staging/$target" ] || { echo "::error::Missing staged artifacts for target: $target"; exit 1; }
+            [ -d "staging/$target" ] || {
+              echo "::error::Missing staged artifacts for $target"
+              exit 1
+            }
           done
-          echo "Staged targets:"
-          for d in staging/*/; do echo "  $(basename "$d"): $(ls "$d" | wc -l) files"; done
 
-      # The manifest is generated from the actual staged artifacts and their
-      # .sig files, self-validated, then re-validated against the staging
-      # directory. Any failure aborts before the release is created.
       - name: Generate update manifest
         env:
-          EDITION: ${{ needs.prepare.outputs.edition }}
           CHANNEL: ${{ needs.prepare.outputs.channel }}
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           node scripts/updater/generate-update-manifest.mjs \
-            --edition "$EDITION" \
             --channel "$CHANNEL" \
             --version "$VERSION" \
             --tag "$TAG" \
@@ -301,13 +263,11 @@ jobs:
 
       - name: Validate update manifest
         env:
-          EDITION: ${{ needs.prepare.outputs.edition }}
           CHANNEL: ${{ needs.prepare.outputs.channel }}
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           node scripts/updater/validate-update-manifest.mjs latest.json \
-            --edition "$EDITION" \
             --channel "$CHANNEL" \
             --version "$VERSION" \
             --tag "$TAG" \
@@ -316,60 +276,44 @@ jobs:
 
       - name: Publish release after every asset is uploaded
         env:
-          EDITION: ${{ needs.prepare.outputs.edition }}
+          CHANNEL: ${{ needs.prepare.outputs.channel }}
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ needs.prepare.outputs.tag }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
-          EDITION_NAME=$([ "$EDITION" = "pro" ] && echo "Pro" || echo "Community")
-
           cat > release-body.md <<BODY
-          Installers for the ${EDITION_NAME} edition.
+          Installers for Exif Hound.
           macOS builds are for Apple Silicon (M-series).
 
-          > **Existing EXIF HOUND users:** please manually install this release.
-          > Once installed, EXIF HOUND can download future updates directly
-          > from within the app. Update checks are anonymous: EXIF HOUND does
-          > not collect telemetry, analytics, or any information about your
-          > images or investigations.
+          > Existing users should manually install this release. Once installed,
+          > Exif Hound can download future signed updates directly in the app.
+          > Update checks are anonymous and never include image or investigation data.
           BODY
 
-          # If the tag was pushed for a different commit than checkout, point
-          # the release at the pushed tag's commit.
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TARGET_COMMIT_FLAG="--target $GITHUB_SHA"
-          else
-            TARGET_COMMIT_FLAG=""
-          fi
-
-          PRERELEASE_FLAG=""
-          if [ "$PRERELEASE" = "true" ]; then PRERELEASE_FLAG="--prerelease"; fi
-
+          PRERELEASE_FLAG=()
+          if [ "$PRERELEASE" = "true" ]; then PRERELEASE_FLAG=(--prerelease); fi
           mapfile -t assets < <(find staging -type f -print | sort)
 
-          # Draft releases are not visible to normal users. Reuse a draft on
-          # retry, but never overwrite an already-published release.
           if gh release view "$TAG" >/dev/null 2>&1; then
             IS_DRAFT=$(gh release view "$TAG" --json isDraft --jq '.isDraft')
             if [ "$IS_DRAFT" != "true" ]; then
               echo "::error::Release $TAG is already published; refusing to overwrite it."
               exit 1
             fi
-            echo "Reusing existing draft release $TAG"
           else
             gh release create "$TAG" \
-              $TARGET_COMMIT_FLAG $PRERELEASE_FLAG \
+              --target "$GITHUB_SHA" \
+              "${PRERELEASE_FLAG[@]}" \
               --draft \
-              --title "Exif Hound ${EDITION_NAME} v${VERSION}" \
+              --title "Exif Hound v${VERSION}" \
               --notes-file release-body.md
           fi
 
           gh release upload "$TAG" "${assets[@]}" latest.json --clobber
           gh release edit "$TAG" --draft=false
 
-          echo "Release $TAG published after all assets were uploaded."
-          echo ""
-          echo "NOTE: clients discover this release via updates.exifhound.com."
-          echo "Sync latest.json to https://updates.exifhound.com/${EDITION}/${{ needs.prepare.outputs.channel }}/latest.json (see docs/updater.md § Hosting)."
+          echo "Release $TAG published."
+          echo "Sync latest.json to https://updates.exifhound.com/${CHANNEL}/latest.json"

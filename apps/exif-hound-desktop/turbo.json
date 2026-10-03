@@ -3,12 +3,11 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "env": ["EDITION", "EXIFHOUND_UPDATE_CHANNEL"]
+      "env": ["EXIFHOUND_UPDATE_CHANNEL"]
     },
     "tauri:build": {
       "cache": false,
       "env": [
-        "EDITION",
         "EXIFHOUND_UPDATE_CHANNEL",
         "TAURI_BUNDLES",
         "TAURI_TARGET"

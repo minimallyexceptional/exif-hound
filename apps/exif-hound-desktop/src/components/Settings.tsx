@@ -189,7 +189,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
               <h2 className="text-xl font-semibold text-app-white mb-6">About</h2>
               <div className="space-y-4 text-app-accent-dim">
                 <p>
-                  {__APP_NAME__} is a powerful tool for exploring and analyzing image metadata.
+                  Exif Hound is a powerful tool for exploring and analyzing image metadata.
                   Built with privacy in mind, all processing happens locally in your browser.
                 </p>
                 <p data-testid="app-version">Version {appVersion}</p>
@@ -216,7 +216,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'available' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        {__APP_NAME__} {update.state.update.version} is available.
+                        Exif Hound {update.state.update.version} is available.
                       </span>
                       <button
                         onClick={update.download}
@@ -237,7 +237,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'ready-to-install' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        {__APP_NAME__} {update.state.update.version} is ready to install.
+                        Exif Hound {update.state.update.version} is ready to install.
                       </span>
                       <button
                         onClick={update.restart}
