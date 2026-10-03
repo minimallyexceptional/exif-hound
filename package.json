@@ -17,8 +17,7 @@
     "typecheck": "turbo run typecheck",
     "tauri:dev": "turbo run tauri:dev --filter=exif-hound-desktop",
     "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop",
-    "build:pro": "node scripts/build-pro.mjs",
-    "build:community": "node scripts/build-community.mjs",
+    "build:release": "node scripts/build.mjs",
     "website:build": "turbo run build --filter=exif-hound-website",
     "scan:electron": "node scripts/scan-electron.js"
   },
