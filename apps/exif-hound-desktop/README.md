@@ -42,24 +42,14 @@ npm run tauri:build
 
 ### Release Builds
 
-Convenience script (from the repo root):
-
 ```bash
-npm run build:release      # release build for the current platform
+npm run tauri:build        # Tauri release build for the current platform
 ```
 
-The script runs a full Tauri release build for "current hardware" targets:
-
-| Host OS | Rust target |
-|---------|-------------|
-| macOS (Apple Silicon) | `aarch64-apple-darwin` (Intel is intentionally not supported) |
-| Linux | `x86_64-unknown-linux-gnu` |
-| Windows | `x86_64-pc-windows-msvc` |
-
-Tauri cannot cross-compile between operating systems, so run the script on each
-platform (e.g. a CI matrix) to produce Windows/Linux/macOS releases. Overrides:
-`TAURI_TARGET=<rust triple>` (custom target) and `TAURI_BUNDLES="..."` (e.g.
-`"dmg app"`, `"nsis"`, `"deb rpm"`).
+Tauri builds for the current host target and cannot cross-compile between
+operating systems, so run the build on each platform (e.g. a CI matrix) to
+produce Windows/Linux/macOS releases. Extra bundle targets can be passed
+through: `npm run tauri:build -- --bundles "nsis"`.
 
 ## License
 

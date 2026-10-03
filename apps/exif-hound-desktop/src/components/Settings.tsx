@@ -141,7 +141,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
               <h2 className="text-xl font-semibold text-app-white mb-6">About</h2>
               <div className="space-y-4 text-app-accent-dim">
                 <p>
-                  {__APP_NAME__} is a powerful tool for exploring and analyzing image metadata.
+                  Exif Hound is a powerful tool for exploring and analyzing image metadata.
                   Built with privacy in mind, all processing happens locally in your browser.
                 </p>
                 <p>Version 2.5.1</p>
