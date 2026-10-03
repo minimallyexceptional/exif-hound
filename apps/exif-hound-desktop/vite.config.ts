@@ -14,6 +14,13 @@ if (edition !== 'pro' && edition !== 'community') {
   throw new Error(`Invalid EDITION "${edition}" — expected "pro" or "community"`);
 }
 const appName = edition === 'community' ? 'Exif Hound Community' : 'Exif Hound Pro';
+// Update channel baked into the frontend for display/diagnostics only. The
+// actual feed URL the updater fetches is configured in the Tauri edition
+// overlays (src-tauri/tauri.<edition>[.<channel>].conf.json).
+const updateChannel = (process.env.EXIFHOUND_UPDATE_CHANNEL ?? 'stable').toLowerCase();
+if (updateChannel !== 'stable' && updateChannel !== 'beta' && updateChannel !== 'internal') {
+  throw new Error(`Invalid EXIFHOUND_UPDATE_CHANNEL "${updateChannel}" — expected "stable", "beta" or "internal"`);
+}
 // Exposes the app name for %VITE_APP_NAME% replacement in index.html
 process.env.VITE_APP_NAME = appName;
 
@@ -29,6 +36,8 @@ export default defineConfig({
     __EDITION__: JSON.stringify(edition),
     // User-facing app name, switches with the edition
     __APP_NAME__: JSON.stringify(appName),
+    // Update channel this build listens to ('stable' | 'beta' | 'internal')
+    __UPDATE_CHANNEL__: JSON.stringify(updateChannel),
   },
   optimizeDeps: {
     include: [
