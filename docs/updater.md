@@ -63,7 +63,10 @@ Optional Apple signing and notarization secrets are:
 - `APPLE_PASSWORD`
 - `APPLE_TEAM_ID`
 
-Without the Apple secrets, macOS artifacts build without notarization.
+Without `APPLE_SIGNING_IDENTITY`, macOS artifacts build unsigned. When it is
+set, the named certificate must already exist in the runner keychain; importing
+a Developer ID certificate is a separate CI setup step. The three notarization
+secrets are optional but must be configured together.
 
 ## Application configuration
 
