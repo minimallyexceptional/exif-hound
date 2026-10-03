@@ -165,13 +165,55 @@ jobs:
             echo "TAURI_PASSWORD_EOF"
           } >> "$GITHUB_ENV"
 
+      # Do not expose empty APPLE_* variables to Tauri. In particular, an
+      # empty APPLE_SIGNING_IDENTITY is interpreted as a request to codesign
+      # with identity "", which fails on GitHub-hosted macOS runners.
+      - name: Configure optional Apple signing
+        if: runner.os == 'macOS'
+        env:
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARIZATION_ID: ${{ secrets.APPLE_ID }}
+          NOTARIZATION_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          NOTARIZATION_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            if [ -n "$NOTARIZATION_ID$NOTARIZATION_PASSWORD$NOTARIZATION_TEAM" ]; then
+              echo "::error::Apple notarization secrets require APPLE_SIGNING_IDENTITY."
+              exit 1
+            fi
+            echo "No Apple signing identity configured; building unsigned."
+            exit 0
+          fi
+
+          {
+            echo "APPLE_SIGNING_IDENTITY<<APPLE_IDENTITY_EOF"
+            printf '%s\n' "$SIGNING_IDENTITY"
+            echo "APPLE_IDENTITY_EOF"
+          } >> "$GITHUB_ENV"
+
+          if [ -n "$NOTARIZATION_ID$NOTARIZATION_PASSWORD$NOTARIZATION_TEAM" ]; then
+            if [ -z "$NOTARIZATION_ID" ] || [ -z "$NOTARIZATION_PASSWORD" ] || [ -z "$NOTARIZATION_TEAM" ]; then
+              echo "::error::APPLE_ID, APPLE_PASSWORD, and APPLE_TEAM_ID must be configured together."
+              exit 1
+            fi
+            {
+              echo "APPLE_ID<<APPLE_ACCOUNT_EOF"
+              printf '%s\n' "$NOTARIZATION_ID"
+              echo "APPLE_ACCOUNT_EOF"
+              echo "APPLE_PASSWORD<<APPLE_PASSWORD_EOF"
+              printf '%s\n' "$NOTARIZATION_PASSWORD"
+              echo "APPLE_PASSWORD_EOF"
+              echo "APPLE_TEAM_ID<<APPLE_TEAM_EOF"
+              printf '%s\n' "$NOTARIZATION_TEAM"
+              echo "APPLE_TEAM_EOF"
+            } >> "$GITHUB_ENV"
+          fi
+
       - name: Build Exif Hound (${{ needs.prepare.outputs.channel }})
         env:
           EXIFHOUND_UPDATE_CHANNEL: ${{ needs.prepare.outputs.channel }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         shell: bash
         run: |
           set -euo pipefail
