@@ -8,15 +8,6 @@ const isDev = process.env.TAURI_DEBUG === 'true';
 // Get the absolute path to the packages directory
 const packagesDir = path.resolve(__dirname, '../../packages');
 
-// App edition: 'pro' (default) or 'community'. Set with EDITION=community.
-const edition = (process.env.EDITION ?? 'pro').toLowerCase();
-if (edition !== 'pro' && edition !== 'community') {
-  throw new Error(`Invalid EDITION "${edition}" — expected "pro" or "community"`);
-}
-const appName = edition === 'community' ? 'Exif Hound Community' : 'Exif Hound Pro';
-// Exposes the app name for %VITE_APP_NAME% replacement in index.html
-process.env.VITE_APP_NAME = appName;
-
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -24,11 +15,6 @@ export default defineConfig({
     // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
     // (ts-jest/Jest 30 treat files containing import.meta as ESM).
     __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
-    // Build-time edition switch: 'pro' | 'community'. In community builds the
-    // pro-only Investigation view is tree-shaken out of the bundle.
-    __EDITION__: JSON.stringify(edition),
-    // User-facing app name, switches with the edition
-    __APP_NAME__: JSON.stringify(appName),
   },
   optimizeDeps: {
     include: [

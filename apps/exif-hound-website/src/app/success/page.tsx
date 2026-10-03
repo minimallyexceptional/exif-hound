@@ -61,7 +61,7 @@ function LicenseContent() {
 
   return (
     <div className="bg-gray-100 p-6 rounded-xl mb-8 shadow-sm">
-      <h2 className="text-xl font-semibold mb-4 text-gray-900">Your EXIF Hound Pro License</h2>
+      <h2 className="text-xl font-semibold mb-4 text-gray-900">Your Exif Hound License</h2>
       
       {loading ? (
         <div className="flex justify-center py-4">
@@ -116,7 +116,7 @@ function LicenseContent() {
 function LicenseLoading() {
   return (
     <div className="bg-gray-100 p-6 rounded-xl mb-8 shadow-sm">
-      <h2 className="text-xl font-semibold mb-4 text-gray-900">Your EXIF Hound Pro License</h2>
+      <h2 className="text-xl font-semibold mb-4 text-gray-900">Your Exif Hound License</h2>
       <div className="flex justify-center py-4">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
       </div>

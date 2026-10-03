@@ -1,7 +1,7 @@
 name: Release
 
-# Builds a GitHub release with installers for BOTH editions (pro + community)
-# on Windows, Linux and macOS (Apple Silicon only).
+# Builds a GitHub release with installers for Windows, Linux and macOS
+# (Apple Silicon only).
 #
 # Triggers:
 #  - automatically after the CI workflow succeeds on main
@@ -40,7 +40,7 @@ jobs:
           echo "App version: $VERSION"
 
   build:
-    name: ${{ matrix.edition }} · ${{ matrix.os }}
+    name: ${{ matrix.os }}
     needs: version
     runs-on: ${{ matrix.os }}
     strategy:
@@ -48,7 +48,6 @@ jobs:
       matrix:
         # macos-14 runners are Apple Silicon (aarch64) — Intel is not supported
         os: [macos-14, ubuntu-latest, windows-latest]
-        edition: [pro, community]
 
     steps:
       - uses: actions/checkout@v4
@@ -93,19 +92,17 @@ jobs:
             *) echo "Unsupported runner OS: $RUNNER_OS" && exit 1 ;;
           esac
 
-      - name: Build ${{ matrix.edition }} edition and upload installers
+      - name: Build and upload installers
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Drives the frontend edition switch (vite define __EDITION__)
-          EDITION: ${{ matrix.edition }}
         with:
           projectPath: apps/exif-hound-desktop
-          tagName: ${{ matrix.edition }}-v${{ needs.version.outputs.version }}
-          releaseName: "Exif Hound ${{ matrix.edition == 'pro' && 'Pro' || 'Community' }} v${{ needs.version.outputs.version }}"
+          tagName: v${{ needs.version.outputs.version }}
+          releaseName: "Exif Hound v${{ needs.version.outputs.version }}"
           releaseBody: >
-            Installers for the ${{ matrix.edition }} edition.
+            Installers for Exif Hound.
             macOS builds are for Apple Silicon (M-series).
           releaseDraft: false
           prerelease: false
-          args: --target ${{ env.TARGET }} ${{ matrix.edition == 'community' && '--config src-tauri/tauri.community.conf.json' || '' }}
+          args: --target ${{ env.TARGET }}
