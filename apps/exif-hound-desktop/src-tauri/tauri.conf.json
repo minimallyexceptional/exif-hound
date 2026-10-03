@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Exif Hound Pro",
+  "productName": "Exif Hound",
   "version": "2.5.1",
   "identifier": "com.exifhound.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Exif Hound Pro",
+        "title": "Exif Hound",
         "width": 1200,
         "height": 800,
         "resizable": true,
