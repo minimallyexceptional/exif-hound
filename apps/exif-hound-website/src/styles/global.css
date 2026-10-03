@@ -1,0 +1,85 @@
+/* ─── EXIF Hound design tokens ─────────────────────────────── */
+:root {
+  --bg: #0c0e11;
+  --bg-raise: #13161b;
+  --bg-panel: #171b21;
+  --ink: #edeae3;
+  --ink-dim: #a09a8e;
+  --ink-faint: #8f897c;
+  --accent: #ffb224;
+  --accent-ink: #1a1205;
+  --line: rgba(237, 234, 227, 0.1);
+  --line-strong: rgba(237, 234, 227, 0.22);
+  --font-display: "Space Grotesk Variable", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SF Mono", monospace;
+  --maxw: 68rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    rgba(255, 178, 36, 0.07),
+    transparent
+  );
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Mono metadata label — the recurring forensic motif */
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.wrap {
+  width: min(var(--maxw), 100% - 3rem);
+  margin-inline: auto;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
