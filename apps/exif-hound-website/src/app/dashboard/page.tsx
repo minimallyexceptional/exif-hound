@@ -388,7 +388,7 @@ export default function Dashboard() {
             </Link>
             
             <Link
-              href="/community"
+              href="/support#community"
               className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
             >
               <svg

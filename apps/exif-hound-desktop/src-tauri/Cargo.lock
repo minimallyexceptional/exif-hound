@@ -849,7 +849,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "exif-hound-pro"
+name = "exif-hound"
 version = "2.5.1"
 dependencies = [
  "log",

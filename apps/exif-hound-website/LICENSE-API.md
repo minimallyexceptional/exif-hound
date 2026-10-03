@@ -19,7 +19,7 @@ This document explains how to use the Exif-Hound license API for verification an
 ```json
 {
   "valid": true,
-  "productId": "exif-hound-pro",
+  "productId": "exif-hound",
   "expiresAt": "2025-04-04T23:59:59.999Z"
 }
 ```
@@ -96,7 +96,7 @@ The licenses are stored in the `data/licenses.json` file with the following stru
     "id": "unique-id",
     "key": "EXH-XXXXX-XXXXX-XXXXX-XXXXX",
     "email": "customer@example.com",
-    "productId": "exif-hound-pro",
+    "productId": "exif-hound",
     "createdAt": "2024-04-04T12:00:00.000Z",
     "expiresAt": "2025-04-04T12:00:00.000Z",
     "stripeSessionId": "cs_test_xxxxxxxxxxxxx",
