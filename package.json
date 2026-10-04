@@ -19,9 +19,11 @@
     "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop",
     "test:scripts": "node --test scripts/updater/__tests__/",
     "website:build": "turbo run build --filter=exif-hound-website",
-    "scan:electron": "node scripts/scan-electron.js"
+    "scan:electron": "node scripts/scan-electron.js",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "turbo": "^2.11.6"
   },
   "engines": {

@@ -5,7 +5,7 @@ import { useExifData } from '../hooks/useExifData';
 
 // Utility for limiting concurrent operations
 class ConcurrencyLimiter {
-  private queue: (() => Promise<any>)[] = [];
+  private queue: (() => Promise<unknown>)[] = [];
   private running = 0;
 
   constructor(private maxConcurrency: number = 3) {}

@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
-import { ChevronUp, ChevronDown, Camera } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import { formatShortDateTime } from '../utils/date';
+import { Camera } from 'lucide-react';
 import { ImportedPoint } from '../utils/importData';
 
 interface Props {
@@ -26,8 +24,7 @@ const GalleryItem = React.memo<{
     data-processing={String(image.isProcessing ?? false)}
     aria-label={`Select ${image.file.name}`}
     aria-pressed={isSelected}
-    onPointerDownCapture={() => onSelect(image)}
-    onClickCapture={() => onSelect(image)}
+    onClick={() => onSelect(image)}
   >
     <div className={`relative cursor-pointer transition-transform duration-200 ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
@@ -63,7 +60,6 @@ GalleryItem.displayName = 'GalleryItem';
 const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { theme } = useTheme();
 
   // Filter out items without valid images - memoized
   const imagesWithImages = useMemo(() => {

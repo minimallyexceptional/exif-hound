@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ImageData } from '../../types';
 
@@ -25,8 +25,6 @@ jest.mock('../../components/Map/components/layers/ImagePopup', () => ({
 }));
 
 // Mock the Map component to test performance optimizations
-const MockMap = React.lazy(() => import('../../components/Map'));
-
 const createMockImage = (id: string, lat: number, lng: number): ImageData => ({
   id,
   file: {
