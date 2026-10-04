@@ -109,7 +109,7 @@ const Map: React.FC<MapProps> = ({
   const { center, isFullscreen, setIsFullscreen } = useMapCenter(selectedImage, imagesWithLocation);
   const [showHeatmap, setShowHeatmap] = React.useState(false);
   const [showClusters, setShowClusters] = React.useState(false);
-  const [showReticle, setShowReticle] = React.useState(true);
+  const [showReticle, setShowReticle] = React.useState(false);
   const [isReticleTemporarilyHidden, setIsReticleTemporarilyHidden] = React.useState(false);
   const [fromReticle, setFromReticle] = React.useState(false);
 
