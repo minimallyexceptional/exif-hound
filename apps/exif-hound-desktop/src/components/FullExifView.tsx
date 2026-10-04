@@ -291,7 +291,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
                         {key}
                       </div>
                       <div 
-                        className="text-sm text-app-white break-words cursor-pointer whitespace-pre-wrap"
+                        className="text-sm text-app-white break-words cursor-pointer whitespace-pre-wrap selectable-value"
                         onClick={() => handleCopy(key, value)}
                       >
                         {value}
