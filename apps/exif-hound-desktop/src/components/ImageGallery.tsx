@@ -18,9 +18,16 @@ const GalleryItem = React.memo<{
   isSelected: boolean;
   onSelect: (image: ImageData) => void;
 }>(({ image, isSelected, onSelect }) => (
-  <div
-    className="flex-none"
-    onClick={() => onSelect(image)}
+  <button
+    type="button"
+    className="flex-none text-left"
+    data-testid="gallery-item"
+    data-file-name={image.file.name}
+    data-processing={String(image.isProcessing ?? false)}
+    aria-label={`Select ${image.file.name}`}
+    aria-pressed={isSelected}
+    onPointerDownCapture={() => onSelect(image)}
+    onClickCapture={() => onSelect(image)}
   >
     <div className={`relative cursor-pointer transition-transform duration-200 ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
@@ -41,14 +48,14 @@ const GalleryItem = React.memo<{
             }
           }}
         />
-        <div className={`absolute inset-0 ${
+        <div className={`pointer-events-none absolute inset-0 ${
           isSelected 
             ? 'ring-2 ring-app-accent' 
             : 'group-hover:bg-app-black/10'
         } transition-all duration-200`} />
       </div>
     </div>
-  </div>
+  </button>
 ));
 
 GalleryItem.displayName = 'GalleryItem';

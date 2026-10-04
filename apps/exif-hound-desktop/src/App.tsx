@@ -25,7 +25,8 @@ type ViewMode = 'map' | 'list' | 'investigation';
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
-  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const selectedImage = images.find((image) => image.id === selectedImageId) ?? null;
   const [showRoute, setShowRoute] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +55,13 @@ function App() {
       next[index] = imageData;
       return next;
     });
-    setSelectedImage(imageData);
+    if (imageData.isProcessing || selectedImageId === null) {
+      setSelectedImageId(imageData.id);
+    }
+  };
+
+  const handleSelectImage = (image: ImageData) => {
+    setSelectedImageId(image.id);
   };
 
   const handleUploadClick = () => {
@@ -122,7 +129,7 @@ function App() {
               selectedImage={selectedImage}
               showRoute={showRoute}
               onToggleRoute={handleRouteClick}
-              onSelectImage={setSelectedImage}
+              onSelectImage={handleSelectImage}
               onOpenImport={() => setShowImportModal(true)}
               importedData={importedData}
             />
@@ -133,7 +140,7 @@ function App() {
           <ImageList
             images={images}
             selectedImage={selectedImage}
-            onSelect={setSelectedImage}
+            onSelect={handleSelectImage}
           />
         );
       case 'investigation':
@@ -186,7 +193,7 @@ function App() {
             <ImageGallery 
               images={images}
               selectedImage={selectedImage}
-              onSelect={setSelectedImage}
+              onSelect={handleSelectImage}
             />
           }
         >

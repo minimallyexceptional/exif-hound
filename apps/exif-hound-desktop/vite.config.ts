@@ -26,9 +26,12 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: [
-      '@tauri-apps/api'
+      '@tauri-apps/api',
+      // This package exposes thousands of icon modules from one ESM entry.
+      // Pre-bundle it so the browser doesn't have to resolve them one by one
+      // during the first Cypress page load.
+      'lucide-react',
     ],
-    exclude: ['lucide-react'],
   },
   resolve: {
     alias: [

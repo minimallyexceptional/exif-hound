@@ -40,8 +40,8 @@ export const AppHeader: React.FC<Props> = ({
   }, [isHelpMenuOpen]);
 
   const mobileMenu = (
-    <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="fixed inset-0 bg-app-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+    <div data-testid="mobile-menu" className="fixed inset-0 z-50 lg:hidden">
+      <div className="fixed inset-0 z-0 bg-app-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
       <Panel className="absolute right-4 top-[4.5rem] w-64">
         <div className="p-4 space-y-4">
           <Button
@@ -121,7 +121,7 @@ export const AppHeader: React.FC<Props> = ({
   );
 
   return (
-    <header className="flex-none bg-app-gray border-b border-app-gray-light/30 sticky top-0 z-50">
+    <header className="flex-none bg-app-gray border-b border-app-gray-light/30 sticky top-0 z-[60]">
       <div className="px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Logo and Title */}
@@ -247,7 +247,7 @@ export const AppHeader: React.FC<Props> = ({
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="lg:hidden">
+          <div className="relative z-[60] lg:hidden">
             <Button
               variant="ghost"
               onClick={() => setIsMobileMenuOpen(prev => !prev)}
