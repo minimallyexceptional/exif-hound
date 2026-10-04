@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5176 --clearScreen false",
-    "dev:test": "vite --port 5276 --strictPort",
+    "dev:test": "vite --port 5276 --strictPort --host 127.0.0.1",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -17,12 +17,8 @@
     "test:watch": "jest --config jest.config.cjs --watch",
     "test:coverage": "jest --config jest.config.cjs --coverage",
     "test:coverage:no-threshold": "jest --config jest.config.cjs --coverage --coverageThreshold='{}'",
-    "test:e2e": "npm run cy:run",
-    "cy:run": "start-server-and-test dev:test http-get://localhost:5276 cy:run:only",
-    "cy:run:only": "cypress run",
-    "cy:run:chromium": "start-server-and-test dev:test http-get://localhost:5276 'cypress run --browser chromium'",
-    "cy:open": "start-server-and-test dev:test http-get://localhost:5276 cy:open:only",
-    "cy:open:only": "cypress open"
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@mapbox/leaflet-omnivore": "^0.3.4",
@@ -56,6 +52,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.12.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -68,14 +65,12 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "cypress": "^14.5.4",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^16.4.0",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
-    "start-server-and-test": "^2.1.5",
     "tailwindcss": "^4.3.3",
     "ts-jest": "^29.4.14",
     "typescript": "^5.9.3",

@@ -25,6 +25,12 @@ const GalleryItem = React.memo<{
     aria-label={`Select ${image.file.name}`}
     aria-pressed={isSelected}
     onClick={() => onSelect(image)}
+    onKeyDown={(event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onSelect(image);
+      }
+    }}
   >
     <div className={`relative cursor-pointer transition-transform duration-200 ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'

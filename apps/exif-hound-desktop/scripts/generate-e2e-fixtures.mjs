@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates deterministic binary E2E fixtures for the Cypress suite.
+ * Generates deterministic binary E2E fixtures for the Playwright suite.
  *
  * Requires ImageMagick (`magick`) on PATH to create the base JPEG pixels; the
  * EXIF metadata is injected by this script itself (this ImageMagick build
@@ -11,12 +11,12 @@
  *   node scripts/generate-e2e-fixtures.mjs
  *
  * Output (all values are constants asserted by the specs — see
- * cypress/fixtures/images/README.md):
- *   cypress/fixtures/images/full-exif.jpg   GPS + camera + exposure metadata
- *   cypress/fixtures/images/no-gps.jpg      camera metadata, no GPS
- *   cypress/fixtures/images/corrupt.jpg     deterministic pseudo-random bytes
- *   cypress/fixtures/import/points.kml      valid KML with two placemarks
- *   cypress/fixtures/import/invalid.txt     text that is not KML/CSV data
+ * playwright/fixtures/images/README.md):
+ *   playwright/fixtures/images/full-exif.jpg   GPS + camera + exposure metadata
+ *   playwright/fixtures/images/no-gps.jpg      camera metadata, no GPS
+ *   playwright/fixtures/images/corrupt.jpg     deterministic pseudo-random bytes
+ *   playwright/fixtures/import/points.kml      valid KML with two placemarks
+ *   playwright/fixtures/import/invalid.txt     text that is not KML/CSV data
  *
  * The script verifies its own output with exifreader at the end and fails
  * loudly if the embedded values do not match.
@@ -30,8 +30,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const workspace = join(dirname(fileURLToPath(import.meta.url)), '..');
-const imgDir = join(workspace, 'cypress/fixtures/images');
-const importDir = join(workspace, 'cypress/fixtures/import');
+const imgDir = join(workspace, 'playwright/fixtures/images');
+const importDir = join(workspace, 'playwright/fixtures/import');
 mkdirSync(imgDir, { recursive: true });
 mkdirSync(importDir, { recursive: true });
 
@@ -297,7 +297,7 @@ writeFileSync(join(importDir, 'invalid.txt'), invalidText);
 
 // Tiny opaque tile used by cy.intercept to serve map tiles offline.
 execFileSync('magick', [
-  '-size', '16x16', 'xc:#1a1a1a', 'png:' + join(workspace, 'cypress/fixtures/tile.png'),
+  '-size', '16x16', 'xc:#1a1a1a', 'png:' + join(workspace, 'playwright/fixtures/tile.png'),
 ]);
 
 // Verify with exifreader (available in the workspace's node_modules)
@@ -349,7 +349,7 @@ if (failed) {
   console.error('Fixture verification FAILED — fix the writer before committing.');
   process.exit(1);
 }
-console.log(`E2E fixtures generated and verified under cypress/fixtures/:
+console.log(`E2E fixtures generated and verified under playwright/fixtures/:
   images/full-exif.jpg   (${c.make} ${c.model}, ${c.dateTimeOriginal}, GPS ${c.gps.latitude}, ${c.gps.longitude})
   images/no-gps.jpg      (TestCam Hound-2, no GPS)
   images/corrupt.jpg     (deterministic garbage bytes)

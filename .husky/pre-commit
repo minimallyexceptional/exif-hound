@@ -4,5 +4,6 @@ set -e
 npm run lint --workspace=exif-hound-desktop
 npm run typecheck --workspace=exif-hound-desktop
 npm test --workspace=exif-hound-desktop -- --runInBand
-npm run cy:run:chromium --workspace=exif-hound-desktop
+# Uses the shared Node Playwright runner exposed by `npm run test:e2e`.
+npm run test:e2e
 npm run build --workspace=exif-hound-desktop
