@@ -24,18 +24,12 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
     const filename = `exif-hound-data-${timestamp}`;
     
     try {
-      console.log(`[ExportModal] Starting ${format} export...`);
-      
       let success = false;
       
       if (format === 'csv') {
-        const csvContent = generateCsv(images);
-        console.log(`[ExportModal] Generated CSV content (${csvContent.length} bytes)`);
-        success = await saveCsvFile(csvContent, filename);
+        success = await saveCsvFile(generateCsv(images), filename);
       } else {
-        const jsonContent = generateJson(images);
-        console.log(`[ExportModal] Generated JSON content (${jsonContent.length} bytes)`);
-        success = await saveJsonFile(jsonContent, filename);
+        success = await saveJsonFile(generateJson(images), filename);
       }
       
       if (success) {
@@ -44,7 +38,7 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
         setExportError(`Failed to save ${format.toUpperCase()} file. Please try again.`);
       }
     } catch (error) {
-      console.error(`[ExportModal] Error during ${format} export:`, error);
+      if (__DEV__) console.error(`Error during ${format} export:`, error);
       setExportError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsExporting(false);

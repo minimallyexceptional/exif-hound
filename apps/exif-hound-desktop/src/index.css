@@ -180,6 +180,27 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Visible keyboard focus across the app.
+   Text inputs signal focus via border-color (input:focus) instead. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--app-accent-dim);
+  outline-offset: 2px;
+}
+
+/* Respect the OS reduced-motion preference: state changes become instant,
+   animations (e.g. .animate-progress, splash) jump to their end state. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Input styles with better contrast */
 input {
   background-color: var(--app-gray);
@@ -192,21 +213,9 @@ input:focus {
   border-color: var(--app-accent);
 }
 
-/* Modal styles with improved contrast */
-.modal-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-/* Export modal specific styles */
+/* Export modal shadow lift */
 .export-modal {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.export-modal:hover {
-  box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.5), 0 10px 15px -8px rgba(0, 0, 0, 0.4);
-  transform: translateY(-2px);
 }
 
 /* Card styles with better contrast */
