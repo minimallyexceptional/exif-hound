@@ -18,10 +18,9 @@
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "shared-utils": ["../../packages/shared-utils/dist"],
       "exif-middleware": ["../../packages/exif-middleware/dist"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "playwright.config.ts", "playwright/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 } 

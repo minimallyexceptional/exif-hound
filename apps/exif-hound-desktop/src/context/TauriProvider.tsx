@@ -15,7 +15,6 @@ export function TauriProvider({ children }: TauriProviderProps) {
 
   const checkTauriStatus = async () => {
     try {
-      console.log('[TauriContext] Checking Tauri status...');
 
       // Check if we're in a Tauri environment using multiple detection methods
       const checks = [
@@ -32,8 +31,6 @@ export function TauriProvider({ children }: TauriProviderProps) {
       // If any check passes, we're in a Tauri environment
       const tauriAvailable = checks.some(check => check === true);
       
-      console.log(`[TauriContext] Tauri detection checks:`, checks);
-      console.log(`[TauriContext] Tauri available: ${tauriAvailable}`);
       setIsAvailable(tauriAvailable);
       
       if (!tauriAvailable) {
@@ -42,12 +39,9 @@ export function TauriProvider({ children }: TauriProviderProps) {
       }
 
       // Give Tauri a moment to fully initialize
-      console.log('[TauriContext] Waiting for Tauri to fully initialize...');
       await wait(100);
 
       // Log the structure of the Tauri object to debug
-      console.log('[TauriContext] Tauri global structure:',
-        Object.keys(window.__TAURI__ || {}).join(', '));
 
       // Try both approaches for accessing the plugins
       let dialogAvailable = false;
@@ -55,12 +49,10 @@ export function TauriProvider({ children }: TauriProviderProps) {
 
       // Approach 1: Check global object
       if (window.__TAURI__?.dialog) {
-        console.log('[TauriContext] Dialog plugin available via global object');
         dialogAvailable = true;
       }
 
       if (window.__TAURI__?.fs) {
-        console.log('[TauriContext] FS plugin available via global object');
         fsAvailable = true;
       }
 
@@ -70,14 +62,11 @@ export function TauriProvider({ children }: TauriProviderProps) {
           // Try up to 3 times with a short delay between attempts
           for (let i = 0; i < 3 && !dialogAvailable; i++) {
             if (i > 0) {
-              console.log(`[TauriContext] Retry ${i} importing dialog plugin...`);
               await wait(100);
             }
             
             try {
-              const dialog = await import('@tauri-apps/plugin-dialog');
-              console.log('[TauriContext] Dialog plugin available via import:', 
-                Object.keys(dialog).join(', '));
+              await import('@tauri-apps/plugin-dialog');
               dialogAvailable = true;
               break;
             } catch (e) {
@@ -94,14 +83,11 @@ export function TauriProvider({ children }: TauriProviderProps) {
           // Try up to 3 times with a short delay between attempts
           for (let i = 0; i < 3 && !fsAvailable; i++) {
             if (i > 0) {
-              console.log(`[TauriContext] Retry ${i} importing fs plugin...`);
               await wait(100);
             }
             
             try {
-              const fs = await import('@tauri-apps/plugin-fs');
-              console.log('[TauriContext] FS plugin available via import:', 
-                Object.keys(fs).join(', '));
+              await import('@tauri-apps/plugin-fs');
               fsAvailable = true;
               break;
             } catch (e) {
@@ -125,7 +111,6 @@ export function TauriProvider({ children }: TauriProviderProps) {
       }
 
       // If we get here, everything is initialized
-      console.log('[TauriContext] Tauri plugins initialized successfully');
       setIsInitialized(true);
       setError(null);
     } catch (e) {

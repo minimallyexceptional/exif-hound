@@ -1,6 +1,6 @@
 [package]
 name = "exif-hound"
-version = "2.5.1"
+version = "2.6.0"
 description = "Exif metadata explorer and map visualization tool"
 authors = ["Exif Hound Team"]
 license = "MIT"
@@ -26,3 +26,5 @@ tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-http = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

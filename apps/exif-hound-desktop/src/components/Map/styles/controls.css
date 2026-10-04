@@ -117,6 +117,8 @@
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 24px;
+  height: 24px;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 1000;
@@ -171,10 +173,12 @@
 }
 
 .reticle-coordinates {
-  position: relative;
+  position: absolute;
+  top: calc(100% + 18px);
+  left: 50%;
+  transform: translateX(-50%);
   background-color: rgba(255, 255, 255, 0.9);
   padding: 4px 8px;
-  margin-top: 10px;
   border-radius: 4px;
   font-size: 12px;
   font-family: monospace;
@@ -309,4 +313,4 @@
 [data-theme="dark"] .filter-stats {
   background: rgb(23, 23, 23);
   border: 1px solid rgba(255, 255, 255, 0.1);
-} 
+}

@@ -40,7 +40,7 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-app-white flex items-center gap-2 mb-2">
                 <ImageIcon className="w-4 h-4 text-app-accent" />
-                <span className="truncate">{image.file.name}</span>
+                <span className="truncate selectable-value">{image.file.name}</span>
               </h3>
               <div className="space-y-2">
                 <Button
@@ -72,20 +72,20 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
             </div>
             {exif.location && !exif.location.loading ? (
               <div className="pl-7 space-y-1">
-                <p className="text-app-accent">{formatShortLocation(exif.location)}</p>
-                <p className={`text-xs ${hasValidCoordinates ? 'text-app-accent-dim' : 'text-app-accent-dim'}`}>
+                <p className="text-app-accent selectable-value">{formatShortLocation(exif.location)}</p>
+                <p className={`text-xs selectable-value ${hasValidCoordinates ? 'text-app-accent-dim' : 'text-app-accent-dim'}`}>
                   {formatCoordinates()}
                 </p>
               </div>
             ) : exif.location?.loading ? (
               <div className="pl-7">
-                <p className="text-app-accent-dim">Loading location data...</p>
-                <p className={`text-xs ${hasValidCoordinates ? 'text-app-accent-dim' : 'text-app-accent-dim'}`}>
+                <p className="text-app-accent-dim selectable-value">Loading location data...</p>
+                <p className={`text-xs selectable-value ${hasValidCoordinates ? 'text-app-accent-dim' : 'text-app-accent-dim'}`}>
                   {formatCoordinates()}
                 </p>
               </div>
             ) : (
-              <p className={`pl-7 ${hasValidCoordinates ? 'text-app-accent' : 'text-app-accent-dim'}`}>
+              <p className={`pl-7 selectable-value ${hasValidCoordinates ? 'text-app-accent' : 'text-app-accent-dim'}`}>
                 {formatCoordinates()}
               </p>
             )}
@@ -96,7 +96,7 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
               <Clock className="w-5 h-5 text-app-accent" />
               <h3 className="font-medium">Date Taken</h3>
             </div>
-            <p className="text-app-accent pl-7">
+            <p className="text-app-accent pl-7 selectable-value">
               {exif.dateTimeOriginal ? formatDateTime(exif.dateTimeOriginal) : 'Not available'}
             </p>
           </div>
@@ -111,29 +111,29 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
                 <div className="space-y-3">
                   <div>
                     <div className="text-app-accent-dim mb-1">Make</div>
-                    <div className="text-app-accent font-medium">{exif.make || 'N/A'}</div>
+                    <div className="text-app-accent font-medium selectable-value">{exif.make || 'N/A'}</div>
                   </div>
                   <div>
                     <div className="text-app-accent-dim mb-1">Model</div>
-                    <div className="text-app-accent font-medium">{exif.model || 'N/A'}</div>
+                    <div className="text-app-accent font-medium selectable-value">{exif.model || 'N/A'}</div>
                   </div>
                   <div>
                     <div className="text-app-accent-dim mb-1">Exposure Time</div>
-                    <div className="text-app-accent font-medium">{exif.exposureTime || 'N/A'}</div>
+                    <div className="text-app-accent font-medium selectable-value">{exif.exposureTime || 'N/A'}</div>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
                     <div className="text-app-accent-dim mb-1">F-Number</div>
-                    <div className="text-app-accent font-medium">{exif.fNumber || 'N/A'}</div>
+                    <div className="text-app-accent font-medium selectable-value">{exif.fNumber || 'N/A'}</div>
                   </div>
                   <div>
                     <div className="text-app-accent-dim mb-1">ISO</div>
-                    <div className="text-app-accent font-medium">{exif.iso || 'N/A'}</div>
+                    <div className="text-app-accent font-medium selectable-value">{exif.iso || 'N/A'}</div>
                   </div>
                   <div>
                     <div className="text-app-accent-dim mb-1">Focal Length</div>
-                    <div className="text-app-accent font-medium">
+                    <div className="text-app-accent font-medium selectable-value">
                       {exif.focalLength ? `${exif.focalLength}mm` : 'N/A'}
                     </div>
                   </div>
@@ -151,13 +151,13 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <div className="text-app-accent-dim mb-1">Size</div>
-                  <div className="text-app-accent font-medium">
+                  <div className="text-app-accent font-medium selectable-value">
                     {(image.file.size / 1024).toFixed(1)} KB
                   </div>
                 </div>
                 <div>
                   <div className="text-app-accent-dim mb-1">Type</div>
-                  <div className="text-app-accent font-medium">
+                  <div className="text-app-accent font-medium selectable-value">
                     {image.file.type.split('/')[1].toUpperCase()}
                   </div>
                 </div>

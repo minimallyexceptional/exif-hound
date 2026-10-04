@@ -17,14 +17,19 @@
     "typecheck": "turbo run typecheck",
     "tauri:dev": "turbo run tauri:dev --filter=exif-hound-desktop",
     "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop",
+    "test:scripts": "node --test 'scripts/updater/__tests__/*.test.mjs'",
+    "test:e2e": "npm run test:e2e --workspace=exif-hound-desktop",
     "website:build": "turbo run build --filter=exif-hound-website",
-    "scan:electron": "node scripts/scan-electron.js"
+    "scan:electron": "node scripts/scan-electron.js",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "turbo": "^2.11.6"
   },
   "engines": {
     "node": ">=20.0.0"
   },
-  "packageManager": "npm@11.19.0"
+  "packageManager": "npm@11.19.0",
+  "allowScripts": {}
 }

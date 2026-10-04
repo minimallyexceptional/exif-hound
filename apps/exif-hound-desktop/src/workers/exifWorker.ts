@@ -1,7 +1,7 @@
 /**
  * EXIF Worker - Handles EXIF parsing in a separate thread to avoid blocking UI
  */
-import { extractExifData } from 'exif-middleware';
+import { extractExifData, ExifMetadata } from 'exif-middleware';
 
 export interface ExifWorkerMessage {
   type: 'PARSE_EXIF';
@@ -12,7 +12,7 @@ export interface ExifWorkerMessage {
 export interface ExifWorkerResponse {
   type: 'EXIF_PARSED' | 'EXIF_ERROR';
   id: string;
-  data?: any;
+  data?: ExifMetadata;
   error?: string;
 }
 

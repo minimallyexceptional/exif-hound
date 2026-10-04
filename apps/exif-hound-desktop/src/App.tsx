@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
@@ -7,13 +7,14 @@ import ImageList from './components/ImageList';
 import ExportModal from './components/ExportModal';
 import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
-import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from './components/common/Button';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
+import { UpdateNotification } from './components/updater/UpdateNotification';
+import { getUpdateService } from './services/updater';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -23,23 +24,20 @@ type ViewMode = 'map' | 'list' | 'investigation';
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
-  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const selectedImage = images.find((image) => image.id === selectedImageId) ?? null;
   const [showRoute, setShowRoute] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isGalleryCollapsed, setIsGalleryCollapsed] = useState(false);
+  const [gallerySelectionRequest, setGallerySelectionRequest] = useState(0);
   const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
-
-  useEffect(() => {
-    // Remove artificial delay - app should be interactive immediately
-    setIsLoading(false);
-  }, []);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const handleImageUpload = (imageData: ImageData) => {
     // ImageUploader emits each image twice (placeholder while processing, then
@@ -51,7 +49,18 @@ function App() {
       next[index] = imageData;
       return next;
     });
-    setSelectedImage(imageData);
+    if (imageData.isProcessing || selectedImageId === null || selectedImageId === imageData.id) {
+      setSelectedImageId(imageData.id);
+    }
+  };
+
+  const handleSelectImage = (image: ImageData) => {
+    setSelectedImageId(image.id);
+  };
+
+  const handleGalleryImageSelect = (imageData: ImageData) => {
+    handleSelectImage(imageData);
+    setGallerySelectionRequest(request => request + 1);
   };
 
   const handleUploadClick = () => {
@@ -72,6 +81,7 @@ function App() {
   };
 
   const handleImport = async (data: ImportData) => {
+    setImportError(null);
     try {
       const result = await parseImportData(data);
       setImportedData(result);
@@ -84,7 +94,12 @@ function App() {
       if (__DEV__) {
         console.error('Failed to import data:', error);
       }
-      // TODO: Show error to user
+      setImportError(
+        error instanceof Error && error.message
+          ? `Failed to import location data: ${error.message}`
+          : 'Failed to import location data. Check the file format and try again.'
+      );
+      throw error;
     }
   };
 
@@ -111,9 +126,10 @@ function App() {
             <Map
               images={images}
               selectedImage={selectedImage}
+              gallerySelectionRequest={gallerySelectionRequest}
               showRoute={showRoute}
               onToggleRoute={handleRouteClick}
-              onSelectImage={setSelectedImage}
+              onSelectImage={handleSelectImage}
               onOpenImport={() => setShowImportModal(true)}
               importedData={importedData}
             />
@@ -124,7 +140,7 @@ function App() {
           <ImageList
             images={images}
             selectedImage={selectedImage}
-            onSelect={setSelectedImage}
+            onSelect={handleSelectImage}
           />
         );
       case 'investigation':
@@ -140,28 +156,21 @@ function App() {
     }
   };
 
-  if (isLoading) {
-    return <SplashScreen />;
-  }
-
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">
       <AppHeader
         imagesCount={images.length}
         viewMode={viewMode}
-        showRoute={showRoute}
         onUpload={handleUploadClick}
         onExport={() => setShowExportModal(true)}
-        onToggleView={() => {
-          setViewMode(prev => {
-            if (prev === 'map') return 'list';
-            if (prev === 'list') return 'investigation';
-            return 'map';
-          });
-        }}
-        onToggleRoute={handleRouteClick}
         onOpenSettings={() => setShowSettings(true)}
         onSetView={(view: ViewMode) => setViewMode(view)}
+        onCheckForUpdates={() => {
+          // Keep manual checks observable: Settings shows checking/current
+          // status while the global updater surface handles updates/errors.
+          setShowSettings(true);
+          void getUpdateService().check({ silent: false });
+        }}
       />
 
       <ImageUploader 
@@ -180,7 +189,7 @@ function App() {
             <ImageGallery 
               images={images}
               selectedImage={selectedImage}
-              onSelect={setSelectedImage}
+              onSelect={handleGalleryImageSelect}
             />
           }
         >
@@ -188,6 +197,20 @@ function App() {
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
+            {importError && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">{importError}</div>
+                <button
+                  type="button"
+                  onClick={() => setImportError(null)}
+                  className="p-0.5 rounded hover:bg-red-500/10"
+                  aria-label="Dismiss import error"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex-1 min-h-0">
             {renderView()}
@@ -268,6 +291,13 @@ function App() {
           }}
         />
       )}
+      {/*
+        Auto-update discovery + update dialogs. Fully silent unless an
+        update is found or the user initiates an action; loaded images are
+        in-memory only, so any loaded content counts as unsaved work and
+        the updater will confirm before restarting.
+      */}
+      <UpdateNotification hasUnsavedWork={() => images.length > 0} />
     </div>
   );
 }

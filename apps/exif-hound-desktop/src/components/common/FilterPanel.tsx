@@ -6,7 +6,7 @@ export interface FilterOption {
   id: string;
   label: string;
   // Additional metadata that might be needed by specific implementations
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export interface FilterGroup {
@@ -59,9 +59,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   // Use theme variables instead of hardcoded colors
   const solidBgColor = 'var(--app-dark)';
   const panelBgColor = 'var(--app-gray)';
-  
+
   return (
-    <div 
+    <div
       className={`flex flex-col shadow-lg z-20 ${className}`}
       style={{
         backgroundColor: solidBgColor,
@@ -75,7 +75,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       }}
     >
       {/* Header */}
-      <div 
+      <div
         className="p-4 flex justify-between items-center"
         style={{ backgroundColor: solidBgColor, background: solidBgColor }}
       >
@@ -89,14 +89,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           </button>
         )}
       </div>
-      
+
       {/* Total Count */}
       {totalCount && (
-        <div 
+        <div
           className="px-4 pb-4"
           style={{ backgroundColor: solidBgColor, background: solidBgColor }}
         >
-          <div 
+          <div
             className="p-3 rounded-lg flex justify-between items-center"
             style={{ backgroundColor: panelBgColor, background: panelBgColor }}
           >
@@ -107,10 +107,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Show All Toggle */}
       {showAllToggle && (
-        <div 
+        <div
           className="mx-4 mb-4 p-4 rounded-lg"
           style={{ backgroundColor: panelBgColor, background: panelBgColor }}
         >
@@ -139,18 +139,15 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           </label>
         </div>
       )}
-      
+
       {/* Filter Groups */}
-      <div 
+      <div
         className="overflow-y-auto flex-1 px-4"
         style={{ backgroundColor: solidBgColor, background: solidBgColor }}
       >
         {filterGroups.map((group) => {
-          const isAllSelected = group.options.length === selectedFilters[group.id]?.size;
-          const isNoneSelected = !selectedFilters[group.id] || selectedFilters[group.id].size === 0;
-          
           return (
-            <div 
+            <div
               key={group.id}
               className="mb-4"
               style={{ backgroundColor: solidBgColor, background: solidBgColor }}
@@ -182,9 +179,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {/* Group Options */}
-              <div 
+              <div
                 className="space-y-1 max-h-[300px] overflow-y-auto pr-1"
                 style={{ backgroundColor: solidBgColor, background: solidBgColor }}
               >
@@ -228,10 +225,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
           );
         })}
       </div>
-      
+
       {/* Reset Button */}
       {onResetAll && (
-        <div 
+        <div
           className="p-4 mt-auto"
           style={{ backgroundColor: solidBgColor, background: solidBgColor }}
         >
@@ -247,4 +244,4 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   );
 };
 
-export default FilterPanel; 
+export default FilterPanel;

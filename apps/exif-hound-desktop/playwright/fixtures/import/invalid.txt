@@ -1,0 +1,2 @@
+this is definitely not KML or CSV location data
+just some plain text for the invalid-import spec

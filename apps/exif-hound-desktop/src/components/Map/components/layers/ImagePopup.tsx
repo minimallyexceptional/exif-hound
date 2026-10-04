@@ -10,7 +10,7 @@ interface ImagePopupProps {
 const ImagePopupComponent: React.FC<ImagePopupProps> = ({ image }) => {
   return (
     <Popup className="map-popup">
-      <div className="bg-black text-white">
+      <div className="text-app-white">
         <div className="relative aspect-video w-full overflow-hidden">
           <img 
             src={image.url} 
@@ -19,13 +19,13 @@ const ImagePopupComponent: React.FC<ImagePopupProps> = ({ image }) => {
           />
         </div>
         <div className="p-3 space-y-2">
-          <p className="font-medium truncate" title={image.file.name}>
+          <p className="font-medium truncate selectable-value" title={image.file.name}>
             {image.file.name}
           </p>
-          <p className="text-gray-300 text-sm">
+          <p className="text-app-accent-dim text-sm selectable-value">
             {formatDateTime(image.exif.dateTimeOriginal ?? '')}
           </p>
-          <div className="text-xs text-gray-300">
+          <div className="text-xs text-app-accent-dim selectable-value">
             <p>Lat: {image.exif.latitude?.toFixed(6)}</p>
             <p>Lon: {image.exif.longitude?.toFixed(6)}</p>
           </div>
