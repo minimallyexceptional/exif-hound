@@ -1,6 +1,19 @@
 import { useMemo } from 'react';
 import type { ImageData } from '../../../../types';
-import { startOfDay, endOfDay, differenceInDays } from 'date-fns';
+
+// Native Date helpers (replace date-fns)
+const startOfDay = (d: Date): Date => {
+  const c = new Date(d);
+  c.setHours(0, 0, 0, 0);
+  return c;
+};
+const endOfDay = (d: Date): Date => {
+  const c = new Date(d);
+  c.setHours(23, 59, 59, 999);
+  return c;
+};
+const differenceInDays = (later: Date, earlier: Date): number =>
+  Math.round((startOfDay(later).getTime() - startOfDay(earlier).getTime()) / 86_400_000);
 
 export interface TimelineNode {
   date: Date;

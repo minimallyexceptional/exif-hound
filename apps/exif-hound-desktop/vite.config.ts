@@ -26,14 +26,12 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: [
-      '@tauri-apps/api',
-      'leaflet-fullscreen'
+      '@tauri-apps/api'
     ],
     exclude: ['lucide-react'],
   },
   resolve: {
     alias: [
-      { find: 'shared-utils', replacement: path.join(packagesDir, 'shared-utils/dist') },
       { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') }
     ],
   },
@@ -62,13 +60,11 @@ export default defineConfig({
       output: {
         manualChunks: {
           // Vendor libraries
-          'vendor-leaflet': ['leaflet', 'react-leaflet', 'leaflet.heat', 'leaflet-fullscreen', 'react-leaflet-cluster'],
+          'vendor-leaflet': ['leaflet', 'react-leaflet', 'react-leaflet-cluster'],
           'vendor-visx': ['@visx/axis', '@visx/group', '@visx/hierarchy', '@visx/scale', '@visx/shape', '@visx/tooltip', '@visx/zoom'],
           'vendor-exif': ['exifreader'],
           // React and core libraries
           'vendor-react': ['react', 'react-dom'],
-          // Date and utility libraries
-          'vendor-utils': ['date-fns', 'geolib'],
         },
       },
     },
