@@ -18,7 +18,6 @@
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "shared-utils": ["../../packages/shared-utils/dist"],
       "exif-middleware": ["../../packages/exif-middleware/dist"]
     }
   },
