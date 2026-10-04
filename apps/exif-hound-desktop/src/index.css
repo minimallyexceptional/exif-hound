@@ -82,6 +82,14 @@
   .button-secondary:hover {
     background-color: var(--app-gray-lighter);
   }
+
+  /* Flat card for use inside already-shaded surfaces (e.g. stats sidebars).
+     Avoids nested glass-panel-on-panel. */
+  .stat-card {
+    background-color: var(--app-gray);
+    border: 1px solid var(--glass-border);
+    @apply rounded-lg;
+  }
 }
 
 html, body, #root {
