@@ -11,6 +11,9 @@ test.beforeEach(async ({ page }) => bootApp(page));
 test('renders the map with controls and error boundary', async ({ page }) => {
   await uploadImages(page, [FIXTURE_IMAGES.fullExif]);
   await waitForMap(page);
+  // Reticle is off by default; toggling it via the map control attaches it.
+  await expect(page.locator('.reticle-container')).toHaveCount(0);
+  await page.locator('button[title="Show Reticle"]').click();
   await expect(page.locator('.reticle-container')).toBeAttached();
   for (const title of ['Show Route', 'Show Heatmap', 'Show Clusters', 'Import Data']) await expect(page.locator(`button[title="${title}"]`)).toBeVisible();
   await expect(page.locator('.leaflet-control-zoom')).toBeVisible();
