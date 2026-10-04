@@ -39,7 +39,7 @@ const GalleryItem = React.memo<{
         <img
           src={image.url}
           alt={image.file.name}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-70'}`}
           loading="lazy"
           onError={(e) => {
             // Hide the image if it fails to load
@@ -51,9 +51,9 @@ const GalleryItem = React.memo<{
             }
           }}
         />
-        <div className={`pointer-events-none absolute inset-0 ${
+        <div className={`pointer-events-none absolute inset-0 rounded-lg ${
           isSelected 
-            ? 'ring-2 ring-app-accent' 
+            ? 'ring-[3px] ring-app-accent'
             : 'group-hover:bg-app-black/10'
         } transition-all duration-200`} />
       </div>

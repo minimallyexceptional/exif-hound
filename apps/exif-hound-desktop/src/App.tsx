@@ -32,6 +32,7 @@ function App() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isGalleryCollapsed, setIsGalleryCollapsed] = useState(false);
+  const [gallerySelectionRequest, setGallerySelectionRequest] = useState(0);
   const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
@@ -55,6 +56,11 @@ function App() {
 
   const handleSelectImage = (image: ImageData) => {
     setSelectedImageId(image.id);
+  };
+
+  const handleGalleryImageSelect = (imageData: ImageData) => {
+    handleSelectImage(imageData);
+    setGallerySelectionRequest(request => request + 1);
   };
 
   const handleUploadClick = () => {
@@ -120,6 +126,7 @@ function App() {
             <Map
               images={images}
               selectedImage={selectedImage}
+              gallerySelectionRequest={gallerySelectionRequest}
               showRoute={showRoute}
               onToggleRoute={handleRouteClick}
               onSelectImage={handleSelectImage}
@@ -182,7 +189,7 @@ function App() {
             <ImageGallery 
               images={images}
               selectedImage={selectedImage}
-              onSelect={handleSelectImage}
+              onSelect={handleGalleryImageSelect}
             />
           }
         >

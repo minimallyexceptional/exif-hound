@@ -64,8 +64,8 @@ test('selects images from the gallery with the keyboard', async ({ page }) => {
 test('navigates the list view spreadsheet and selects rows', async ({ page }) => {
   await switchView(page, 'List View');
   await expect(page.getByLabel('Image metadata spreadsheet')).toBeVisible();
-  await expect(page.getByRole('columnheader', { name: 'Thumbnail' })).toBeVisible();
   const grid = page.getByRole('grid', { name: 'Image metadata spreadsheet' });
+  await expect(grid.getByRole('columnheader', { name: 'Preview' })).toBeVisible();
   await expect(grid.getByText(FIXTURE_IMAGES.fullExif.name, { exact: true })).toBeVisible();
   await expect(grid.getByText(FIXTURE_IMAGES.noGps.name, { exact: true })).toBeVisible();
 });
