@@ -16,6 +16,10 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
   const { mapSettings } = useSettings();
   const map = useMap();
   const [kmlGeoJSON, setKmlGeoJSON] = useState<FeatureCollection<Geometry, GeoJsonProperties> | null>(null);
+  // react-leaflet's <GeoJSON> ignores the `data` prop on updates (only `style`
+  // is applied), so a new KML import would leave the old file's features on the
+  // layer. Force a remount whenever we store a fresh FeatureCollection.
+  const [geoJSONKey, setGeoJSONKey] = useState(0);
   const selectedStyle = MAP_STYLES.find(style => style.id === (mapSettings?.selectedStyle || defaultLayer)) || MAP_STYLES[0];
   
   // Use custom tiles if enabled, otherwise use selected style
@@ -48,14 +52,20 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
 
   // Handle KML layer
   useEffect(() => {
-    if (!map || !kmlData?.layer || !(kmlData.layer instanceof L.GeoJSON)) return;
+    if (!kmlData?.layer || !(kmlData.layer instanceof L.GeoJSON)) {
+      setKmlGeoJSON(null);
+      return;
+    }
 
     try {
       const geoJSON = kmlData.layer.toGeoJSON();
       
       // Ensure we have a FeatureCollection
       if ('features' in geoJSON) {
+        setGeoJSONKey(key => key + 1);
         setKmlGeoJSON(geoJSON as FeatureCollection<Geometry, GeoJsonProperties>);
+      } else {
+        setKmlGeoJSON(null);
       }
 
       // Fit bounds to show all KML features
@@ -64,7 +74,8 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
         map.fitBounds(bounds, { padding: [50, 50] });
       }
     } catch (error) {
-      console.error('Failed to process KML data:', error);
+      if (__DEV__) console.error('Failed to process KML data:', error);
+      setKmlGeoJSON(null);
     }
   }, [kmlData, map]);
 
@@ -95,8 +106,20 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
       {csvData && renderCSVData(csvData)}
       {kmlGeoJSON && (
         <GeoJSON
+          key={geoJSONKey}
           data={kmlGeoJSON}
           style={style}
+          // Render point placemarks as circles (matching the CSV point style)
+          // instead of Leaflet's default marker icons.
+          pointToLayer={(feature, latlng) =>
+            L.circleMarker(latlng, {
+              radius: 3,
+              color: style.color,
+              fillColor: style.color,
+              fillOpacity: style.fillOpacity,
+              weight: style.weight
+            })
+          }
           onEachFeature={onEachFeature}
         />
       )}
