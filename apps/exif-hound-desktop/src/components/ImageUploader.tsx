@@ -67,11 +67,10 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
     const limiter = concurrencyLimiter();
     const processingPromises = fileArray.map(file => 
       limiter.add(async () => {
+        const imageId = Math.random().toString(36).substring(7);
+        const url = URL.createObjectURL(file);
         try {
           // Create image immediately with loading state
-          const imageId = Math.random().toString(36).substring(7);
-          const url = URL.createObjectURL(file);
-          
           // Add image with loading state first (immediate UI feedback)
           const initialImage: ImageData = {
             id: imageId,
@@ -98,14 +97,13 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
             isProcessing: false
           };
           
-          onImageUpload(updatedImage);
-          
           if (__DEV__) {
             console.log(`Processed image: ${file.name}`, { 
               hasLocation: !!exif.location,
               coordinates: `${exif.latitude}, ${exif.longitude}`
             });
           }
+          return updatedImage;
         } catch (error) {
           if (__DEV__) {
             console.error('Error processing image:', error);
@@ -113,16 +111,16 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
           
           // Create image with error state
           const errorImage: ImageData = {
-            id: Math.random().toString(36).substring(7),
+            id: imageId,
             file,
-            url: URL.createObjectURL(file),
+            url,
             exif: {
               error: 'Failed to process image'
             },
             isProcessing: false
           };
           
-          onImageUpload(errorImage);
+          return errorImage;
         } finally {
           setProcessingCount(prev => prev - 1);
         }
@@ -130,7 +128,11 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
     );
 
     // Wait for all processing to complete
-    await Promise.all(processingPromises);
+    // Publish completed records in input order even though extraction itself
+    // runs concurrently. This keeps the last uploaded file selected instead
+    // of letting worker timing choose the final selection.
+    const completedImages = await Promise.all(processingPromises);
+    completedImages.forEach(onImageUpload);
     setIsProcessing(false);
     setProcessingCount(0);
   }, [onImageUpload, processExifData, concurrencyLimiter]);

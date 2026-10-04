@@ -14,6 +14,11 @@ target/
 # Testing
 coverage/
 
+# Cypress artifacts
+apps/*/cypress/screenshots/
+apps/*/cypress/videos/
+apps/*/cypress/downloads/
+
 # Logs
 logs
 *.log

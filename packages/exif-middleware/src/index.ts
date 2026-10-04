@@ -252,7 +252,12 @@ export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata
     
     // Camera settings
     if (tags.ExposureTime) metadata.exposureTime = tags.ExposureTime.description;
-    if (tags.FNumber) metadata.fNumber = parseFloat(tags.FNumber.description);
+    if (tags.FNumber) {
+      // ExifReader describes this value as "f/8.0" for some cameras rather
+      // than the bare number; parse the numeric component in either form.
+      const fNumber = String(tags.FNumber.description).match(/-?\d+(?:\.\d+)?/);
+      if (fNumber) metadata.fNumber = parseFloat(fNumber[0]);
+    }
     if (tags.ISOSpeedRatings) metadata.iso = parseFloat(tags.ISOSpeedRatings.description);
     if (tags.FocalLength) metadata.focalLength = tags.FocalLength.description;
     

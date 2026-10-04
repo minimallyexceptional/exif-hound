@@ -51,6 +51,39 @@ operating systems, so run the build on each platform (e.g. a CI matrix) to
 produce Windows/Linux/macOS releases. Extra bundle targets can be passed
 through: `npm run tauri:build -- --bundles "nsis"`.
 
+### End-to-End Tests (Cypress)
+
+Cypress runs the real UI in a browser against a dedicated Vite dev server
+(`dev:test`, port 5276) with the Tauri bridge mocked in `cypress/support/tauri-mock.ts`,
+so tests exercise the app without building or launching the native shell.
+
+```bash
+npm run cy:run              # headless run (starts the dev server itself)
+npm run cy:open             # interactive Cypress launcher
+```
+
+Canned Tauri command responses are registered per test:
+
+```ts
+cy.visit('/', {
+  onBeforeLoad(win) {
+    installTauriMock(win, { 'plugin:app|version': '2.5.2' });
+  },
+});
+```
+
+Notes:
+
+- The mock is installed in `onBeforeLoad`, before app code runs, so the app
+  boots in "Tauri available" mode. Unknown commands reject loudly — register
+  canned responses for every command a test path touches.
+- The viewport is 1600×900 (desktop layout). Keep selectors above the `lg`
+  breakpoint working.
+- On some Linux desktop setups the bundled Electron browser hangs while
+  capturing failure screenshots. If a failure report stalls, run the suite
+  with system Chromium using `npm run cy:run:chromium`.
+- `cypress/videos`, `cypress/screenshots`, and `cypress/downloads` are gitignored.
+
 ## License
 
-MIT 
+MIT

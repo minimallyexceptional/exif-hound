@@ -48,14 +48,14 @@ export function isTauriEnvironment(): boolean {
     const checks = [
       // Check 1: window.__TAURI__ existence (most common)
       typeof window !== 'undefined' && window.__TAURI__ !== undefined,
-      
+
       // Check 2: Tauri IPC object (reliable in v2)
       typeof window !== 'undefined' && window.__TAURI_IPC__ !== undefined,
-      
+
       // Check 3: Look for Tauri in user agent (sometimes available in v2)
       typeof navigator !== 'undefined' && /Tauri/.test(navigator.userAgent)
     ];
-    
+
     // If any check passes, we're in a Tauri environment
     const result = checks.some(check => check === true);
     return result;
@@ -104,16 +104,21 @@ async function saveFileWithDialog(
 
       // Show the save file picker
       const handle = await window.showSaveFilePicker(options);
-      
+
       // Create a writable stream and write the content
       const writable = await handle.createWritable();
       await writable.write(content);
       await writable.close();
-      
+
       return true;
     } catch (error: unknown) {
       // User cancelled or error occurred
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'name' in error &&
+        error.name === 'AbortError'
+      ) {
         return false;
       }
       console.error('[FileSystem] Error using File System Access API:', error);
@@ -136,16 +141,16 @@ async function fallbackToDownload(
   try {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     link.style.display = 'none';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     URL.revokeObjectURL(url);
     return true;
   } catch (error) {
@@ -172,4 +177,4 @@ export async function saveJsonFile(jsonContent: string, defaultName: string): Pr
 export async function saveCsvFile(csvContent: string, defaultName: string): Promise<boolean> {
   const filename = defaultName.endsWith('.csv') ? defaultName : `${defaultName}.csv`;
   return saveFileWithDialog(csvContent, filename, getMimeType(filename), 'csv');
-} 
+}
