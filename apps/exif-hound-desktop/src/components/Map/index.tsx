@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, useMap } from 'react-leaflet';
 import { ImageData } from '../../types';
 import { MapLayers } from './components/layers/MapLayers';

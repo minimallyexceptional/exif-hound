@@ -44,22 +44,6 @@ export const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, m
  */
 export function isTauriEnvironment(): boolean {
   try {
-    // Detailed debugging of the window and available objects
-    console.log('[FileSystem] Window object keys:', Object.keys(window));
-    console.log('[FileSystem] navigator.userAgent:', navigator.userAgent);
-    
-    if (window.__TAURI__) {
-      console.log('[FileSystem] __TAURI__ available with keys:', Object.keys(window.__TAURI__));
-    } else {
-      console.log('[FileSystem] __TAURI__ is not available on window');
-    }
-    
-    if (window.__TAURI_IPC__) {
-      console.log('[FileSystem] __TAURI_IPC__ is available');
-    } else {
-      console.log('[FileSystem] __TAURI_IPC__ is not available on window');
-    }
-    
     // Multiple ways to detect Tauri environment
     const checks = [
       // Check 1: window.__TAURI__ existence (most common)
@@ -74,8 +58,6 @@ export function isTauriEnvironment(): boolean {
     
     // If any check passes, we're in a Tauri environment
     const result = checks.some(check => check === true);
-    console.log('[FileSystem] Tauri environment detection checks:', checks);
-    console.log('[FileSystem] Final Tauri environment detection:', result);
     return result;
   } catch (e) {
     console.error('[FileSystem] Error checking Tauri environment:', e);
@@ -128,12 +110,10 @@ async function saveFileWithDialog(
       await writable.write(content);
       await writable.close();
       
-      console.log(`[FileSystem] File saved via File System Access API: ${filename}`);
       return true;
     } catch (error: unknown) {
       // User cancelled or error occurred
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('[FileSystem] User cancelled file save');
         return false;
       }
       console.error('[FileSystem] Error using File System Access API:', error);
@@ -141,7 +121,6 @@ async function saveFileWithDialog(
       return fallbackToDownload(content, filename, mimeType);
     }
   } else {
-    console.log('[FileSystem] File System Access API not supported, using fallback');
     return fallbackToDownload(content, filename, mimeType);
   }
 }
@@ -168,7 +147,6 @@ async function fallbackToDownload(
     document.body.removeChild(link);
     
     URL.revokeObjectURL(url);
-    console.log(`[FileSystem] File downloaded via browser: ${filename}`);
     return true;
   } catch (error) {
     console.error('[FileSystem] Browser download error:', error);

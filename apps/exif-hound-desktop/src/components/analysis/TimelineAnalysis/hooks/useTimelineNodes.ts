@@ -46,7 +46,6 @@ const parseExifDate = (dateString: string | undefined | null): Date | null => {
 
 export const useTimelineNodes = (images: ImageData[]) => {
   return useMemo(() => {
-    console.log('Processing timeline nodes for images:', images.length);
     
     // Filter images that have datetime info and can be properly parsed
     const imagesWithDate = images.filter((img) => {
@@ -54,7 +53,6 @@ export const useTimelineNodes = (images: ImageData[]) => {
       return parsedDate !== null;
     });
     
-    console.log('Images with valid dates:', imagesWithDate.length);
     
     if (imagesWithDate.length === 0) {
       return {
@@ -100,7 +98,6 @@ export const useTimelineNodes = (images: ImageData[]) => {
       images: dayImages,
     }));
     
-    console.log('Created timeline nodes:', nodes.length);
     
     return {
       nodes,

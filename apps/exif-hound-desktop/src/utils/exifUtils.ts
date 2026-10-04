@@ -17,14 +17,6 @@ export function convertMetadataToExifData(
     // Apply diagnostic fixes for known coordinate issues
     const [fixedLat, fixedLng] = fixCoordinatesFn(latitude, longitude);
     
-    // Log if any fixes were applied
-    if (fixedLat !== latitude || fixedLng !== longitude) {
-      console.log(`[exifUtils] Applied coordinate fixes:`, {
-        from: { latitude, longitude },
-        to: { latitude: fixedLat, longitude: fixedLng }
-      });
-    }
-    
     latitude = fixedLat;
     longitude = fixedLng;
   }

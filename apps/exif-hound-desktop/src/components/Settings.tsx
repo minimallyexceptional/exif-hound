@@ -160,7 +160,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-app-gray-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                    <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
                     <span className="ml-3 text-sm font-medium text-app-white">Use Custom Tiles</span>
                   </label>
                 </div>

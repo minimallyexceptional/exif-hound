@@ -79,13 +79,6 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       // Use worker to extract EXIF data (non-blocking)
       const metadata = await parseExifWithWorker(buffer);
       
-      if (__DEV__) {
-        console.log('GPS Data from worker for:', file.name, {
-          latitude: metadata.latitude,
-          longitude: metadata.longitude,
-        });
-      }
-      
       // Convert the metadata format to our app's ExifData format
       const exifData = convertMetadataToExifData(metadata, fixCoordinates);
       
@@ -98,9 +91,6 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
         // Fetch location data in background (don't await)
         getLocationFromCoordinates(exifData.latitude, exifData.longitude)
           .then(locationData => {
-            if (__DEV__) {
-              console.log(`[useExifData] Location data received for: ${file.name}`, locationData);
-            }
             // This would need to be handled by the caller to update state
             exifData.location = locationData;
           })

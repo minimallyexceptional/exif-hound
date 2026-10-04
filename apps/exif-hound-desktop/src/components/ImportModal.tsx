@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { Button } from './common/Button';
 import { ImportData } from '../types';
+import { looksLikeKml } from '../utils/importData';
 
 interface Props {
   onClose: () => void;
-  onImport: (data: ImportData) => void;
+  onImport: (data: ImportData) => void | Promise<void>;
 }
 
 const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
@@ -24,28 +25,22 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
       const text = await file.text();
       
       if (selectedFormat === 'kml') {
-        // Basic validation for KML
-        if (!text.includes('<?xml') || !text.includes('<kml')) {
+        // Cheap structural pre-check; parseImportData does definitive validation.
+        // Valid KML does not require an <?xml?> declaration or an unprefixed root.
+        if (!looksLikeKml(text)) {
           throw new Error('Invalid KML file format');
         }
-        // TODO: Add proper KML parsing
-        onImport({ type: 'kml', data: text });
+        await onImport({ type: 'kml', data: text });
       } else {
         // Basic CSV validation and parsing
-        console.log('Reading CSV file...');
         const lines = text.split('\n');
-        console.log('Number of lines:', lines.length);
         
         if (lines.length < 2) {
           throw new Error('CSV file must contain at least a header row and one data row');
         }
         
-        // Log the headers we found
-        const headers = lines[0].split(',').map(h => h.trim());
-        console.log('Found headers:', headers);
-        
         // Pass the data to the Map component for processing
-        onImport({ type: 'csv', data: text });
+        await onImport({ type: 'csv', data: text });
       }
       
       onClose();
@@ -53,11 +48,12 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
     } finally {
       setIsLoading(false);
+      e.target.value = '';
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-app-black/50">
       <div className="bg-app-gray rounded-lg shadow-xl w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-app-gray-light">
@@ -132,7 +128,7 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
 
           {/* Error message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2" role="alert">
               <AlertCircle className="w-5 h-5 text-red-500 flex-none mt-0.5" />
               <p className="text-sm text-red-500">{error}</p>
             </div>

@@ -33,9 +33,6 @@ interface ExifGroup {
 const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
   const [copiedKeys, setCopiedKeys] = useState<Set<string>>(new Set());
 
-  // Debug log the raw EXIF data
-  console.log('Raw EXIF data:', rawExif);
-
   const handleCopy = async (key: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -52,7 +49,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         });
       }, 1500);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      if (__DEV__) console.error('Failed to copy text: ', err);
     }
   };
 
@@ -101,7 +98,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         }
         return 'N/A';
       } catch (err) {
-        console.error(`Error getting EXIF value for ${section}.${tag}:`, err);
+        if (__DEV__) console.error(`Error getting EXIF value for ${section}.${tag}:`, err);
         return 'N/A';
       }
     };
@@ -255,9 +252,6 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
     // Filter out empty groups
     return groups.filter(group => group.properties.length > 0);
   }, [rawExif, image.file]);
-
-  // Debug log the processed groups
-  console.log('Processed EXIF groups:', exifGroups);
 
   const header = (
     <div className="flex items-center gap-2 min-w-0 px-4 py-2 border-b border-app-gray-light/10">

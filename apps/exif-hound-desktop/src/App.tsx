@@ -10,7 +10,7 @@ import Settings from './components/Settings';
 import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from './components/common/Button';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
@@ -37,6 +37,7 @@ function App() {
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     // Remove artificial delay - app should be interactive immediately
@@ -74,6 +75,7 @@ function App() {
   };
 
   const handleImport = async (data: ImportData) => {
+    setImportError(null);
     try {
       const result = await parseImportData(data);
       setImportedData(result);
@@ -86,7 +88,12 @@ function App() {
       if (__DEV__) {
         console.error('Failed to import data:', error);
       }
-      // TODO: Show error to user
+      setImportError(
+        error instanceof Error && error.message
+          ? `Failed to import location data: ${error.message}`
+          : 'Failed to import location data. Check the file format and try again.'
+      );
+      throw error;
     }
   };
 
@@ -187,6 +194,20 @@ function App() {
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
+            {importError && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">{importError}</div>
+                <button
+                  type="button"
+                  onClick={() => setImportError(null)}
+                  className="p-0.5 rounded hover:bg-red-500/10"
+                  aria-label="Dismiss import error"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex-1 min-h-0">
             {renderView()}
