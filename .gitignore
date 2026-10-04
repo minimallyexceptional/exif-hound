@@ -14,10 +14,10 @@ target/
 # Testing
 coverage/
 
-# Cypress artifacts
-apps/*/cypress/screenshots/
-apps/*/cypress/videos/
-apps/*/cypress/downloads/
+# Browser test artifacts
+apps/*/playwright-results/
+apps/*/playwright-report/
+apps/*/test-results/
 
 # Logs
 logs

@@ -51,38 +51,36 @@ operating systems, so run the build on each platform (e.g. a CI matrix) to
 produce Windows/Linux/macOS releases. Extra bundle targets can be passed
 through: `npm run tauri:build -- --bundles "nsis"`.
 
-### End-to-End Tests (Cypress)
+### End-to-End Tests (Playwright)
 
-Cypress runs the real UI in a browser against a dedicated Vite dev server
-(`dev:test`, port 5276) with the Tauri bridge mocked in `cypress/support/tauri-mock.ts`,
-so tests exercise the app without building or launching the native shell.
+Playwright runs the real UI in Chromium against a dedicated Vite dev server
+(`dev:test`, port 5276). Each test gets an isolated browser context. The Tauri
+bridge and external network responses are mocked in `playwright/support/app.ts`.
+Tests run fully in parallel, including tests within each spec file.
 
 ```bash
-npm run cy:run              # headless run (starts the dev server itself)
-npm run cy:open             # interactive Cypress launcher
+npx playwright install chromium # one-time browser install
+npm run test:e2e               # headless parallel run (starts Vite itself)
+npm run test:e2e:ui            # interactive Playwright UI
 ```
 
-Canned Tauri command responses are registered per test:
+Canned Tauri command responses are registered per test in `bootApp` options:
 
 ```ts
-cy.visit('/', {
-  onBeforeLoad(win) {
-    installTauriMock(win, { 'plugin:app|version': '2.5.2' });
-  },
-});
+await bootApp(page, { commands: { 'plugin:app|version': '2.5.2' } });
 ```
 
 Notes:
 
-- The mock is installed in `onBeforeLoad`, before app code runs, so the app
-  boots in "Tauri available" mode. Unknown commands reject loudly — register
-  canned responses for every command a test path touches.
+- The Tauri mock is installed before app code runs, so the app boots in
+  "Tauri available" mode. Unknown commands reject loudly.
 - The viewport is 1600×900 (desktop layout). Keep selectors above the `lg`
   breakpoint working.
-- On some Linux desktop setups the bundled Electron browser hangs while
-  capturing failure screenshots. If a failure report stalls, run the suite
-  with system Chromium using `npm run cy:run:chromium`.
-- `cypress/videos`, `cypress/screenshots`, and `cypress/downloads` are gitignored.
+- Playwright starts one Vite server for the run and dispatches tests across
+  worker processes. Use `--workers=N` to cap parallelism on resource-limited
+  machines.
+- Failure screenshots, traces, and reports are written under ignored output
+  directories.
 
 ## License
 
