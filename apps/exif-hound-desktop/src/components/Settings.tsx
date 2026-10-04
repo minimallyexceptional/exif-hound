@@ -1,16 +1,64 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Moon, Sun, Map as MapIcon } from 'lucide-react';
+import { getVersion } from '@tauri-apps/api/app';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
+import { useUpdateControl } from './updater/useUpdateControl';
+import { UpdateStateName, UpdateErrorCode } from '../services/updater';
 
 interface Props {
   onClose: () => void;
 }
 
+/** Human-readable status line for the manual update check in About. */
+function renderUpdateStatus(
+  name: UpdateStateName,
+  error?: { code: UpdateErrorCode; userMessage: string }
+): string {
+  switch (name) {
+    case 'current':
+      return "You're up to date.";
+    case 'checking':
+      return '';
+    case 'available':
+      return 'An update is available.';
+    case 'downloading':
+      return 'Downloading update…';
+    case 'ready-to-install':
+      return 'Update ready.';
+    case 'installing':
+      return 'Installing update…';
+    case 'restarting':
+      return 'Restarting…';
+    case 'error':
+      return error ? error.userMessage : 'Unable to check for updates.';
+    default:
+      return '';
+  }
+}
+
 const Settings: React.FC<Props> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
   const { mapSettings, updateMapSettings } = useSettings();
+  const [appVersion, setAppVersion] = useState('…');
+  const update = useUpdateControl();
+
+  useEffect(() => {
+    let cancelled = false;
+    // Core app version, resolved at runtime from the Tauri config. Falls
+    // back silently in browser/dev environments where the API is absent.
+    getVersion()
+      .then(version => {
+        if (!cancelled) setAppVersion(version);
+      })
+      .catch(() => {
+        if (!cancelled) setAppVersion('Unavailable');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[9999] bg-app-black">
@@ -112,7 +160,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-app-gray-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-app-accent"></div>
+                    <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
                     <span className="ml-3 text-sm font-medium text-app-white">Use Custom Tiles</span>
                   </label>
                 </div>
@@ -144,7 +192,68 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   Exif Hound is a powerful tool for exploring and analyzing image metadata.
                   Built with privacy in mind, all processing happens locally in your browser.
                 </p>
-                <p>Version 2.5.1</p>
+                <p data-testid="app-version">Version {appVersion}</p>
+
+                <div className="pt-2 border-t border-app-gray-light/30">
+                  <div className="flex items-center gap-4 pt-2">
+                    <button
+                      onClick={update.checkNow}
+                      disabled={
+                        update.state.name === 'checking' ||
+                        update.state.name === 'downloading' ||
+                        update.state.name === 'ready-to-install' ||
+                        update.state.name === 'installing' ||
+                        update.state.name === 'restarting'
+                      }
+                      className="px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {update.state.name === 'checking' ? 'Checking…' : 'Check for Updates'}
+                    </button>
+                    <span className="text-sm" data-testid="update-status" aria-live="polite">
+                      {renderUpdateStatus(update.state.name, update.state.error)}
+                    </span>
+                  </div>
+                  {update.state.name === 'available' && update.state.update && (
+                    <div className="flex items-center gap-4 mt-3">
+                      <span className="text-sm text-app-white">
+                        Exif Hound {update.state.update.version} is available.
+                      </span>
+                      <button
+                        onClick={update.download}
+                        className="px-4 py-2 bg-app-white text-app-black rounded-lg hover:bg-app-accent transition-colors text-sm"
+                      >
+                        Download Update
+                      </button>
+                    </div>
+                  )}
+                  {update.state.name === 'downloading' && update.state.progress && (
+                    <p className="text-sm mt-3" aria-live="polite">
+                      Downloading…{' '}
+                      {update.state.progress.totalBytes
+                        ? `${Math.round((update.state.progress.receivedBytes / update.state.progress.totalBytes) * 100)}%`
+                        : `${(update.state.progress.receivedBytes / (1024 * 1024)).toFixed(1)} MB`}
+                    </p>
+                  )}
+                  {update.state.name === 'ready-to-install' && update.state.update && (
+                    <div className="flex items-center gap-4 mt-3">
+                      <span className="text-sm text-app-white">
+                        Exif Hound {update.state.update.version} is ready to install.
+                      </span>
+                      <button
+                        onClick={update.restart}
+                        className="px-4 py-2 bg-app-white text-app-black rounded-lg hover:bg-app-accent transition-colors text-sm"
+                      >
+                        Restart &amp; Update
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs mt-4 text-app-accent-dim">
+                    EXIF HOUND does not collect telemetry or analytics when checking for updates.
+                    Update checks retrieve a static release manifest over HTTPS and do not transmit
+                    investigation data, image metadata, filenames, usage information, or persistent
+                    device identifiers.
+                  </p>
+                </div>
               </div>
             </section>
           </div>

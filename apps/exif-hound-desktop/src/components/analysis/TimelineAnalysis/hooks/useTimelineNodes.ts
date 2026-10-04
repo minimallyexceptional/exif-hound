@@ -1,6 +1,19 @@
 import { useMemo } from 'react';
 import type { ImageData } from '../../../../types';
-import { startOfDay, endOfDay, differenceInDays } from 'date-fns';
+
+// Native Date helpers (replace date-fns)
+const startOfDay = (d: Date): Date => {
+  const c = new Date(d);
+  c.setHours(0, 0, 0, 0);
+  return c;
+};
+const endOfDay = (d: Date): Date => {
+  const c = new Date(d);
+  c.setHours(23, 59, 59, 999);
+  return c;
+};
+const differenceInDays = (later: Date, earlier: Date): number =>
+  Math.round((startOfDay(later).getTime() - startOfDay(earlier).getTime()) / 86_400_000);
 
 export interface TimelineNode {
   date: Date;
@@ -33,7 +46,6 @@ const parseExifDate = (dateString: string | undefined | null): Date | null => {
 
 export const useTimelineNodes = (images: ImageData[]) => {
   return useMemo(() => {
-    console.log('Processing timeline nodes for images:', images.length);
     
     // Filter images that have datetime info and can be properly parsed
     const imagesWithDate = images.filter((img) => {
@@ -41,7 +53,6 @@ export const useTimelineNodes = (images: ImageData[]) => {
       return parsedDate !== null;
     });
     
-    console.log('Images with valid dates:', imagesWithDate.length);
     
     if (imagesWithDate.length === 0) {
       return {
@@ -87,7 +98,6 @@ export const useTimelineNodes = (images: ImageData[]) => {
       images: dayImages,
     }));
     
-    console.log('Created timeline nodes:', nodes.length);
     
     return {
       nodes,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Group } from '@visx/group';
 import { Cluster } from '@visx/hierarchy';
 import { LinkHorizontal } from '@visx/shape';
@@ -37,17 +37,13 @@ const DendrogramVisualization = React.memo(({
   data, 
   dimensions, 
   defaultColor, 
-  defaultNodeColor,
-  filterKey
+  defaultNodeColor
 }: { 
   data: TreeNode, 
   dimensions: Dimensions, 
   defaultColor: string, 
-  defaultNodeColor: string,
-  filterKey: string
+  defaultNodeColor: string
 }) => {
-  console.log("Rendering visualization with key:", filterKey);
-  
   return (
     <svg 
       width={dimensions.width - 32}
@@ -88,7 +84,7 @@ const DendrogramVisualization = React.memo(({
                       x={node.y + 12}
                       y={node.x + 4}
                       fontSize={12}
-                      fill="#718096"
+                      fill="var(--app-accent-dim)"
                       className="select-none"
                       style={{ pointerEvents: 'none' }}
                     >
@@ -103,14 +99,6 @@ const DendrogramVisualization = React.memo(({
       </Group>
     </svg>
   );
-}, (prevProps, nextProps) => {
-  // Custom comparison function for memo
-  // Only re-render if filterKey changes
-  if (prevProps.filterKey !== nextProps.filterKey) {
-    console.log("DendrogramVisualization will update due to filterKey change");
-    return false; // Do not prevent update
-  }
-  return true; // Prevent update
 });
 
 // Main component
@@ -118,21 +106,13 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   const [showStatsPanel, setShowStatsPanel] = useState(showStats);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Convert filter state to use the reusable filter panel format
   const [selectedFilters, setSelectedFilters] = useState<Record<string, Set<string>>>({
     devices: new Set<string>(),
     showUnknownToggle: new Set<string>(["enabled"])
   });
-  
-  // Simple counter to force updates
-  const [updateTrigger, setUpdateTrigger] = useState(0);
-  
-  // Force an update on this component
-  const forceUpdate = useCallback(() => {
-    console.log("Force update triggered");
-    setUpdateTrigger(prev => prev + 1);
-  }, []);
   
   // Get the filter state from the selectedFilters format
   const filters = useMemo(() => ({
@@ -142,9 +122,6 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   
   // Filter images based on current filter state
   const filteredImages = useMemo(() => {
-    console.log("Recalculating filtered images. Update trigger:", updateTrigger);
-    console.log("Current filters:", filters.devices.length, "devices,", filters.showUnknown ? "showing" : "hiding", "unknown");
-
     // If no specific devices are selected, show all devices 
     // (this provides a better default experience)
     if (filters.devices.length === 0) {
@@ -177,7 +154,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
       // For known devices, check if they're in the selected devices list
       return filters.devices.includes(deviceName);
     });
-  }, [images, filters.devices, filters.showUnknown, updateTrigger]);
+  }, [images, filters.devices, filters.showUnknown]);
 
   // Calculate dimensions based on stats panel visibility
   const dimensions = useMemo(() => {
@@ -219,16 +196,17 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   const data = useDeviceHierarchy(filteredImages);
   const deviceStats = useDeviceStats(filteredImages, data);
 
-  const defaultColor = '#26A69A';
-  const defaultNodeColor = '#4A90E2';
+  // Dendrogram palette follows the app theme tokens so it stays legible
+  // in both dark and light themes.
+  const defaultColor = 'var(--app-accent)';
+  const defaultNodeColor = 'var(--app-accent-bright, var(--app-accent))';
 
   // Update container width after stats panel transition
   useEffect(() => {
-    const container = document.querySelector('.dendrogram-container');
+    const container = containerRef.current;
     if (container) {
       const updateWidth = () => {
-        const newWidth = container.getBoundingClientRect().width;
-        setContainerWidth(newWidth);
+        setContainerWidth(container.getBoundingClientRect().width);
       };
 
       updateWidth();
@@ -249,44 +227,29 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
 
   // Create a stable filter key that changes reliably when filter criteria change
   const filterKey = useMemo(() => {
-    // Generate hash based on active filters 
-    const devicesKey = filters.devices.sort().join(',');
+    // Generate hash based on active filters (copy before sort — never mutate state)
+    const devicesKey = [...filters.devices].sort().join(',');
     const unknownKey = filters.showUnknown ? 'unknown-yes' : 'unknown-no';
     const imageCount = filteredImages.length;
     
-    return `filters-${devicesKey}-${unknownKey}-images-${imageCount}-update-${updateTrigger}`;
-  }, [filters.devices, filters.showUnknown, filteredImages.length, updateTrigger]);
-
-  // Log key changes
-  useEffect(() => {
-    console.log("Filter key updated:", filterKey);
-  }, [filterKey]);
+    return `filters-${devicesKey}-${unknownKey}-images-${imageCount}`;
+  }, [filters.devices, filters.showUnknown, filteredImages.length]);
 
   // Handle device filter changes from the reusable filter panel
   const handleFilterChange = useCallback((groupId: string, selectedOptions: Set<string>) => {
-    console.log('Filter change for group:', groupId, 'Selected options:', selectedOptions);
-    
     setSelectedFilters(prev => ({
       ...prev,
       [groupId]: selectedOptions
     }));
-    
-    // Always force a re-render after a small delay to ensure state is updated
-    setTimeout(forceUpdate, 0);
-  }, [forceUpdate]);
+  }, []);
   
   // Clear all filters
   const handleResetAll = useCallback(() => {
-    console.log('Clearing all filters');
-    
     setSelectedFilters({
       devices: new Set<string>(),
       showUnknownToggle: new Set<string>(["enabled"])
     });
-    
-    // Always force a re-render after a small delay to ensure state is updated
-    setTimeout(forceUpdate, 0);
-  }, [forceUpdate]);
+  }, []);
 
   // Create filter configuration for the reusable filter panel
   const filterGroups = useMemo(() => [
@@ -309,27 +272,27 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
         <div className="p-4">
           <h3 className="text-lg font-medium text-app-white mb-4">Device Stats</h3>
           <div className="space-y-4">
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2">
-                <CircuitBoard className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
+                <CircuitBoard className="w-4 h-4 text-app-accent" />
                 <div className="text-xs text-app-accent-dim">Unique Devices</div>
               </div>
               <div className="text-lg font-semibold text-app-white">
                 {deviceStats.uniqueDeviceCount}
               </div>
             </div>
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
+                <Smartphone className="w-4 h-4 text-app-accent" />
                 <div className="text-xs text-app-accent-dim">Most Common</div>
               </div>
               <div className="text-sm font-semibold text-app-white">
                 {deviceStats.mostCommonDevice || 'None'}
               </div>
             </div>
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2">
-                <Image className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
+                <Image className="w-4 h-4 text-app-accent" />
                 <div className="text-xs text-app-accent-dim">Total Images</div>
               </div>
               <div className="text-lg font-semibold text-app-white">
@@ -337,9 +300,9 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
               </div>
             </div>
             {hasActiveFilters && (
-              <div className="glass-panel p-3 rounded-lg">
+              <div className="stat-card p-3 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-app-accent dark:text-app-accent-bright" />
+                  <Filter className="w-4 h-4 text-app-accent" />
                   <div className="text-xs text-app-accent-dim">Active Filters</div>
                 </div>
                 <div className="text-sm font-semibold text-app-white">
@@ -381,11 +344,12 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
       )}
 
       {/* Main Content */}
-      <div className={`dendrogram-container h-full transition-all duration-300 overflow-hidden ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''}`}>
+      <div ref={containerRef} className={`dendrogram-container h-full overflow-hidden ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''}`}>
         {/* Filter Toggle Button */}
         <button
           onClick={() => setShowFilterPanel(!showFilterPanel)}
-          className={`absolute top-4 right-4 p-2 rounded-lg transition-colors flex items-center gap-2 z-20 
+          aria-expanded={showFilterPanel}
+          className={`absolute top-4 right-4 px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 z-20 
             ${
               hasActiveFilters 
                 ? 'glass-panel border border-app-accent/50' 
@@ -413,14 +377,14 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
         <div className="w-full h-full flex items-center justify-center">
           {filteredImages.length === 0 ? (
             <div className="text-center p-8 max-w-md">
-              <Filter className="w-12 h-12 text-gray-700 dark:text-white mx-auto mb-4 opacity-70" />
-              <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-2">
+              <Filter className="w-12 h-12 text-app-accent-dim mx-auto mb-4 opacity-70" />
+              <h3 className="text-lg font-medium text-app-white mb-2">
                 {hasNothingSelected ? 
                   "No device types selected" : 
                   "No images match your filters"
                 }
               </h3>
-              <p className="text-sm text-gray-700 dark:text-white mb-4">
+              <p className="text-sm text-app-accent-dim mb-4">
                 {hasNothingSelected ? (
                   "Please select at least one device type or enable unknown devices to see images."
                 ) : !filters.showUnknown && filters.devices.length === 0 ? (
@@ -438,13 +402,13 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                   <>
                     <button
                       onClick={() => handleFilterChange('devices', new Set(uniqueDevices))}
-                      className="px-4 py-2 rounded-md bg-gray-200 dark:bg-black hover:bg-gray-300 dark:hover:bg-gray-900 text-gray-800 dark:text-white font-medium transition-colors"
+                      className="button-primary"
                     >
                       Select All Devices
                     </button>
                     <button
                       onClick={() => handleFilterChange('showUnknownToggle', new Set(["enabled"]))}
-                      className="px-4 py-2 rounded-md bg-gray-600 dark:bg-black hover:bg-gray-700 dark:hover:bg-gray-900 text-white dark:text-white font-medium transition-colors"
+                      className="button-secondary"
                     >
                       Show All Devices
                     </button>
@@ -453,14 +417,14 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                   <>
                     <button
                       onClick={handleResetAll}
-                      className="px-4 py-2 rounded-md bg-gray-200 dark:bg-black hover:bg-gray-300 dark:hover:bg-gray-900 text-gray-800 dark:text-white font-medium transition-colors"
+                      className="button-secondary"
                     >
                       Clear All Filters
                     </button>
                     {!filters.showUnknown && (
                       <button
                         onClick={() => handleFilterChange('showUnknownToggle', new Set(["enabled"]))}
-                        className="px-4 py-2 rounded-md bg-gray-600 dark:bg-black hover:bg-gray-700 dark:hover:bg-gray-900 text-white dark:text-white font-medium transition-colors"
+                        className="button-primary"
                       >
                         Show All Devices
                       </button>
@@ -502,7 +466,6 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                 dimensions={dimensions}
                 defaultColor={defaultColor}
                 defaultNodeColor={defaultNodeColor}
-                filterKey={filterKey}
               />
             </React.Fragment>
           )}

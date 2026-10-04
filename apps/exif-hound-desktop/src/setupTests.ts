@@ -3,14 +3,15 @@ import '@testing-library/jest-dom';
 
 // Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
 // Kept false in tests to mirror production behavior and silence dev logging.
-(globalThis as any).__DEV__ = false;
+(globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
+(globalThis as { __UPDATE_CHANNEL__?: string }).__UPDATE_CHANNEL__ = 'stable';
 
 // jsdom does not implement blob URL methods
 if (typeof URL.createObjectURL !== 'function') {
-  (URL as any).createObjectURL = jest.fn(() => 'mock-object-url');
+(URL as typeof URL & { createObjectURL: typeof URL.createObjectURL }).createObjectURL = jest.fn(() => 'mock-object-url');
 }
 if (typeof URL.revokeObjectURL !== 'function') {
-  (URL as any).revokeObjectURL = jest.fn();
+(URL as typeof URL & { revokeObjectURL: typeof URL.revokeObjectURL }).revokeObjectURL = jest.fn();
 }
 
 // Mock the Leaflet library
@@ -73,4 +74,4 @@ jest.mock('leaflet', () => {
       ),
     },
   };
-}); 
+});

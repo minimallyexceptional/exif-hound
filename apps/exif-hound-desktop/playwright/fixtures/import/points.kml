@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Site Alpha</name>
+      <Point><coordinates>-0.1278,51.5074,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Site Beta</name>
+      <Point><coordinates>-0.0754,51.5089,0</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>

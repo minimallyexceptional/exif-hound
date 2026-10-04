@@ -13,6 +13,7 @@ import {
   Tag
 } from 'lucide-react';
 import { ImageData } from '../types';
+import type { ExpandedTags } from 'exifreader';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
 import { formatDateTime, formatDateOnly } from '../utils/date';
@@ -20,7 +21,7 @@ import { formatLocation } from '../utils/geocoding';
 
 interface Props {
   image: ImageData;
-  rawExif: Record<string, unknown>;
+  rawExif: ExpandedTags;
   onBack: () => void;
 }
 
@@ -32,9 +33,6 @@ interface ExifGroup {
 
 const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
   const [copiedKeys, setCopiedKeys] = useState<Set<string>>(new Set());
-
-  // Debug log the raw EXIF data
-  console.log('Raw EXIF data:', rawExif);
 
   const handleCopy = async (key: string, value: string) => {
     try {
@@ -52,7 +50,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         });
       }, 1500);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      if (__DEV__) console.error('Failed to copy text: ', err);
     }
   };
 
@@ -101,7 +99,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         }
         return 'N/A';
       } catch (err) {
-        console.error(`Error getting EXIF value for ${section}.${tag}:`, err);
+        if (__DEV__) console.error(`Error getting EXIF value for ${section}.${tag}:`, err);
         return 'N/A';
       }
     };
@@ -111,30 +109,30 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         title: 'Image Information',
         icon: <ImageIcon className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Image Width', value: getExifValue('ifd0', 'ImageWidth') },
-          { key: 'Image Height', value: getExifValue('ifd0', 'ImageLength') },
-          { key: 'Resolution X', value: getExifValue('ifd0', 'XResolution') },
-          { key: 'Resolution Y', value: getExifValue('ifd0', 'YResolution') },
-          { key: 'Resolution Unit', value: getExifValue('ifd0', 'ResolutionUnit') },
+          { key: 'Image Width', value: getExifValue('file', 'Image Width') },
+          { key: 'Image Height', value: getExifValue('file', 'Image Height') },
+          { key: 'Resolution X', value: getExifValue('jfif', 'XResolution') },
+          { key: 'Resolution Y', value: getExifValue('jfif', 'YResolution') },
+          { key: 'Resolution Unit', value: getExifValue('Thumbnail', 'ResolutionUnit') },
           { key: 'Color Space', value: getExifValue('exif', 'ColorSpace') },
           { key: 'Bits Per Sample', value: getExifValue('ifd0', 'BitsPerSample') },
           { key: 'Samples Per Pixel', value: getExifValue('ifd0', 'SamplesPerPixel') },
-          { key: 'Image Description', value: getExifValue('ifd0', 'ImageDescription') },
-          { key: 'Software', value: getExifValue('ifd0', 'Software') },
-          { key: 'Artist', value: getExifValue('ifd0', 'Artist') },
-          { key: 'Copyright', value: getExifValue('ifd0', 'Copyright') },
+          { key: 'Image Description', value: getExifValue('exif', 'ImageDescription') },
+          { key: 'Software', value: getExifValue('exif', 'Software') },
+          { key: 'Artist', value: getExifValue('exif', 'Artist') },
+          { key: 'Copyright', value: getExifValue('exif', 'Copyright') },
           { key: 'User Comment', value: getExifValue('exif', 'UserComment') },
-          { key: 'Orientation', value: getExifValue('ifd0', 'Orientation') },
-          { key: 'YCbCr Positioning', value: getExifValue('ifd0', 'YCbCrPositioning') },
-          { key: 'Compression', value: getExifValue('ifd0', 'Compression') }
+          { key: 'Orientation', value: getExifValue('exif', 'Orientation') },
+          { key: 'YCbCr Positioning', value: getExifValue('exif', 'YCbCrPositioning') },
+          { key: 'Compression', value: getExifValue('Thumbnail', 'Compression') }
         ].filter(prop => prop.value !== 'N/A')
       },
       {
         title: 'Camera Information',
         icon: <Camera className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Make', value: getExifValue('ifd0', 'Make') },
-          { key: 'Model', value: getExifValue('ifd0', 'Model') },
+          { key: 'Make', value: getExifValue('exif', 'Make') },
+          { key: 'Model', value: getExifValue('exif', 'Model') },
           { key: 'Lens Make', value: getExifValue('exif', 'LensMake') },
           { key: 'Lens Model', value: getExifValue('exif', 'LensModel') },
           { key: 'Serial Number', value: getExifValue('exif', 'BodySerialNumber') },
@@ -204,7 +202,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         properties: [
           { key: 'Date Time Original', value: getExifValue('exif', 'DateTimeOriginal') },
           { key: 'Create Date', value: getExifValue('exif', 'CreateDate') },
-          { key: 'Modify Date', value: getExifValue('ifd0', 'ModifyDate') },
+          { key: 'Modify Date', value: getExifValue('exif', 'ModifyDate') },
           { key: 'Date Time Digitized', value: getExifValue('exif', 'DateTimeDigitized') },
           { key: 'Sub Sec Time', value: getExifValue('exif', 'SubSecTime') },
           { key: 'Sub Sec Time Original', value: getExifValue('exif', 'SubSecTimeOriginal') },
@@ -221,9 +219,9 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
             { key: 'Location', value: formatLocation(image.exif.location) }
           ] : []),
           { key: 'GPS Latitude', value: getExifValue('gps', 'Latitude') },
-          { key: 'GPS Latitude Ref', value: getExifValue('gps', 'LatitudeRef') },
+          { key: 'GPS Latitude Ref', value: getExifValue('exif', 'GPSLatitudeRef') },
           { key: 'GPS Longitude', value: getExifValue('gps', 'Longitude') },
-          { key: 'GPS Longitude Ref', value: getExifValue('gps', 'LongitudeRef') },
+          { key: 'GPS Longitude Ref', value: getExifValue('exif', 'GPSLongitudeRef') },
           { key: 'GPS Altitude', value: getExifValue('gps', 'Altitude') },
           { key: 'GPS Altitude Ref', value: getExifValue('gps', 'AltitudeRef') },
           { key: 'GPS Date Stamp', value: getExifValue('gps', 'DateStamp') },
@@ -255,9 +253,6 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
     // Filter out empty groups
     return groups.filter(group => group.properties.length > 0);
   }, [rawExif, image.file]);
-
-  // Debug log the processed groups
-  console.log('Processed EXIF groups:', exifGroups);
 
   const header = (
     <div className="flex items-center gap-2 min-w-0 px-4 py-2 border-b border-app-gray-light/10">
@@ -296,7 +291,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
                         {key}
                       </div>
                       <div 
-                        className="text-sm text-app-white break-words cursor-pointer whitespace-pre-wrap"
+                        className="text-sm text-app-white break-words cursor-pointer whitespace-pre-wrap selectable-value"
                         onClick={() => handleCopy(key, value)}
                       >
                         {value}

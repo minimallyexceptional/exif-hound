@@ -13,6 +13,20 @@ export const MapZoomHandler: React.FC<MapZoomHandlerProps> = ({ showRoute, image
   const map = useMap();
 
   useEffect(() => {
+    const container = map.getContainer();
+    const updateZoomLevel = () => {
+      container.dataset.zoomLevel = String(map.getZoom());
+    };
+
+    updateZoomLevel();
+    map.on('zoomend', updateZoomLevel);
+    return () => {
+      map.off('zoomend', updateZoomLevel);
+      delete container.dataset.zoomLevel;
+    };
+  }, [map]);
+
+  useEffect(() => {
     if (showRoute && images.length > 1) {
       const points = images
         .map(image => {
@@ -35,4 +49,4 @@ export const MapZoomHandler: React.FC<MapZoomHandlerProps> = ({ showRoute, image
   }, [showRoute, images, map]);
 
   return null;
-}; 
+};

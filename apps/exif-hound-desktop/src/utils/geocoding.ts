@@ -56,7 +56,6 @@ async function respectRateLimit(): Promise<void> {
   
   if (timeSinceLastCall < MIN_API_CALL_INTERVAL) {
     const waitTime = MIN_API_CALL_INTERVAL - timeSinceLastCall;
-    console.log(`[Geocoding] Rate limiting - waiting ${waitTime}ms before next API call`);
     await sleep(waitTime);
   }
   
@@ -77,7 +76,6 @@ export async function getLocationFromCoordinates(
   const cacheKey = createCacheKey(latitude, longitude);
   
   if (locationCache[cacheKey]) {
-    console.log(`[Geocoding] Using cached location data for: ${latitude}, ${longitude}`);
     return locationCache[cacheKey];
   }
   
@@ -86,7 +84,6 @@ export async function getLocationFromCoordinates(
     await respectRateLimit();
     
     // Use OpenStreetMap Nominatim for reverse geocoding
-    console.log(`[Geocoding] Fetching location data for: ${latitude}, ${longitude}`);
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
     
     const response = await fetch(url, {
@@ -120,7 +117,6 @@ export async function getLocationFromCoordinates(
     
     // Cache the result
     locationCache[cacheKey] = locationData;
-    console.log(`[Geocoding] Cached location data for: ${latitude}, ${longitude}`);
     
     return locationData;
   } catch (error) {

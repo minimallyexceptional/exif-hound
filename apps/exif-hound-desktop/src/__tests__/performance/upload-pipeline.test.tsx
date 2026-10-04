@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ImageUploader from '../../components/ImageUploader';
 import { useExifData } from '../../hooks/useExifData';
@@ -17,10 +17,10 @@ jest.mock('../../workers/exifWorker', () => ({
 // Mock geocoding
 jest.mock('../../utils/geocoding', () => ({
   getLocationFromCoordinates: jest.fn().mockImplementation(
-    () => new Promise(resolve => 
-      setTimeout(() => resolve({ 
+    () => new Promise(resolve =>
+      setTimeout(() => resolve({
         country: 'Test Country',
-        city: 'Test City' 
+        city: 'Test City'
       }), 50)
     )
   )
@@ -39,10 +39,10 @@ const createMockFile = (name: string, size: number = 1000000): File => {
 describe('Upload Pipeline Performance', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Mock the processExifData function
     mockUseExifData.mockReturnValue({
-      processExifData: jest.fn().mockImplementation((file: File) => 
+      processExifData: jest.fn().mockImplementation(() =>
         Promise.resolve({
           dateTimeOriginal: '2023-01-01T12:00:00.000Z',
           make: 'Test Camera',
@@ -67,11 +67,11 @@ describe('Upload Pipeline Performance', () => {
     ];
 
     const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
-    
+
     const input = container.querySelector('input[type="file"]');
-    
+
     const startTime = Date.now();
-    
+
     // Upload files
     if (input) {
       Object.defineProperty(input, 'files', { value: files });
@@ -86,7 +86,7 @@ describe('Upload Pipeline Performance', () => {
 
     const endTime = Date.now();
     const totalTime = endTime - startTime;
-    
+
     // Should complete much faster than sequential processing
     // With concurrency, 5 files should take roughly the same time as 1-2 files
     expect(totalTime).toBeLessThan(1000); // Should be fast due to concurrency
@@ -97,9 +97,9 @@ describe('Upload Pipeline Performance', () => {
     const file = createMockFile('large-image.jpg', 10000000);
 
     const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
-    
+
     const input = container.querySelector('input[type="file"]');
-    
+
     // Upload file
     if (input) {
       Object.defineProperty(input, 'files', { value: [file] });
@@ -110,7 +110,7 @@ describe('Upload Pipeline Performance', () => {
     // present and enabled (the component renders no button role)
     expect(input).not.toBeNull();
     expect(input).not.toBeDisabled();
-    
+
     await waitFor(() => {
       expect(onImageUpload).toHaveBeenCalledTimes(1);
     });
@@ -121,9 +121,9 @@ describe('Upload Pipeline Performance', () => {
     const file = createMockFile('test.jpg');
 
     const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
-    
+
     const input = container.querySelector('input[type="file"]');
-    
+
     if (input) {
       Object.defineProperty(input, 'files', { value: [file] });
       fireEvent.change(input);
@@ -142,9 +142,9 @@ describe('Upload Pipeline Performance', () => {
 
   test('should limit concurrent processing to avoid overwhelming system', async () => {
     const onImageUpload = jest.fn();
-    
+
     // Create many files
-    const files = Array.from({ length: 20 }, (_, i) => 
+    const files = Array.from({ length: 20 }, (_, i) =>
       createMockFile(`test${i}.jpg`)
     );
 
@@ -153,10 +153,10 @@ describe('Upload Pipeline Performance', () => {
 
     // Track concurrent processing
     mockUseExifData.mockReturnValue({
-      processExifData: jest.fn().mockImplementation((file: File) => {
+      processExifData: jest.fn().mockImplementation(() => {
         concurrentProcessing++;
         maxConcurrent = Math.max(maxConcurrent, concurrentProcessing);
-        
+
         return new Promise(resolve => {
           setTimeout(() => {
             concurrentProcessing--;
@@ -175,9 +175,9 @@ describe('Upload Pipeline Performance', () => {
     });
 
     const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
-    
+
     const input = container.querySelector('input[type="file"]');
-    
+
     if (input) {
       Object.defineProperty(input, 'files', { value: files });
       fireEvent.change(input);
@@ -198,15 +198,15 @@ describe('Upload Pipeline Performance', () => {
     const file = createMockFile('test.jpg');
 
     // Mock location update after initial load
-    let resolveLocation: (value: any) => void;
-    const locationPromise = new Promise(resolve => {
+    let resolveLocation!: (value: { country: string; city: string }) => void;
+    const locationPromise = new Promise<{ country: string; city: string }>(resolve => {
       resolveLocation = resolve;
     });
 
     const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
-    
+
     const input = container.querySelector('input[type="file"]');
-    
+
     if (input) {
       Object.defineProperty(input, 'files', { value: [file] });
       fireEvent.change(input);

@@ -1,16 +1,8 @@
 import { renderHook } from '@testing-library/react';
 import { useMapImages } from '../useMapImages';
 import { ImageData } from '../../../../types';
-import * as geolib from 'geolib';
-
-// Mock geolib
-jest.mock('geolib', () => ({
-  isValidCoordinate: jest.fn(() => true)
-}));
 
 describe('useMapImages hook', () => {
-  const mockIsValidCoordinate = geolib.isValidCoordinate as jest.MockedFunction<typeof geolib.isValidCoordinate>;
-  
   // Create mock data for testing
   const createMockImage = (id: string, latitude?: number, longitude?: number, dateTime?: string): ImageData => ({
     id,
@@ -33,8 +25,6 @@ describe('useMapImages hook', () => {
     // Mock console.error to avoid cluttering test output
     jest.spyOn(console, 'error').mockImplementation();
     
-    // Default behavior for geolib
-    mockIsValidCoordinate.mockReturnValue(true);
   });
 
   afterEach(() => {

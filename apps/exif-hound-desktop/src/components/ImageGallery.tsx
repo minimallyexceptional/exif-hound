@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
-import { ChevronUp, ChevronDown, Camera } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import { formatShortDateTime } from '../utils/date';
+import { Camera } from 'lucide-react';
 import { ImportedPoint } from '../utils/importData';
 
 interface Props {
@@ -18,9 +16,21 @@ const GalleryItem = React.memo<{
   isSelected: boolean;
   onSelect: (image: ImageData) => void;
 }>(({ image, isSelected, onSelect }) => (
-  <div
-    className="flex-none"
+  <button
+    type="button"
+    className="flex-none text-left"
+    data-testid="gallery-item"
+    data-file-name={image.file.name}
+    data-processing={String(image.isProcessing ?? false)}
+    aria-label={`Select ${image.file.name}`}
+    aria-pressed={isSelected}
     onClick={() => onSelect(image)}
+    onKeyDown={(event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onSelect(image);
+      }
+    }}
   >
     <div className={`relative cursor-pointer transition-transform duration-200 ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
@@ -29,7 +39,7 @@ const GalleryItem = React.memo<{
         <img
           src={image.url}
           alt={image.file.name}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-70'}`}
           loading="lazy"
           onError={(e) => {
             // Hide the image if it fails to load
@@ -41,14 +51,14 @@ const GalleryItem = React.memo<{
             }
           }}
         />
-        <div className={`absolute inset-0 ${
+        <div className={`pointer-events-none absolute inset-0 rounded-lg ${
           isSelected 
-            ? 'ring-2 ring-app-accent' 
+            ? 'ring-[3px] ring-app-accent'
             : 'group-hover:bg-app-black/10'
         } transition-all duration-200`} />
       </div>
     </div>
-  </div>
+  </button>
 ));
 
 GalleryItem.displayName = 'GalleryItem';
@@ -56,7 +66,6 @@ GalleryItem.displayName = 'GalleryItem';
 const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { theme } = useTheme();
 
   // Filter out items without valid images - memoized
   const imagesWithImages = useMemo(() => {

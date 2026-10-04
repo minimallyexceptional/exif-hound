@@ -4,8 +4,36 @@
  */
 
 import ExifReader from 'exifreader';
-// Use relative path to avoid TypeScript path resolution issues during build
-import { formatFileSize, formatDate } from 'shared-utils';
+
+/**
+ * Format a file size in bytes to a human-readable string
+ * (inlined from the former shared-utils package — its only remaining consumer)
+ */
+export function formatFileSize(bytes: number, decimals: number = 2): string {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+/**
+ * Format a date for display
+ * (inlined from the former shared-utils package)
+ */
+export function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
 export interface ExifMetadata {
   make?: string;
@@ -110,6 +138,61 @@ function parseCoordinate(coordinateStr: string, isLongitude = false, direction?:
   }
 }
 
+type GpsTag = {
+  value?: unknown;
+  description?: unknown;
+};
+
+/** Convert an ExifReader GPS rational/DMS tag to a signed decimal coordinate. */
+function parseGpsCoordinate(coordinateTag: GpsTag, referenceTag: GpsTag, axis: 'latitude' | 'longitude'): number | undefined {
+  const rawValue = coordinateTag.value;
+  let decimal: number | undefined;
+
+  if (Array.isArray(rawValue) && rawValue.length >= 3) {
+    const parts = rawValue.slice(0, 3).map((part) => {
+      if (Array.isArray(part) && part.length >= 2) {
+        const numerator = Number(part[0]);
+        const denominator = Number(part[1]);
+        return denominator === 0 ? NaN : numerator / denominator;
+      }
+      return Number(part);
+    });
+
+    if (parts.every(Number.isFinite)) {
+      decimal = parts[0] + parts[1] / 60 + parts[2] / 3600;
+    }
+  } else if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+    decimal = rawValue;
+  }
+
+  // ExifReader exposes the machine-readable reference in `value`; descriptions
+  // are human-readable (for example, "West longitude") and must not be matched
+  // against "W"/"S" directly.
+  const rawReference = referenceTag.value;
+  const reference = Array.isArray(rawReference)
+    ? rawReference.join('')
+    : typeof rawReference === 'string'
+      ? rawReference
+      : typeof referenceTag.description === 'string'
+        ? referenceTag.description.match(/[NSEW]/i)?.[0]
+        : undefined;
+
+  if (decimal === undefined && typeof coordinateTag.description === 'string') {
+    decimal = parseCoordinate(coordinateTag.description, axis === 'longitude', reference);
+  }
+
+  if (decimal === undefined || !Number.isFinite(decimal)) return undefined;
+  const normalizedReference = reference?.toUpperCase();
+  if (normalizedReference === 'S' || normalizedReference === 'W') {
+    decimal = -Math.abs(decimal);
+  } else if (normalizedReference === 'N' || normalizedReference === 'E') {
+    decimal = Math.abs(decimal);
+  }
+
+  const [min, max] = axis === 'latitude' ? [-90, 90] : [-180, 180];
+  return decimal >= min && decimal <= max ? decimal : undefined;
+}
+
 /**
  * Extract EXIF data from an image buffer
  * @param buffer The image buffer
@@ -143,87 +226,18 @@ export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata
       metadata.dateTaken = new Date(year, month - 1, day, hour, minute, second);
     }
     
-    // GPS information - Direct extraction from EXIF
-    // We'll use the description field which is already formatted as a string by exif-reader
-    let latitude: number | undefined;
-    let longitude: number | undefined;
-    
-    // Process latitude with reference
-    if (tags.GPSLatitude && tags.GPSLatitudeRef) {
-      try {
-        // Get the description which is already formatted as a human-readable string
-        let latStr = tags.GPSLatitude.description;
-        console.log('Latitude description:', latStr);
-        
-        // Get the reference (N/S)
-        const latRefStr = tags.GPSLatitudeRef.description;
-        console.log('Latitude reference:', latRefStr);
-        
-        // Parse latitude value
-        let latValue = parseFloat(latStr);
-        
-        // Apply reference (S = negative)
-        if (!isNaN(latValue)) {
-          if (latRefStr === 'S') {
-            latValue = -Math.abs(latValue);
-          }
-          latitude = latValue;
-          console.log('Parsed latitude with reference:', latitude);
-        }
-        
-        // Validate the latitude range
-        if (latitude !== undefined && (latitude < -90 || latitude > 90)) {
-          console.error('Invalid latitude value outside range -90 to 90:', latitude);
-          latitude = undefined;
-        }
-      } catch (error) {
-        console.error('Error processing latitude:', error);
-      }
-    }
-    
-    // Process longitude with reference
-    if (tags.GPSLongitude && tags.GPSLongitudeRef) {
-      try {
-        // Get the description which is already formatted as a human-readable string
-        let lonStr = tags.GPSLongitude.description;
-        console.log('Longitude description:', lonStr);
-        
-        // Get the reference (E/W)
-        const lonRefStr = tags.GPSLongitudeRef.description;
-        console.log('Longitude reference:', lonRefStr);
-        
-        // Parse longitude value
-        let lonValue = parseFloat(lonStr);
-        
-        // Apply reference (W = negative)
-        if (!isNaN(lonValue)) {
-          if (lonRefStr === 'W') {
-            lonValue = -Math.abs(lonValue);
-          }
-          longitude = lonValue;
-          console.log('Parsed longitude with reference:', longitude);
-        }
-        
-        // Validate the longitude range
-        if (longitude !== undefined && (longitude < -180 || longitude > 180)) {
-          console.error('Invalid longitude value outside range -180 to 180:', longitude);
-          longitude = undefined;
-        }
-      } catch (error) {
-        console.error('Error processing longitude:', error);
-      }
-    }
+    // GPSLatitude is always latitude and GPSLongitude is always longitude. Use
+    // the raw rational values so minutes/seconds are not truncated by parsing a
+    // display description, and apply the machine-readable hemisphere references.
+    const latitude = tags.GPSLatitude && tags.GPSLatitudeRef
+      ? parseGpsCoordinate(tags.GPSLatitude, tags.GPSLatitudeRef, 'latitude')
+      : undefined;
+    const longitude = tags.GPSLongitude && tags.GPSLongitudeRef
+      ? parseGpsCoordinate(tags.GPSLongitude, tags.GPSLongitudeRef, 'longitude')
+      : undefined;
     
     // Special handling for North American coordinates without proper references
     if (latitude !== undefined && longitude !== undefined) {
-      // North America is approximately between 15°N-70°N and 50°W-170°W
-      // If a location appears to be in North America but longitude is positive, fix it
-      if (latitude > 15 && latitude < 70 && longitude > 50 && longitude < 170) {
-        console.warn('North American location detected with positive longitude:', longitude);
-        console.warn('Converting to negative longitude for Western hemisphere');
-        longitude = -Math.abs(longitude);
-      }
-      
       // For debugging - log final coordinates
       console.log('Final coordinates:', { latitude, longitude });
     }
@@ -238,7 +252,12 @@ export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata
     
     // Camera settings
     if (tags.ExposureTime) metadata.exposureTime = tags.ExposureTime.description;
-    if (tags.FNumber) metadata.fNumber = parseFloat(tags.FNumber.description);
+    if (tags.FNumber) {
+      // ExifReader describes this value as "f/8.0" for some cameras rather
+      // than the bare number; parse the numeric component in either form.
+      const fNumber = String(tags.FNumber.description).match(/-?\d+(?:\.\d+)?/);
+      if (fNumber) metadata.fNumber = parseFloat(fNumber[0]);
+    }
     if (tags.ISOSpeedRatings) metadata.iso = parseFloat(tags.ISOSpeedRatings.description);
     if (tags.FocalLength) metadata.focalLength = tags.FocalLength.description;
     
@@ -311,4 +330,4 @@ export function formatExifMetadata(metadata: ExifMetadata): Record<string, strin
   }
   
   return formatted;
-} 
+}

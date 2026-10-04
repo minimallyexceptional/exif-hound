@@ -101,10 +101,17 @@ npm run tauri:build
 - Image Processing: ExifReader
 - Build System: Turborepo
 
+## Automatic Updates
+
+Exif Hound receives automatic updates through one signed feed per channel
+(`updates.exifhound.com/<channel>/latest.json`). The updater is privacy-first
+and anonymous — see [docs/updater.md](./docs/updater.md) for the architecture,
+privacy contract, signing key, and release runbook.
+
 ## Further Documentation
 
 For more details about the monorepo migration process, see [MONOREPO_MIGRATION.md](./MONOREPO_MIGRATION.md).
 
 ## License
 
-MIT 
+MIT

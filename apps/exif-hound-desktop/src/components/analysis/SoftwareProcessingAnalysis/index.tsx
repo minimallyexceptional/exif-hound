@@ -14,19 +14,6 @@ interface Props {
   showStats?: boolean;
 }
 
-interface ProcessedImageData {
-  file: {
-    name: string;
-  };
-  info: {
-    software: string | null;
-    originalDate: string | null;
-    lastModified: string | null;
-    hasBeenEdited: boolean;
-    anomalies: string[];
-  };
-}
-
 const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true }) => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showStatsPanel, setShowStatsPanel] = useState(showStats);
@@ -46,7 +33,6 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true 
 
   // Determine if filters are active
   const hasActiveFilters = selectedSoftware.size > 0;
-  const hasNoSelectedSoftware = selectedSoftware.size === 0 && allSoftware.length > 0;
   const hasNoData = filteredData.length === 0;
 
   // Create filter configuration for our reusable component
@@ -81,16 +67,15 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true 
   return (
     <div className="w-full h-full relative overflow-hidden">
       {/* Main Content */}
-      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''}`}>
+      <div className={`h-full ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''}`}>
         <div className="p-4 h-full flex flex-col overflow-hidden">
           {/* Controls */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-app-white">Processing Analysis</h3>
-            
-            {/* Filter Toggle Button */}
+          {/* Filter Toggle Button */}
+          <div className="flex justify-end items-center mb-4">
             <button
               onClick={() => setShowFilterPanel(!showFilterPanel)}
-              className={`p-2 rounded-lg transition-colors flex items-center gap-2 z-20 
+              aria-expanded={showFilterPanel}
+              className={`px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2 z-20 
                 ${
                   hasActiveFilters 
                     ? 'glass-panel border border-app-accent/50' 
@@ -147,23 +132,23 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true 
                 <table className="w-full table-fixed">
                   <thead>
                     <tr className="border-b border-app-gray-light/20">
-                      <th className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-gray-dark w-[20%]">File Name</th>
-                      <th className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-gray-dark w-[15%]">Software</th>
-                      <th className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-gray-dark w-[20%]">Original Date</th>
-                      <th className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-gray-dark w-[20%]">Last Modified</th>
-                      <th className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-gray-dark w-[12.5%]">Status</th>
-                      <th className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-gray-dark w-[12.5%]">Anomalies</th>
+                      <th scope="col" className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-dark w-[20%]">File Name</th>
+                      <th scope="col" className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-dark w-[15%]">Software</th>
+                      <th scope="col" className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-dark w-[20%]">Original Date</th>
+                      <th scope="col" className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-dark w-[20%]">Last Modified</th>
+                      <th scope="col" className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-dark w-[12.5%]">Status</th>
+                      <th scope="col" className="p-3 text-left text-sm font-medium text-app-accent-dim sticky top-0 bg-app-dark w-[12.5%]">Anomalies</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredData.map((data, index) => (
                       <tr key={index} className="border-b border-app-gray-light/10 hover:bg-app-gray-light/5">
-                        <td className="p-3 text-sm text-app-white truncate">{data.image.file.name}</td>
-                        <td className="p-3 text-sm text-app-white truncate">{data.info.software || '-'}</td>
-                        <td className="p-3 text-sm text-app-white truncate">
+                        <td className="p-3 text-sm text-app-white truncate" title={data.image.file.name}>{data.image.file.name}</td>
+                        <td className="p-3 text-sm text-app-white truncate" title={data.info.software || undefined}>{data.info.software || '-'}</td>
+                        <td className="p-3 text-sm text-app-white truncate" title={data.info.originalDate ? formatDateTime(data.info.originalDate) : undefined}>
                           {data.info.originalDate ? formatDateTime(data.info.originalDate) : '-'}
                         </td>
-                        <td className="p-3 text-sm text-app-white truncate">
+                        <td className="p-3 text-sm text-app-white truncate" title={data.info.lastModified ? formatDateTime(data.info.lastModified) : undefined}>
                           {data.info.lastModified ? formatDateTime(data.info.lastModified) : '-'}
                         </td>
                         <td className="p-3">
@@ -204,28 +189,28 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true 
         <div className="p-4">
           <h3 className="text-lg font-medium text-app-white mb-4">Processing Stats</h3>
           <div className="space-y-4">
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <Info className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Total Images</h3>
               </div>
               <p className="text-2xl font-semibold text-app-white">{stats.total}</p>
             </div>
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <Edit2 className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Edited Images</h3>
               </div>
               <p className="text-2xl font-semibold text-app-white">{stats.edited}</p>
             </div>
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <History className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">With Software Info</h3>
               </div>
               <p className="text-2xl font-semibold text-app-white">{stats.withSoftware}</p>
             </div>
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">With Anomalies</h3>
@@ -233,7 +218,7 @@ const SoftwareProcessingAnalysis: React.FC<Props> = ({ images, showStats = true 
               <p className="text-2xl font-semibold text-app-white">{stats.withAnomalies}</p>
             </div>
             {hasActiveFilters && (
-              <div className="glass-panel p-3 rounded-lg">
+              <div className="stat-card p-3 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Filter className="w-5 h-5 text-app-accent" />
                   <h3 className="text-sm font-medium text-app-white">Active Filters</h3>

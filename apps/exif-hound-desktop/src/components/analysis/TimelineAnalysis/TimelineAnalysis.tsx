@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Group } from '@visx/group';
 import { scaleTime } from '@visx/scale';
 import { AxisBottom } from '@visx/axis';
@@ -25,29 +25,17 @@ interface TooltipNode {
 }
 
 const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = true }) => {
-  console.log('TimelineAnalysis rendering with props:', { 
-    imageCount: images.length, 
-    width, 
-    height, 
-    showStats 
-  });
-  
-  useEffect(() => {
-    console.log('Images data:', images);
-  }, [images]);
-  
   const [tooltipData, setTooltipData] = useState<TooltipNode | null>(null);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showStatsPanel, setShowStatsPanel] = useState(showStats);
-  const [selectedFilters, setSelectedFilters] = useState<Record<string, Set<string>>>({
-    images: new Set(images.map(img => img.file.name))
-  });
-  
-  // Use the set of selected images as a filter
+  // Deselected-images filter: an empty set means "show every image" (the same
+  // semantics the other investigation tools use). Deriving visibility from a
+  // snapshot taken in useState() went stale when images loaded after mount.
+  const [excludedImages, setExcludedImages] = useState<Set<string>>(new Set());
+
   const filteredImages = useMemo(() => {
-    const selectedImageIds = selectedFilters.images || new Set();
-    return images.filter(img => selectedImageIds.has(img.file.name));
-  }, [images, selectedFilters.images]);
+    return images.filter(img => !excludedImages.has(img.file.name));
+  }, [images, excludedImages]);
   
   // Create filter configuration
   const filterGroups = useMemo(() => [
@@ -63,19 +51,16 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
     }
   ], [images]);
   
-  // Handle filter changes
+  // Handle filter changes — an empty selection shows every image
   const handleFilterChange = (groupId: string, selectedOptions: Set<string>) => {
-    setSelectedFilters(prev => ({
-      ...prev,
-      [groupId]: selectedOptions
-    }));
+    if (groupId === 'images') {
+      setExcludedImages(new Set(images.map(img => img.file.name).filter(name => !selectedOptions.has(name))));
+    }
   };
   
   // Handle reset all filters
   const handleResetAll = () => {
-    setSelectedFilters({
-      images: new Set(images.map(img => img.file.name))
-    });
+    setExcludedImages(new Set());
   };
 
   const margin = { 
@@ -89,8 +74,6 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
 
   // Use our custom hook to get the timeline data with filtered images
   const timelineResult = useTimelineNodes(filteredImages);
-  
-  console.log('TimelineResult:', timelineResult);
 
   const timeStats = {
     total: timelineResult.totalImagesWithDate,
@@ -117,22 +100,32 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
     y: innerHeight / 2
   }));
 
-  console.log('Nodes prepared for rendering:', nodes);
-
   return (
     <div className="w-full h-full relative overflow-hidden">
       {/* Main Content */}
-      <div className={`h-full transition-[padding] duration-300 ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''} overflow-hidden`}>
+      <div className={`h-full ${showStatsPanel ? 'pr-64' : ''} ${showFilterPanel ? 'pr-64' : ''} overflow-hidden`}>
         <div className="p-4 h-full overflow-hidden">
           {/* Controls */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-app-white">Timeline Analysis</h3>
+          {/* Filter Toggle Button */}
+          <div className="flex justify-end items-center mb-4">
             <button
               onClick={() => setShowFilterPanel(!showFilterPanel)}
-              className="p-2 rounded-lg bg-app-gray-light/20 hover:bg-app-gray-light/30 text-app-white transition-colors flex items-center gap-2"
+              aria-expanded={showFilterPanel}
+              className={`px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2
+                ${
+                  excludedImages.size > 0
+                    ? 'glass-panel border border-app-accent/50'
+                    : 'glass-panel'
+                }
+              `}
             >
-              <Filter className="w-4 h-4" />
-              <span>Filter Images</span>
+              <Filter className={`w-4 h-4 ${excludedImages.size > 0 ? 'text-app-accent' : 'text-app-accent-dim'}`} />
+              <span className="text-sm font-medium text-app-white">Filter</span>
+              {excludedImages.size > 0 && (
+                <span className="px-1.5 py-0.5 text-xs rounded-full font-medium bg-app-accent text-app-black">
+                  {filteredImages.length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -210,7 +203,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                           <text
                             dy={i % 2 === 0 ? "-45" : "60"}
                             dx={0}
-                            fontSize={9}
+                            fontSize={10}
                             textAnchor="middle"
                             fill="var(--app-white)"
                             style={{
@@ -249,29 +242,14 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                           </div>
                           
                           <h2 className="text-xl font-semibold text-app-white mb-2">
-                            No Images Selected
+                            No Capture Dates Found
                           </h2>
                           
-                          <p className="text-app-accent-dim mb-6">
-                            Please select "Show All Images" or specific image files in the
-                            filter panel to view the timeline analysis visualization.
+                          <p className="text-app-accent-dim">
+                            None of the loaded images contain an original capture date
+                            (EXIF DateTimeOriginal), so there is nothing to plot on
+                            the timeline.
                           </p>
-                          
-                          <div className="flex gap-4 justify-center">
-                            <button
-                              onClick={() => handleFilterChange('images', new Set(images.map(img => img.file.name)))}
-                              className="py-2 px-4 bg-app-accent text-app-black font-medium rounded-lg hover:bg-app-accent/90 transition-colors"
-                            >
-                              Show All Images
-                            </button>
-                            
-                            <button
-                              onClick={() => setShowFilterPanel(true)}
-                              className="py-2 px-4 bg-app-gray-light/30 text-app-white font-medium rounded-lg hover:bg-app-gray-light/50 transition-colors"
-                            >
-                              Open Filters
-                            </button>
-                          </div>
                         </div>
                       </div>
                     </foreignObject>
@@ -284,7 +262,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                     left={tooltipData.x + margin.left + 10}
                     style={{
                       ...defaultStyles,
-                      background: "var(--app-gray-dark)",
+                      background: "var(--app-dark)",
                       border: "1px solid var(--app-gray-light)",
                       color: "var(--app-white)",
                       fontSize: 12
@@ -319,7 +297,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
         <div className="p-4 overflow-hidden">
           <h3 className="text-lg font-medium text-app-white mb-4">Timeline Stats</h3>
           <div className="space-y-4">
-            <div className="glass-panel p-3 rounded-lg">
+            <div className="stat-card p-3 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <Camera className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Images with Dates</h3>
@@ -327,25 +305,25 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
               <p className="text-2xl font-semibold text-app-white">{timeStats.total}</p>
             </div>
             {timeStats.earliestDate && (
-              <div className="glass-panel p-3 rounded-lg">
+              <div className="stat-card p-3 rounded-lg">
                 <h3 className="text-sm font-medium text-app-white mb-2">Earliest Date</h3>
-                <p className="text-md font-medium text-app-white">
+                <p className="text-sm font-medium text-app-white">
                   {formatDateTime(timeStats.earliestDate.toISOString())}
                 </p>
               </div>
             )}
             {timeStats.latestDate && (
-              <div className="glass-panel p-3 rounded-lg">
+              <div className="stat-card p-3 rounded-lg">
                 <h3 className="text-sm font-medium text-app-white mb-2">Latest Date</h3>
-                <p className="text-md font-medium text-app-white">
+                <p className="text-sm font-medium text-app-white">
                   {formatDateTime(timeStats.latestDate.toISOString())}
                 </p>
               </div>
             )}
             {timeStats.timeSpan && (
-              <div className="glass-panel p-3 rounded-lg">
+              <div className="stat-card p-3 rounded-lg">
                 <h3 className="text-sm font-medium text-app-white mb-2">Time Span</h3>
-                <p className="text-md font-medium text-app-white">{timeStats.timeSpan}</p>
+                <p className="text-sm font-medium text-app-white">{timeStats.timeSpan}</p>
               </div>
             )}
           </div>
@@ -357,18 +335,20 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
         <FilterPanel
           title="Filters"
           filterGroups={filterGroups}
-          selectedFilters={selectedFilters}
+          selectedFilters={{
+            images: new Set(images.map(img => img.file.name).filter(name => !excludedImages.has(name)))
+          }}
           onFilterChange={handleFilterChange}
           onResetAll={handleResetAll}
           onClose={() => setShowFilterPanel(false)}
           className="absolute top-0 right-0 h-full"
           style={{ width: "16rem" }}
           totalCount={{
-            current: selectedFilters.images?.size || 0,
+            current: filteredImages.length,
             total: images.length
           }}
           showAllToggle={{
-            isChecked: selectedFilters.images?.size === images.length,
+            isChecked: excludedImages.size === 0,
             onChange: (checked) => {
               if (checked) {
                 handleFilterChange('images', new Set(images.map(img => img.file.name)));
@@ -377,7 +357,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
               }
             },
             label: "Show All Images",
-            description: selectedFilters.images?.size === images.length 
+            description: excludedImages.size === 0 
               ? "Showing all images." 
               : "Select specific images below to filter results."
           }}
