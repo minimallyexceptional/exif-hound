@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
-import { ArrowUpDown, Camera, Clock, MapPin, Info, Settings2, Check } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Camera, Clock, MapPin, Info, Settings2, RotateCcw } from 'lucide-react';
 import { formatFileSize } from '../utils/formatters';
 import { formatShortDateTime } from '../utils/date';
 import { ImportedPoint } from '../utils/importData';
@@ -36,7 +36,7 @@ interface ColumnGroup {
 }
 
 /** Fixed row/header heights — rows are single-line, so virtual sizing is exact. */
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 48;
 const HEADER_HEIGHT = 40;
 const THUMB_WIDTH = 56;
 
@@ -51,8 +51,8 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     defaultEnabled: true,
     columns: [
       { id: 'name', label: 'Name', width: 'flex', sortField: 'name', value: (img) => img.file.name },
-      { id: 'size', label: 'Size', width: 90, align: 'right', sortField: 'size', value: (img) => formatFileSize(img.file.size) },
-      { id: 'type', label: 'Type', width: 80, value: (img) => img.file.type.split('/')[1]?.toUpperCase() || '—' },
+      { id: 'size', label: 'Size', width: 80, align: 'right', sortField: 'size', value: (img) => formatFileSize(img.file.size) },
+      { id: 'type', label: 'Type', width: 72, value: (img) => img.file.type.split('/')[1]?.toUpperCase() || '—' },
     ],
   },
   {
@@ -61,15 +61,15 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     icon: <Clock className="w-4 h-4" />,
     defaultEnabled: true,
     columns: [
-      { id: 'created', label: 'Created', width: 160, sortField: 'date', value: (img) => na(img.exif.dateTimeOriginal ? formatShortDateTime(img.exif.dateTimeOriginal) : null) },
-      { id: 'modified', label: 'Modified', width: 160, value: (img) => formatShortDateTime(new Date(img.file.lastModified).toISOString()) },
+      { id: 'created', label: 'Date Taken', width: 144, sortField: 'date', value: (img) => na(img.exif.dateTimeOriginal ? formatShortDateTime(img.exif.dateTimeOriginal) : null) },
+      { id: 'modified', label: 'Modified', width: 144, value: (img) => Number.isFinite(img.file.lastModified) ? formatShortDateTime(new Date(img.file.lastModified).toISOString()) : '—' },
     ],
   },
   {
     id: 'device',
     label: 'Device & Technical Info',
     icon: <Camera className="w-4 h-4" />,
-    defaultEnabled: true,
+    defaultEnabled: false,
     columns: [
       {
         id: 'device',
@@ -97,7 +97,7 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     id: 'metadata',
     label: 'Metadata',
     icon: <Info className="w-4 h-4" />,
-    defaultEnabled: true,
+    defaultEnabled: false,
     columns: [
       { id: 'description', label: 'Description', width: 200, value: (img) => na(img.exif.description) },
       { id: 'copyright', label: 'Copyright', width: 180, value: (img) => na(img.exif.copyright) },
@@ -129,6 +129,10 @@ const COLUMN_GROUPS: ColumnGroup[] = [
   },
 ];
 
+const DEFAULT_ENABLED_GROUPS = COLUMN_GROUPS
+  .filter(group => group.defaultEnabled)
+  .map(group => group.id);
+
 const cellClasses = (align?: 'right') =>
   `px-3 truncate ${align === 'right' ? 'text-right tabular-nums' : ''}`;
 
@@ -136,6 +140,8 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const columnSelectorRef = useRef<HTMLDivElement>(null);
+  const columnToggleRef = useRef<HTMLButtonElement>(null);
 
   const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
@@ -155,8 +161,13 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
         case 'name':
           return multiplier * a.file.name.localeCompare(b.file.name);
         case 'date': {
-          const dateA = a.exif.dateTimeOriginal ? new Date(a.exif.dateTimeOriginal).getTime() : 0;
-          const dateB = b.exif.dateTimeOriginal ? new Date(b.exif.dateTimeOriginal).getTime() : 0;
+          const dateA = a.exif.dateTimeOriginal ? new Date(a.exif.dateTimeOriginal).getTime() : Number.NaN;
+          const dateB = b.exif.dateTimeOriginal ? new Date(b.exif.dateTimeOriginal).getTime() : Number.NaN;
+          const validDateA = Number.isFinite(dateA);
+          const validDateB = Number.isFinite(dateB);
+          if (!validDateA && validDateB) return 1;
+          if (validDateA && !validDateB) return -1;
+          if (!validDateA || !validDateB) return 0;
           return multiplier * (dateA - dateB);
         }
         case 'size':
@@ -180,9 +191,28 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     });
   }, [sortedImages]);
 
-  const [enabledGroups, setEnabledGroups] = useState<string[]>(
-    COLUMN_GROUPS.filter(group => group.defaultEnabled).map(group => group.id)
-  );
+  const [enabledGroups, setEnabledGroups] = useState<string[]>(DEFAULT_ENABLED_GROUPS);
+
+  useEffect(() => {
+    if (!showColumnSelector) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!columnSelectorRef.current?.contains(event.target as Node) && !columnToggleRef.current?.contains(event.target as Node)) {
+        setShowColumnSelector(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowColumnSelector(false);
+        columnToggleRef.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showColumnSelector]);
 
   const toggleGroup = (groupId: string) => {
     setEnabledGroups(prev => {
@@ -244,59 +274,75 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
 
   if (imagesWithImages.length === 0) {
     return (
-      <div className="glass-panel p-6">
-        <div className="text-center">
-          <Camera className="w-12 h-12 mx-auto mb-3 text-app-white" />
-          <p className="text-app-white">No images available</p>
-        </div>
+      <div className="h-full min-h-0 flex flex-col items-center justify-center text-center px-6">
+        <Camera className="w-10 h-10 mb-3 text-app-accent-dim" aria-hidden="true" />
+        <h3 className="text-base font-medium text-app-white">No images to show</h3>
+        <p className="mt-1 max-w-sm text-sm text-app-accent-dim">Add image files to see their metadata in this list.</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 min-w-0 flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex justify-between items-center mb-3 flex-none">
-        <p className="text-sm text-app-accent-dim">
-          {imagesWithImages.length} {imagesWithImages.length === 1 ? 'image' : 'images'}
-        </p>
-        <div className="relative">
+      <div className="flex-none flex flex-wrap items-center justify-between gap-3 px-3 sm:px-4 py-3 border-b border-app-gray-light/30">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-sm font-medium text-app-white tabular-nums">{imagesWithImages.length.toLocaleString()}</span>
+          <span className="text-sm text-app-accent-dim">{imagesWithImages.length === 1 ? 'image' : 'images'}</span>
+          {selectedImage && imagesWithImages.some(image => image.id === selectedImage.id) && (
+            <span className="ml-1 border-l border-app-gray-light/50 pl-3 text-xs text-app-accent-dim">1 selected</span>
+          )}
+        </div>
+        <div className="relative" ref={columnSelectorRef}>
           <button
-            onClick={() => setShowColumnSelector(!showColumnSelector)}
-            className="flex items-center gap-2 px-3 py-2 rounded bg-app-gray-light/30 hover:bg-app-gray-light/50 transition-colors duration-200"
+            ref={columnToggleRef}
+            type="button"
+            onClick={() => setShowColumnSelector(open => !open)}
+            aria-label="Customize visible columns"
+            aria-expanded={showColumnSelector}
+            aria-controls="image-list-columns"
+            className="min-h-10 flex items-center gap-2 rounded-lg border border-app-gray-light/50 bg-app-gray-light/20 px-3 py-2 text-sm text-app-white transition-colors duration-200 hover:bg-app-gray-light/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
           >
-            <Settings2 className="w-4 h-4 text-app-accent" />
-            <span className="text-app-white">Customize Columns</span>
+            <Settings2 className="w-4 h-4 text-app-accent-dim" aria-hidden="true" />
+            <span>Columns</span>
           </button>
 
           {showColumnSelector && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-app-gray rounded-lg shadow-lg z-30 p-2 border border-app-gray-light/30">
-              {COLUMN_GROUPS.map(group => (
-                <label
-                  key={group.id}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-app-gray-light/30 rounded cursor-pointer"
+            <div id="image-list-columns" className="absolute right-0 top-full z-30 mt-2 max-h-[calc(100dvh-8rem)] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-app-gray-light/50 bg-app-gray p-3 shadow-xl" role="group" aria-label="Visible column groups">
+              <div className="mb-2 flex items-center justify-between gap-3 border-b border-app-gray-light/30 pb-2">
+                <div>
+                  <h3 className="text-sm font-medium text-app-white">Visible columns</h3>
+                  <p className="mt-0.5 text-xs text-app-accent-dim">Choose which data groups appear.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnabledGroups(DEFAULT_ENABLED_GROUPS)}
+                  className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs text-app-accent-dim transition-colors hover:bg-app-gray-light/40 hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-app-accent"
+                  aria-label="Reset columns to defaults"
                 >
-                  <input
-                    type="checkbox"
-                    checked={enabledGroups.includes(group.id)}
-                    onChange={() => toggleGroup(group.id)}
-                    className="hidden"
-                  />
-                  <div className={`w-4 h-4 border rounded flex items-center justify-center ${
-                    enabledGroups.includes(group.id)
-                      ? 'bg-app-accent border-app-accent'
-                      : 'border-app-accent-dim'
-                  }`}>
-                    {enabledGroups.includes(group.id) && (
-                      <Check className="w-3 h-3 text-app-white" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {group.icon}
-                    <span className="text-app-white">{group.label}</span>
-                  </div>
-                </label>
-              ))}
+                  <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                  Reset
+                </button>
+              </div>
+              <div className="max-h-[min(60vh,24rem)] space-y-0.5 overflow-y-auto">
+                {COLUMN_GROUPS.map(group => (
+                  <label
+                    key={group.id}
+                    className="flex min-h-10 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-app-gray-light/30 focus-within:bg-app-gray-light/30"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enabledGroups.includes(group.id)}
+                      onChange={() => toggleGroup(group.id)}
+                      className="h-4 w-4 accent-app-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                    />
+                    <span className="flex items-center gap-2 text-sm text-app-white">
+                      {group.icon}
+                      {group.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -310,7 +356,9 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
           ref={parentRef}
           role="grid"
           aria-label="Image metadata spreadsheet"
-          className="h-full overflow-auto"
+          className="h-full overflow-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent"
+          aria-rowcount={imagesWithImages.length + 1}
+          aria-colcount={activeColumns.length + 1}
         >
           <div style={{ minWidth: '100%', width: minTableWidth }}>
             {/* Sticky header row */}
@@ -319,7 +367,7 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
               className="sticky top-0 z-20 grid bg-app-gray border-b border-app-gray-light/40"
               style={{ gridTemplateColumns, height: HEADER_HEIGHT }}
             >
-              <div role="columnheader" className="border-r border-app-gray-light/20" aria-label="Thumbnail" />
+              <div role="columnheader" className="border-r border-app-gray-light/20" aria-label="Preview" />
               {activeColumns.map(column => {
                 const sortable = Boolean(column.sortField);
                 const isActiveSort = sortable && sortField === column.sortField;
@@ -327,18 +375,24 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                   <div
                     key={column.id}
                     role="columnheader"
-                    onClick={() => sortable && handleSort(column.sortField!)}
-                    className={`${cellClasses(column.align)} border-l border-app-gray-light/20 h-full flex items-center ${
-                      sortable ? 'cursor-pointer select-none hover:bg-app-gray-light/40' : ''
-                    }`}
+                    className={`${sortable ? 'p-0' : 'px-3'} border-l border-app-gray-light/20 h-full flex items-center`}
                     aria-sort={isActiveSort ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined}
                   >
-                    <span className="text-xs font-semibold uppercase tracking-wide text-app-accent-dim flex items-center gap-1">
-                      {column.label}
-                      {sortable && (
-                        <ArrowUpDown className={`w-3 h-3 ${isActiveSort ? 'text-app-white' : 'text-app-accent-dim/50'}`} />
-                      )}
-                    </span>
+                    {sortable ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSort(column.sortField!)}
+                        className={`flex h-full w-full items-center gap-1.5 px-3 text-xs font-semibold uppercase tracking-wide text-app-accent-dim transition-colors hover:bg-app-gray-light/40 hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent ${column.align === 'right' ? 'justify-end text-right' : 'text-left'}`}
+                        aria-label={`Sort by ${column.label}${isActiveSort ? `, currently ${sortDirection === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+                      >
+                        {column.label}
+                        {isActiveSort ? (
+                          sortDirection === 'asc' ? <ArrowUp className="h-3.5 w-3.5 text-app-white" aria-hidden="true" /> : <ArrowDown className="h-3.5 w-3.5 text-app-white" aria-hidden="true" />
+                        ) : <ArrowUpDown className="h-3.5 w-3.5 text-app-accent-dim/50" aria-hidden="true" />}
+                      </button>
+                    ) : (
+                      <span className="px-3 text-xs font-semibold uppercase tracking-wide text-app-accent-dim">{column.label}</span>
+                    )}
                   </div>
                 );
               })}
@@ -353,9 +407,18 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                   <div
                     key={virtualItem.key}
                     role="row"
+                    aria-rowindex={virtualItem.index + 2}
+                    aria-selected={isSelected}
+                    tabIndex={0}
                     onClick={() => onSelect(image)}
-                    className={`grid items-stretch cursor-pointer border-b border-app-gray-light/10 transition-colors duration-150 hover:bg-app-gray-light/30 ${
-                      isSelected ? 'bg-app-gray-light/40' : ''
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onSelect(image);
+                      }
+                    }}
+                    className={`group grid items-stretch cursor-pointer border-b border-app-gray-light/10 outline-none transition-colors duration-150 hover:bg-app-gray-light/30 focus-visible:bg-app-gray-light/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-app-accent/70 ${
+                      isSelected ? 'bg-app-accent/10' : ''
                     }`}
                     style={{
                       position: 'absolute',
@@ -365,7 +428,7 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                       height: ROW_HEIGHT,
                       transform: `translateY(${virtualItem.start}px)`,
                       gridTemplateColumns,
-                      boxShadow: isSelected ? 'inset 2px 0 0 var(--app-accent-dim)' : undefined,
+                      boxShadow: isSelected ? 'inset 3px 0 0 var(--app-accent)' : undefined,
                     }}
                   >
                     {/* Thumbnail */}

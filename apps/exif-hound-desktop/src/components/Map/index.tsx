@@ -23,6 +23,7 @@ import './styles/controls.css';
 interface MapProps {
   images: (ImageData | ImportedPoint)[];
   selectedImage: ImageData | null;
+  gallerySelectionRequest?: number;
   showRoute?: boolean;
   onToggleRoute: () => void;
   onSelectImage: (image: ImageData) => void;
@@ -34,16 +35,57 @@ interface MapProps {
 const MapInteractionHandler: React.FC<{ 
   selectedImage: ImageData | null;
   fromReticle?: boolean;
-}> = ({ selectedImage, fromReticle }) => {
+  gallerySelectionRequest: number;
+  reticleVisible: boolean;
+  onReticleVisibilityChange: (visible: boolean) => void;
+}> = ({ selectedImage, fromReticle, gallerySelectionRequest, reticleVisible, onReticleVisibilityChange }) => {
   const map = useMap();
+  const previousGalleryRequest = React.useRef(gallerySelectionRequest);
+  const galleryHandledImageId = React.useRef<string | null>(null);
 
   useEffect(() => {
-    if (selectedImage && selectedImage.exif.latitude && selectedImage.exif.longitude && !fromReticle) {
+    if (!gallerySelectionRequest || previousGalleryRequest.current === gallerySelectionRequest || !selectedImage) return;
+    previousGalleryRequest.current = gallerySelectionRequest;
+
+    const { latitude, longitude } = selectedImage.exif;
+    if (latitude == null || longitude == null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+    const shouldRestoreReticle = reticleVisible;
+    galleryHandledImageId.current = selectedImage.id;
+    if (shouldRestoreReticle) onReticleVisibilityChange(false);
+
+    if (!shouldRestoreReticle) {
+      map.flyTo([latitude, longitude], 16, { duration: 0.3, easeLinearity: 0.25 });
+      return;
+    }
+
+    const restoreReticle = () => {
+      clearTimeout(restoreTimer);
+      map.off('moveend', restoreReticle);
+      onReticleVisibilityChange(true);
+    };
+    map.once('moveend', restoreReticle);
+    const restoreTimer: ReturnType<typeof setTimeout> = setTimeout(restoreReticle, 1000);
+    map.flyTo([latitude, longitude], 16, { duration: 0.3, easeLinearity: 0.25 });
+
+    return () => {
+      if (restoreTimer) clearTimeout(restoreTimer);
+      map.off('moveend', restoreReticle);
+      onReticleVisibilityChange(true);
+    };
+  }, [gallerySelectionRequest, map, onReticleVisibilityChange, reticleVisible, selectedImage]);
+
+  useEffect(() => {
+    if (selectedImage && selectedImage.exif.latitude != null && selectedImage.exif.longitude != null && !fromReticle) {
+      if (galleryHandledImageId.current === selectedImage.id) {
+        galleryHandledImageId.current = null;
+        return;
+      }
       map.flyTo(
         [selectedImage.exif.latitude, selectedImage.exif.longitude],
         16, // Zoom level
         {
-          duration: 1.5, // Animation duration in seconds
+          duration: 0.3, // Animation duration in seconds
           easeLinearity: 0.25
         }
       );
@@ -56,6 +98,7 @@ const MapInteractionHandler: React.FC<{
 const Map: React.FC<MapProps> = ({
   images,
   selectedImage,
+  gallerySelectionRequest = 0,
   showRoute = false,
   onToggleRoute,
   onSelectImage,
@@ -67,6 +110,7 @@ const Map: React.FC<MapProps> = ({
   const [showHeatmap, setShowHeatmap] = React.useState(false);
   const [showClusters, setShowClusters] = React.useState(false);
   const [showReticle, setShowReticle] = React.useState(true);
+  const [isReticleTemporarilyHidden, setIsReticleTemporarilyHidden] = React.useState(false);
   const [fromReticle, setFromReticle] = React.useState(false);
 
   // Separate CSV data
@@ -92,9 +136,10 @@ const Map: React.FC<MapProps> = ({
     setShowClusters(!showClusters);
   };
 
-  const handleReticleToggle = () => {
-    setShowReticle(!showReticle);
-  };
+  const handleReticleToggle = React.useCallback(() => setShowReticle(visible => !visible), []);
+  const handleReticleVisibilityChange = React.useCallback((visible: boolean) => {
+    setIsReticleTemporarilyHidden(!visible);
+  }, []);
 
   const handleImageSelect = (image: ImageData, fromReticle?: boolean) => {
     setFromReticle(!!fromReticle);
@@ -108,7 +153,13 @@ const Map: React.FC<MapProps> = ({
         zoom={13}
         className={`w-full h-full ${isFullscreen ? 'fullscreen' : ''}`}
       >
-        <MapInteractionHandler selectedImage={selectedImage} fromReticle={fromReticle} />
+        <MapInteractionHandler
+          selectedImage={selectedImage}
+          fromReticle={fromReticle}
+          gallerySelectionRequest={gallerySelectionRequest}
+          reticleVisible={showReticle}
+          onReticleVisibilityChange={handleReticleVisibilityChange}
+        />
         <MapLayers 
           defaultLayer="OpenStreetMap"
           csvData={csvData}
@@ -143,7 +194,7 @@ const Map: React.FC<MapProps> = ({
           <ImageRoute images={sortedImages} />
         )}
 
-        {showReticle && (
+        {showReticle && !isReticleTemporarilyHidden && (
           <ReticleLayer 
             images={imagesWithLocation}
             onSelectImage={handleImageSelect}
@@ -154,4 +205,4 @@ const Map: React.FC<MapProps> = ({
   );
 };
 
-export default Map; 
+export default Map;

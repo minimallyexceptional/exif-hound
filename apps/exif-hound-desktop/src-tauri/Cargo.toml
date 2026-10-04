@@ -1,6 +1,6 @@
 [package]
 name = "exif-hound"
-version = "2.5.2"
+version = "2.6.0"
 description = "Exif metadata explorer and map visualization tool"
 authors = ["Exif Hound Team"]
 license = "MIT"
