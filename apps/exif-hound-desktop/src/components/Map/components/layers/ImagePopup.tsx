@@ -19,13 +19,13 @@ const ImagePopupComponent: React.FC<ImagePopupProps> = ({ image }) => {
           />
         </div>
         <div className="p-3 space-y-2">
-          <p className="font-medium truncate" title={image.file.name}>
+          <p className="font-medium truncate selectable-value" title={image.file.name}>
             {image.file.name}
           </p>
-          <p className="text-app-accent-dim text-sm">
+          <p className="text-app-accent-dim text-sm selectable-value">
             {formatDateTime(image.exif.dateTimeOriginal ?? '')}
           </p>
-          <div className="text-xs text-app-accent-dim">
+          <div className="text-xs text-app-accent-dim selectable-value">
             <p>Lat: {image.exif.latitude?.toFixed(6)}</p>
             <p>Lon: {image.exif.longitude?.toFixed(6)}</p>
           </div>
