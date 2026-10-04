@@ -1,5 +1,3 @@
-import ExifWorker from '../../workers/exifWorker';
-
 // Mock the worker environment
 const mockPostMessage = jest.fn();
 const mockAddEventListener = jest.fn();
@@ -47,7 +45,7 @@ describe('EXIF Worker Performance', () => {
 
     // Mock worker response
     let messageHandler: (event: MessageEvent) => void;
-    mockAddEventListener.mockImplementation((event: string, handler: any) => {
+    mockAddEventListener.mockImplementation((event: string, handler: EventListener) => {
       if (event === 'message') {
         messageHandler = handler;
       }
@@ -95,7 +93,7 @@ describe('EXIF Worker Performance', () => {
   test('should handle worker errors gracefully', async () => {
     let errorHandler: (event: ErrorEvent) => void;
     
-    mockAddEventListener.mockImplementation((event: string, handler: any) => {
+    mockAddEventListener.mockImplementation((event: string, handler: EventListener) => {
       if (event === 'error') {
         errorHandler = handler;
       }

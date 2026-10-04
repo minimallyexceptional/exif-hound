@@ -13,6 +13,7 @@ import {
   Tag
 } from 'lucide-react';
 import { ImageData } from '../types';
+import type { ExpandedTags } from 'exifreader';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
 import { formatDateTime, formatDateOnly } from '../utils/date';
@@ -20,7 +21,7 @@ import { formatLocation } from '../utils/geocoding';
 
 interface Props {
   image: ImageData;
-  rawExif: Record<string, unknown>;
+  rawExif: ExpandedTags;
   onBack: () => void;
 }
 

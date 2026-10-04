@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
@@ -7,7 +7,6 @@ import ImageList from './components/ImageList';
 import ExportModal from './components/ExportModal';
 import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
-import SplashScreen from './components/SplashScreen';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
 import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -29,7 +28,6 @@ function App() {
   const selectedImage = images.find((image) => image.id === selectedImageId) ?? null;
   const [showRoute, setShowRoute] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [isLoading, setIsLoading] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -39,11 +37,6 @@ function App() {
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
   const [importError, setImportError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Remove artificial delay - app should be interactive immediately
-    setIsLoading(false);
-  }, []);
 
   const handleImageUpload = (imageData: ImageData) => {
     // ImageUploader emits each image twice (placeholder while processing, then
@@ -55,7 +48,7 @@ function App() {
       next[index] = imageData;
       return next;
     });
-    if (imageData.isProcessing || selectedImageId === null) {
+    if (imageData.isProcessing || selectedImageId === null || selectedImageId === imageData.id) {
       setSelectedImageId(imageData.id);
     }
   };
@@ -155,10 +148,6 @@ function App() {
         return null;
     }
   };
-
-  if (isLoading) {
-    return <SplashScreen />;
-  }
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">

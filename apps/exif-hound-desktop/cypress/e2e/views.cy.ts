@@ -66,7 +66,7 @@ describe('Views and navigation', () => {
   });
 
   it('selects images from the gallery', () => {
-    // Click the no-gps thumbnail; the details panel should follow.
+    // Select the no-gps thumbnail with the keyboard; the details panel should follow.
     cy.get(`[data-testid="gallery-item"][data-file-name="${FIXTURE_IMAGES.noGps.name}"]`)
       .focus().type('{enter}');
     cy.get(`[data-testid="gallery-item"][data-file-name="${FIXTURE_IMAGES.noGps.name}"]`)

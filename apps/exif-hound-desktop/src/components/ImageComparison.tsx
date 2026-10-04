@@ -39,16 +39,17 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
 
         // If no base64, try the other methods
         // Helper function to safely extract thumbnail data
-        const getThumbnailData = (tag: any, tagName: string) => {
+        const getThumbnailData = (tag: unknown, tagName: string) => {
           try {
-            if (!tag) {
+            if (!tag || typeof tag !== 'object') {
               return undefined;
             }
+            const tagRecord = tag as Record<string, unknown>;
             
             // Handle JPEGInterchangeFormat format
-            if ('JPEGInterchangeFormat' in tag && 'JPEGInterchangeFormatLength' in tag) {
-              const offset = tag.JPEGInterchangeFormat.value;
-              const length = tag.JPEGInterchangeFormatLength.value;
+            if ('JPEGInterchangeFormat' in tagRecord && 'JPEGInterchangeFormatLength' in tagRecord) {
+              const offset = (tagRecord.JPEGInterchangeFormat as { value?: number }).value;
+              const length = (tagRecord.JPEGInterchangeFormatLength as { value?: number }).value;
               
               if (offset && length) {
                 // Extract the thumbnail data from the buffer
@@ -57,9 +58,9 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
             }
             
             // Check if the tag has base64 property
-            if ('base64' in tag && typeof tag.base64 === 'string') {
+            if ('base64' in tagRecord && typeof tagRecord.base64 === 'string') {
               // Convert base64 string to ArrayBuffer
-              const binaryString = atob(tag.base64);
+              const binaryString = atob(tagRecord.base64);
               const len = binaryString.length;
               const bytes = new Uint8Array(len);
               for (let i = 0; i < len; i++) {
@@ -69,8 +70,8 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
             }
             
             // Check if the tag has a value property
-            if ('value' in tag) {
-              const value = tag.value;
+            if ('value' in tagRecord) {
+              const value = tagRecord.value;
               
               // Handle different types of values
               if (value instanceof ArrayBuffer) {

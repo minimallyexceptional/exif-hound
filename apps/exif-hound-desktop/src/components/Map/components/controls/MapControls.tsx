@@ -4,6 +4,12 @@ import L from 'leaflet';
 import 'leaflet-fullscreen';
 import '../../styles/controls.css';
 
+interface FullscreenLeafletControl extends L.Control {
+  Fullscreen: new (options?: L.FullscreenOptions) => L.Control;
+}
+
+const LeafletControl = L.Control as unknown as FullscreenLeafletControl;
+
 // Extend Control interface to include Fullscreen
 declare module 'leaflet' {
   export interface FullscreenOptions extends L.ControlOptions {
@@ -14,23 +20,13 @@ declare module 'leaflet' {
     forceSeparateButton?: boolean;
     forcePseudoFullscreen?: boolean;
   }
-}
 
-// Add Fullscreen to L.Control
-declare global {
-  namespace L {
-    namespace Control {
-      class Fullscreen extends Control {
-        constructor(options?: FullscreenOptions);
-      }
-    }
-  }
 }
 
 // Create fullscreen control component
 const FullscreenControl = createControlComponent(
   () => {
-    return new L.Control.Fullscreen({
+    return new LeafletControl.Fullscreen({
       position: 'topleft',
       title: {
         'false': 'View Fullscreen',
@@ -62,7 +58,6 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
   showClusters = true,
   showReticle = false,
   onToggleRoute = () => {},
-  onToggleFullscreen = () => {},
   onOpenImport = () => {},
   onToggleHeatmap = () => {},
   onToggleClusters = () => {},
@@ -72,12 +67,12 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
   return (
     <>
       {showFullscreen && <FullscreenControl position={fullscreenPosition} />}
-      
+
       {/* Custom controls for route toggle, import, etc. */}
       <div className="leaflet-control-container">
         <div className="leaflet-top leaflet-right">
           <div className="leaflet-control leaflet-bar">
-            <button 
+            <button
               onClick={onToggleReticle}
               className={`border-b ${showReticle ? 'toggle-active' : 'toggle-inactive'}`}
               title={showReticle ? "Hide Reticle" : "Show Reticle"}
@@ -89,7 +84,7 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
               </svg>
             </button>
 
-            <button 
+            <button
               onClick={onToggleRoute}
               className={`border-b ${showRoute ? 'toggle-active' : 'toggle-inactive'}`}
               title={showRoute ? "Hide Route" : "Show Route"}
@@ -98,8 +93,8 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </button>
-            
-            <button 
+
+            <button
               onClick={onToggleHeatmap}
               className={`border-b ${showHeatmap ? 'toggle-active' : 'toggle-inactive'}`}
               title={showHeatmap ? "Show Markers" : "Show Heatmap"}
@@ -110,7 +105,7 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
               </svg>
             </button>
 
-            <button 
+            <button
               onClick={onToggleClusters}
               className={`border-b ${showClusters ? 'toggle-active' : 'toggle-inactive'}`}
               title={showClusters ? "Show Individual Markers" : "Show Clusters"}
@@ -123,7 +118,7 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
               </svg>
             </button>
 
-            <button 
+            <button
               onClick={onOpenImport}
               className="toggle-inactive"
               title="Import Data"
@@ -141,4 +136,4 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
 };
 
 // Export memoized component to prevent unnecessary re-renders
-export const MapControls = memo(MapControlsComponent); 
+export const MapControls = memo(MapControlsComponent);

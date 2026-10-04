@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+set -e
+
+npm run lint --workspace=exif-hound-desktop
+npm run typecheck --workspace=exif-hound-desktop
+npm test --workspace=exif-hound-desktop -- --runInBand
+npm run cy:run:chromium --workspace=exif-hound-desktop
+npm run build --workspace=exif-hound-desktop
