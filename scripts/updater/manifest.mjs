@@ -32,7 +32,7 @@ export const SUPPORTED_TARGETS = [
 ];
 
 /** Targets the release pipeline actually builds today. */
-export const RELEASED_TARGETS = ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64'];
+export const RELEASED_TARGETS = ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64'];
 
 export function feedUrl(channel) {
   return `https://updates.exifhound.com/${channel}/latest.json`;

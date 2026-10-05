@@ -202,5 +202,5 @@ test('rejects URLs pointing at the wrong tag or repo', () => {
 });
 
 test('RELEASED_TARGETS matches what the pipeline actually builds', () => {
-  assert.deepEqual(RELEASED_TARGETS, ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64']);
+  assert.deepEqual(RELEASED_TARGETS, ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64']);
 });
