@@ -51,6 +51,11 @@ operating systems, so run the build on each platform (e.g. a CI matrix) to
 produce Windows/Linux/macOS releases. Extra bundle targets can be passed
 through: `npm run tauri:build -- --bundles "nsis"`.
 
+The release workflow publishes Linux x86_64 and ARM64 builds. On Kali Linux
+ARM64, install the `arm64.deb` package from the GitHub release page; the
+ARM64 AppImage is also provided. Both packages require a compatible GTK 3 and
+WebKitGTK 4.1 runtime, which Tauri's Debian package metadata declares.
+
 ### End-to-End Tests (Playwright)
 
 Playwright runs the real UI in Chromium against a dedicated Vite dev server

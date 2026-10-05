@@ -23,6 +23,14 @@
     "http:allow-fetch-read-body",
     "http:allow-fetch-send",
     "updater:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/minimallyexceptional/exif-hound"
+        }
+      ]
+    },
     "process:default",
     {
       "identifier": "http:default",
