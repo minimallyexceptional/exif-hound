@@ -2,11 +2,18 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
+import fs from 'fs';
 
 const isDev = process.env.TAURI_DEBUG === 'true';
 
 // Get the absolute path to the packages directory
 const packagesDir = path.resolve(__dirname, '../../packages');
+
+// App version is sourced from tauri.conf.json — the single authoritative
+// version for the release pipeline (CI reads it there too).
+const appVersion = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, 'src-tauri/tauri.conf.json'), 'utf8'),
+).version as string;
 
 // Update channel baked into the frontend for display/diagnostics only.
 // The actual feed URL is configured in the matching Tauri channel overlay.
@@ -21,6 +28,8 @@ export default defineConfig({
     // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
     // (ts-jest/Jest 30 treat files containing import.meta as ESM).
     __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
+    // App version from tauri.conf.json (the authoritative version source)
+    __APP_VERSION__: JSON.stringify(appVersion),
     // Update channel this build listens to ('stable' | 'beta' | 'internal')
     __UPDATE_CHANNEL__: JSON.stringify(updateChannel),
   },

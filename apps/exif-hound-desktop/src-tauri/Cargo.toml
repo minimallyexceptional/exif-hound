@@ -1,6 +1,9 @@
 [package]
 name = "exif-hound"
-version = "2.6.1"
+# NOT the release version. The release pipeline, bundle, installers, and
+# updater manifest all take the app version from src-tauri/tauri.conf.json.
+# This constant is frozen so Cargo.toml and Cargo.lock require no edits per release.
+version = "0.1.0"
 description = "Exif metadata explorer and map visualization tool"
 authors = ["Exif Hound Team"]
 license = "MIT"

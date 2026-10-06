@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 // Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
 // Kept false in tests to mirror production behavior and silence dev logging.
 (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
+(globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = '0.0.0-test';
 (globalThis as { __UPDATE_CHANNEL__?: string }).__UPDATE_CHANNEL__ = 'stable';
 
 // jsdom does not implement blob URL methods

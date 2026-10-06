@@ -75,7 +75,7 @@ const SplashScreen: React.FC = () => {
         <div className={`text-center mt-16 font-mono text-xs text-app-accent-dim transition-all duration-700 ${
           showTertiary ? 'opacity-100' : 'opacity-0'
         }`}>
-          SYSTEM v2.6.1
+          SYSTEM v{__APP_VERSION__}
         </div>
       </div>
     </div>

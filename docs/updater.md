@@ -97,19 +97,43 @@ configuration.
 The workflow in `.github/workflows/release.yml` performs these steps:
 
 1. Validate that the release version matches `tauri.conf.json`.
-2. Build macOS Apple Silicon, Windows x64, and Linux x64 artifacts.
-3. Sign updater artifacts with the Community private key.
-4. Stage installers and signatures from all platforms.
-5. Generate and validate `latest.json` from the staged files.
-6. Create a draft GitHub release, upload every file, then publish it only after
+2. Check that `tauri.conf.json`, the desktop `package.json`, and the root
+   `package-lock.json` agree on the version (`scripts/release/check-version-consistency.mjs`).
+3. Refuse to run if the target release already exists and is published
+   (non-draft). These two guards run before any platform build, so a misfire
+   costs seconds, not a full build matrix.
+4. Build macOS Apple Silicon, Windows x64, and Linux x64 and ARM64 artifacts.
+5. Sign updater artifacts with the Community private key.
+6. Stage installers and signatures from all platforms.
+7. Generate and validate `latest.json` from the staged files.
+8. Create a draft GitHub release, upload every file, then publish it only after
    all uploads succeed.
-7. Publish the validated manifest to that channel on `gh-pages`. If this step
+9. Publish the validated manifest to that channel on `gh-pages`. If this step
    fails, the release workflow reports failure and the update feed remains
    stale until the workflow is rerun or the manifest is published manually.
 
+### Version bumping
+
+`src-tauri/tauri.conf.json` is the single authoritative app version; the
+release pipeline reads it from there. The splash screen and the workspace
+`package.json`/`package-lock.json` are derived from it, and the Rust crate
+version is frozen (it is not the release version). To bump:
+
+```bash
+# 1. Edit the version in apps/exif-hound-desktop/src-tauri/tauri.conf.json
+npm run release:version   # syncs package.json + package-lock.json from tauri.conf.json
+git commit -am "Bump desktop app version to <version>" && git push origin main
+```
+
+`npm run release:version` is idempotent and refuses nothing; it reports
+"Already in sync" when there is nothing to change.
+
 ### Stable release
 
-Update the version consistently, commit it, then push an exact `v<version>` tag:
+After the version bump is on `main`, push an exact `v<version>` tag. That is
+the whole release action — the tag self-validates against the configured
+version, and the `github-pages` environment's deployment policy allows `v*`
+tag refs so the final Pages deployment is accepted:
 
 ```bash
 VERSION=$(node -p "require('./apps/exif-hound-desktop/src-tauri/tauri.conf.json').version")
@@ -117,7 +141,10 @@ git tag "v${VERSION}"
 git push origin "v${VERSION}"
 ```
 
-The workflow rejects a tag that does not exactly match the configured version.
+The workflow rejects a tag that does not exactly match the configured version,
+a set of version files that disagree, or a version that is already published —
+all before any build starts. If a tag push must be retried after a failure,
+delete the failed draft release (or wait for the workflow to be rerun) first.
 After the workflow completes, the generated `latest.json` is published at:
 
 ```text
