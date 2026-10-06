@@ -1,6 +1,7 @@
 {
   "name": "exif-hound-monorepo",
   "private": true,
+  "license": "MIT",
   "version": "2.5.1",
   "workspaces": [
     "apps/*",

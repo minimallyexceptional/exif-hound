@@ -1,6 +1,7 @@
 {
   "name": "exif-hound-desktop",
   "private": true,
+  "license": "MIT",
   "version": "2.6.5",
   "type": "module",
   "scripts": {
