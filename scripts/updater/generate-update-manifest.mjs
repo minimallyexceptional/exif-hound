@@ -11,8 +11,8 @@
  *     linux-x86_64/    Exif Hound_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm)
  *
  * The manifest references GitHub Release download URLs — binaries are hosted
- * there while clients permanently trust updates.exifhound.com, so storage can
- * migrate without shipping a new client.
+ * there while clients fetch the small manifest from the project's GitHub
+ * Pages site.
  *
  * Usage:
  *   node scripts/updater/generate-update-manifest.mjs \

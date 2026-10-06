@@ -1,8 +1,8 @@
 name: Release
 
 # Builds one signed Exif Hound app for Windows, Linux, and Apple Silicon.
-# Stable releases are triggered by v<version> tags. Manual runs can target
-# the stable or internal update channel. See docs/updater.md.
+# Stable releases are triggered by v<version> tags. Manual runs can target an
+# update channel. See docs/updater.md.
 on:
   push:
     tags:
@@ -14,7 +14,7 @@ on:
         required: true
         default: 'stable'
         type: choice
-        options: [stable, internal]
+        options: [stable, beta, internal]
 
 permissions:
   contents: write
@@ -57,11 +57,12 @@ jobs:
             fi
           else
             CHANNEL="$INPUT_CHANNEL"
-            if [ "$CHANNEL" = "stable" ]; then
-              TAG="v${VERSION}"
-            else
-              TAG="internal-v${VERSION}"
-            fi
+            case "$CHANNEL" in
+              stable)   TAG="v${VERSION}" ;;
+              beta)     TAG="beta-v${VERSION}" ;;
+              internal) TAG="internal-v${VERSION}" ;;
+              *) echo "::error::Unsupported channel: $CHANNEL"; exit 1 ;;
+            esac
           fi
 
           CONFIG=apps/exif-hound-desktop/src-tauri/tauri.conf.json
@@ -274,6 +275,9 @@ jobs:
     name: Publish release atomically
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    concurrency:
+      group: exif-hound-pages-publish
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -366,4 +370,13 @@ jobs:
           gh release edit "$TAG" --draft=false
 
           echo "Release $TAG published."
-          echo "Sync latest.json to https://updates.exifhound.com/${CHANNEL}/latest.json"
+          echo "Publish latest.json to GitHub Pages channel: ${CHANNEL}"
+
+      - name: Publish update manifest to GitHub Pages
+        env:
+          CHANNEL: ${{ needs.prepare.outputs.channel }}
+        run: |
+          node scripts/updater/publish-pages.mjs \
+            --site-dir update-site \
+            --channel "$CHANNEL" \
+            --manifest latest.json
