@@ -80,13 +80,8 @@ function parseCoordinate(coordinateStr: string, isLongitude = false, direction?:
         }
       }
       
-      // Auto-correct common western hemisphere values if they're positive
-      if (isLongitude && !direction && !hasDirectionInStr && value > 30 && value < 180) {
-        console.warn(`Detected likely Western hemisphere longitude value without direction: ${value}`);
-        console.warn(`Auto-correcting to negative value: ${-Math.abs(value)}`);
-        return -Math.abs(value);
-      }
-      
+      // Never guess the hemisphere: an unreadable reference must not flip the
+      // sign (a guess mirrored coordinates for eastern-hemisphere photos).
       return value;
     }
     
@@ -123,14 +118,8 @@ function parseCoordinate(coordinateStr: string, isLongitude = false, direction?:
     
     // Simple decimal degrees with no direction indicator
     const value = parseFloat(coordinateStr);
-    
-    // Auto-correct common western hemisphere values if they're positive
-    if (isLongitude && !direction && !hasDirectionInStr && value > 30 && value < 180) {
-      console.warn(`Detected likely Western hemisphere longitude value without direction: ${value}`);
-      console.warn(`Auto-correcting to negative value: ${-Math.abs(value)}`);
-      return -Math.abs(value);
-    }
-    
+    // Never guess the hemisphere: an unreadable reference must not flip the
+    // sign (a guess mirrored coordinates for eastern-hemisphere photos).
     return value;
   } catch (error) {
     console.error('Error parsing coordinate:', coordinateStr, error);
@@ -226,15 +215,31 @@ export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata
       metadata.dateTaken = new Date(year, month - 1, day, hour, minute, second);
     }
     
-    // GPSLatitude is always latitude and GPSLongitude is always longitude. Use
-    // the raw rational values so minutes/seconds are not truncated by parsing a
-    // display description, and apply the machine-readable hemisphere references.
-    const latitude = tags.GPSLatitude && tags.GPSLatitudeRef
+    // GPSLatitude is always latitude and GPSLongitude is always longitude.
+    // Prefer ExifReader's expanded gps group, which applies the hemisphere
+    // references itself and matches what the full-EXIF details panel shows.
+    // Our hand-rolled reference matching below is a fallback for files whose
+    // GPS group ExifReader cannot resolve — guessing signs there caused
+    // mirrored coordinates (e.g. a New Zealand photo rendered near the
+    // date line) whenever the reference encoding was unusual.
+    let latitude = tags.GPSLatitude && tags.GPSLatitudeRef
       ? parseGpsCoordinate(tags.GPSLatitude, tags.GPSLatitudeRef, 'latitude')
       : undefined;
-    const longitude = tags.GPSLongitude && tags.GPSLongitudeRef
+    let longitude = tags.GPSLongitude && tags.GPSLongitudeRef
       ? parseGpsCoordinate(tags.GPSLongitude, tags.GPSLongitudeRef, 'longitude')
       : undefined;
+
+    try {
+      const expanded = ExifReader.load(buffer, { expanded: true });
+      if (typeof expanded.gps?.Latitude === 'number' && Number.isFinite(expanded.gps.Latitude)) {
+        latitude = expanded.gps.Latitude;
+      }
+      if (typeof expanded.gps?.Longitude === 'number' && Number.isFinite(expanded.gps.Longitude)) {
+        longitude = expanded.gps.Longitude;
+      }
+    } catch {
+      // Keep the parsed values if the expanded load fails.
+    }
     
     // Special handling for North American coordinates without proper references
     if (latitude !== undefined && longitude !== undefined) {
