@@ -17,14 +17,14 @@ beforeEach(() => {
   for (const target of ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64']) {
     fs.mkdirSync(path.join(staging, target), { recursive: true });
   }
-  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz'), 'mac-bytes');
-  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz.sig'), 'SIG-MAC');
-  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe'), 'win-bytes');
-  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe.sig'), 'SIG-WIN');
-  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage'), 'linux-bytes');
-  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage.sig'), 'SIG-LINUX');
-  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif Hound_2.7.0_arm64.AppImage'), 'linux-arm-bytes');
-  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif Hound_2.7.0_arm64.AppImage.sig'), 'SIG-LINUX-ARM');
+  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif.Hound.app.tar.gz'), 'mac-bytes');
+  fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif.Hound.app.tar.gz.sig'), 'SIG-MAC');
+  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif.Hound_2.7.0_x64-setup.exe'), 'win-bytes');
+  fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif.Hound_2.7.0_x64-setup.exe.sig'), 'SIG-WIN');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.AppImage'), 'linux-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.AppImage.sig'), 'SIG-LINUX');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.AppImage'), 'linux-arm-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.AppImage.sig'), 'SIG-LINUX-ARM');
 });
 
 afterEach(() => {
@@ -85,7 +85,7 @@ test('generate produces a valid manifest from staged artifacts; validate accepts
   assert.equal(manifest.pub_date, '2026-10-12T18:00:00Z');
   assert.equal(
     manifest.platforms['darwin-aarch64'].url,
-    'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound.app.tar.gz'
+    'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound.app.tar.gz'
   );
   assert.equal(manifest.platforms['darwin-aarch64'].signature, 'SIG-MAC');
   assert.equal(manifest.platforms['windows-x86_64'].signature, 'SIG-WIN');
@@ -94,7 +94,7 @@ test('generate produces a valid manifest from staged artifacts; validate accepts
 });
 
 test('generate fails when a signature is missing', async () => {
-  fs.rmSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz.sig'));
+  fs.rmSync(path.join(staging, 'darwin-aarch64', 'Exif.Hound.app.tar.gz.sig'));
   await assertCliRejects(() => generate(), /missing updater signature/);
 });
 
@@ -104,19 +104,19 @@ test('generate fails when an artifact is missing for an expected target', async 
 });
 
 test('generate fails when a platform dir has no recognizable updater artifact', async () => {
-  fs.rmSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe'));
+  fs.rmSync(path.join(staging, 'windows-x86_64', 'Exif.Hound_2.7.0_x64-setup.exe'));
   await assertCliRejects(() => generate(), /no updater artifact found/);
 });
 
 test('generated manifest is rejected when a staged artifact is removed afterwards', async () => {
   await generate();
-  fs.rmSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage'));
+  fs.rmSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.AppImage'));
   await assertCliRejects(() => validateManifestCli(), /artifact missing from staging/);
 });
 
 test('generated manifest is rejected when a signature file is emptied afterwards', async () => {
   await generate();
-  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage.sig'), '');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.AppImage.sig'), '');
   await assertCliRejects(() => validateManifestCli(), /signature missing or empty/);
 });
 

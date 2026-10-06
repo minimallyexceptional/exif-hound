@@ -38,12 +38,22 @@ export function feedUrl(channel) {
   return `https://minimallyexceptional.github.io/exif-hound/${channel}/latest.json`;
 }
 
-const APP_NAME_PATTERN = /exif[ _-]?hound/i;
-const LEGACY_EDITION_PATTERN = /exif[ _-]?hound[ _-]?(?:community|pro)(?![a-z])/i;
+const APP_NAME_PATTERN = /exif[ ._-]?hound/i;
+const LEGACY_EDITION_PATTERN = /exif[ ._-]?hound[ ._-]?(?:community|pro)(?![a-z])/i;
+
+/**
+ * Normalizes artifact names so the app matcher recognizes both the staged
+ * product name ("Exif Hound") and GitHub's sanitized release asset name
+ * ("Exif.Hound"), plus legacy separators.
+ */
+export function normalizeArtifactName(filename) {
+  return String(filename).replace(/\.Hound/gi, ' Hound');
+}
 
 /** True when the artifact belongs to the consolidated Exif Hound app. */
 export function artifactMatchesApp(filename) {
-  return APP_NAME_PATTERN.test(filename) && !LEGACY_EDITION_PATTERN.test(filename);
+  const normalized = normalizeArtifactName(filename);
+  return APP_NAME_PATTERN.test(normalized) && !LEGACY_EDITION_PATTERN.test(normalized);
 }
 
 /** Safely extracts one artifact filename from a manifest URL. */
@@ -208,6 +218,13 @@ export function validateManifest(options) {
       if (!filename) {
         add(`platform ${target} url does not contain a safe artifact filename`);
         continue;
+      }
+      if (filename.includes(' ')) {
+        // GitHub replaces spaces in release asset names with dots at upload
+        // time. A space in the manifest URL therefore 404s: the stored asset
+        // name never matches the URL. Stage GitHub-safe names (dots) before
+        // manifest generation and upload instead.
+        add(`platform ${target} artifact filename contains a space, which GitHub renames at upload time (use GitHub-safe names, e.g. dots): ${filename}`);
       }
       if (!ARTIFACT_PATTERNS[target]?.test(filename)) {
         add(`platform ${target} artifact does not match the expected updater artifact naming: ${filename}`);

@@ -327,6 +327,18 @@ jobs:
             }
           done
 
+      - name: Normalize staged asset names
+        run: |
+          set -euo pipefail
+          # GitHub replaces spaces in release asset names with dots at upload
+          # time. Manifest URLs must reference the stored names, so rename
+          # before generating latest.json and uploading.
+          find staging -type f -name '* *' | while IFS= read -r file; do
+            target="${file// /.}"
+            mv "$file" "$target"
+            echo "normalized: $file -> $target"
+          done
+
       - name: Generate update manifest
         env:
           CHANNEL: ${{ needs.prepare.outputs.channel }}
@@ -393,6 +405,11 @@ jobs:
           fi
 
           gh release upload "$TAG" "${assets[@]}" latest.json --clobber
+
+          # The release must only become discoverable once every manifest URL
+          # matches the asset names GitHub actually stored.
+          node scripts/updater/verify-release-assets.mjs latest.json --repo "$GITHUB_REPOSITORY" --tag "$TAG"
+
           gh release edit "$TAG" --draft=false
 
           echo "Release $TAG published."
