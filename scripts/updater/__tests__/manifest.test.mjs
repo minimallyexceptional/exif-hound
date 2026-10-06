@@ -24,6 +24,10 @@ function goodManifest(overrides = {}) {
       signature: GOOD_SIGNATURE,
       url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_amd64.AppImage',
     },
+    'linux-aarch64': {
+      signature: GOOD_SIGNATURE,
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_arm64.AppImage',
+    },
     ...overrides.platforms,
   };
   return {

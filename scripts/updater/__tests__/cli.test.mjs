@@ -14,7 +14,7 @@ let staging;
 
 beforeEach(() => {
   staging = fs.mkdtempSync(path.join(os.tmpdir(), 'exifhound-manifest-'));
-  for (const target of ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64']) {
+  for (const target of ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64']) {
     fs.mkdirSync(path.join(staging, target), { recursive: true });
   }
   fs.writeFileSync(path.join(staging, 'darwin-aarch64', 'Exif Hound.app.tar.gz'), 'mac-bytes');
@@ -23,6 +23,8 @@ beforeEach(() => {
   fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif Hound_2.7.0_x64-setup.exe.sig'), 'SIG-WIN');
   fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage'), 'linux-bytes');
   fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif Hound_2.7.0_amd64.AppImage.sig'), 'SIG-LINUX');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif Hound_2.7.0_arm64.AppImage'), 'linux-arm-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif Hound_2.7.0_arm64.AppImage.sig'), 'SIG-LINUX-ARM');
 });
 
 afterEach(() => {
