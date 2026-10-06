@@ -83,7 +83,7 @@ test('verify-release-assets.mjs exits 1 when the live release has renamed assets
     pub_date: '2026-10-06T15:00:00Z',
     platforms: {
       'windows-x86_64': {
-        url: 'https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif%20Hound_2.6.2_x64-setup.exe',
+        url: 'https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.1/Exif%20Hound_2.6.1_x64-setup.exe',
         signature: 's',
       },
     },
@@ -92,10 +92,10 @@ test('verify-release-assets.mjs exits 1 when the live release has renamed assets
   const SCRIPT = path.join(SCRIPTS_DIR, 'verify-release-assets.mjs');
   await assert.rejects(
     execFileAsync(process.execPath, [SCRIPT, path.join(staging, 'latest.json'),
-      '--repo', 'minimallyexceptional/exif-hound', '--tag', 'v2.6.2']),
+      '--repo', 'minimallyexceptional/exif-hound', '--tag', 'v2.6.1']),
     error => {
       assert.match(String(error.stderr), /no release asset with that name exists/);
-      assert.match(String(error.stderr), /Exif.Hound_2\.6\.2_x64-setup\.exe/);
+      assert.match(String(error.stderr), /Exif.Hound_2\.6\.1_x64-setup\.exe/);
       return true;
     },
   );

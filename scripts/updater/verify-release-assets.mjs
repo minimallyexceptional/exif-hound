@@ -68,8 +68,8 @@ function runCli() {
   }
 
   const output = execFileSync('gh', [
-    'api', `repos/${values.repo}/releases/tags/${values.tag}`,
-    '--jq', '[.assets[].name] | join("\\n")',
+    'release', 'view', values.tag, '--repo', values.repo,
+    '--json', 'assets', '--jq', '[.assets[].name] | join("\\n")',
   ], { encoding: 'utf8' });
   const assetNames = output.split('\n').map(name => name.trim()).filter(Boolean);
 
