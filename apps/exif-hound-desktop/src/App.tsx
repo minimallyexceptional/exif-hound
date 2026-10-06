@@ -15,6 +15,7 @@ import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
+import { isFeatureEnabled } from './config/featureFlags';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -110,31 +111,33 @@ function App() {
       case 'list':
         return 'Image Details';
       case 'investigation':
-        return 'Investigation';
+        return isFeatureEnabled('investigation') ? 'Investigation' : 'Location Map';
       default:
         return '';
     }
   };
 
+  const renderMap = () => (
+    <Suspense fallback={<div className="flex items-center justify-center h-full">
+      <div className="text-app-white">Loading map...</div>
+    </div>}>
+      <Map
+        images={images}
+        selectedImage={selectedImage}
+        gallerySelectionRequest={gallerySelectionRequest}
+        showRoute={showRoute}
+        onToggleRoute={handleRouteClick}
+        onSelectImage={handleSelectImage}
+        onOpenImport={() => setShowImportModal(true)}
+        importedData={importedData}
+      />
+    </Suspense>
+  );
+
   const renderView = () => {
     switch (viewMode) {
       case 'map':
-        return (
-          <Suspense fallback={<div className="flex items-center justify-center h-full">
-            <div className="text-app-white">Loading map...</div>
-          </div>}>
-            <Map
-              images={images}
-              selectedImage={selectedImage}
-              gallerySelectionRequest={gallerySelectionRequest}
-              showRoute={showRoute}
-              onToggleRoute={handleRouteClick}
-              onSelectImage={handleSelectImage}
-              onOpenImport={() => setShowImportModal(true)}
-              importedData={importedData}
-            />
-          </Suspense>
-        );
+        return renderMap();
       case 'list':
         return (
           <ImageList
@@ -144,6 +147,9 @@ function App() {
           />
         );
       case 'investigation':
+        // Defensive: the flag gates all entry points, so this only triggers if
+        // a gated view is requested in a build without the flag.
+        if (!isFeatureEnabled('investigation')) return renderMap();
         return (
           <Suspense fallback={<div className="flex items-center justify-center h-full">
             <div className="text-app-white">Loading investigation tools...</div>
