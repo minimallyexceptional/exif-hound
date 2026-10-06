@@ -18,7 +18,7 @@ const GalleryItem = React.memo<{
 }>(({ image, isSelected, onSelect }) => (
   <button
     type="button"
-    className="flex-none text-left"
+    className="block w-full flex-none text-left"
     data-testid="gallery-item"
     data-file-name={image.file.name}
     data-processing={String(image.isProcessing ?? false)}
@@ -32,10 +32,10 @@ const GalleryItem = React.memo<{
       }
     }}
   >
-    <div className={`relative cursor-pointer transition-transform duration-200 ${
+    <div className={`relative w-full cursor-pointer transition-transform duration-200 ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
     }`}>
-      <div className="aspect-[3/2] rounded-lg overflow-hidden shadow-lg">
+      <div className="aspect-[3/2] w-full rounded-lg overflow-hidden shadow-lg">
         <img
           src={image.url}
           alt={image.file.name}
