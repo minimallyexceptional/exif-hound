@@ -275,6 +275,13 @@ jobs:
     name: Publish release atomically
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     concurrency:
       group: exif-hound-pages-publish
       cancel-in-progress: false
@@ -380,3 +387,16 @@ jobs:
             --site-dir update-site \
             --channel "$CHANNEL" \
             --manifest latest.json
+
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published-site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: published-site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
