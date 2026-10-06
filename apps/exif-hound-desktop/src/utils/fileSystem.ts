@@ -44,21 +44,23 @@ export const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, m
  */
 export function isTauriEnvironment(): boolean {
   try {
-    // Multiple ways to detect Tauri environment
-    const checks = [
-      // Check 1: window.__TAURI__ existence (most common)
-      typeof window !== 'undefined' && window.__TAURI__ !== undefined,
+    if (typeof window === 'undefined') return false;
 
-      // Check 2: Tauri IPC object (reliable in v2)
-      typeof window !== 'undefined' && window.__TAURI_IPC__ !== undefined,
-
-      // Check 3: Look for Tauri in user agent (sometimes available in v2)
-      typeof navigator !== 'undefined' && /Tauri/.test(navigator.userAgent)
-    ];
-
-    // If any check passes, we're in a Tauri environment
-    const result = checks.some(check => check === true);
-    return result;
+    // Tauri v2 always injects __TAURI_INTERNALS__ into its webview (the npm
+    // APIs are built on it) — the reliable signal. window.__TAURI__ only
+    // exists when app.withGlobalTauri is enabled, which this app does not
+    // use, and __TAURI_IPC__ is a legacy global. See the identical check in
+    // services/updater/UpdateBackend.ts.
+    const win = window as unknown as {
+      __TAURI_INTERNALS__?: unknown;
+      __TAURI_IPC__?: unknown;
+      __TAURI__?: unknown;
+    };
+    return !!(
+      win.__TAURI_INTERNALS__ ??
+      win.__TAURI_IPC__ ??
+      win.__TAURI__
+    );
   } catch (e) {
     console.error('[FileSystem] Error checking Tauri environment:', e);
     return false;
