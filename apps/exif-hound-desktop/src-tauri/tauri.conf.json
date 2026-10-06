@@ -39,7 +39,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDUzRkZFMUI5NjhDMUNGMUMKUldRY3o4Rm91ZUgvVTFDUEkweDl2N2laNXh1MVJQamhlaHh6SmYxak1EZlI3S1NKN01pblFyaHIK",
-      "endpoints": ["https://updates.exifhound.com/stable/latest.json"],
+      "endpoints": ["https://minimallyexceptional.github.io/exif-hound/stable/latest.json"],
       "windows": {
         "installMode": "passive"
       }

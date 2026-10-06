@@ -2,7 +2,7 @@
 
 Exif Hound uses Tauri's signed updater to check for, download, verify, and
 install releases. There is one application, one update-signing identity, and
-one feed per release channel.
+one GitHub Pages manifest per release channel.
 
 ## Architecture
 
@@ -10,14 +10,23 @@ The installed app fetches a small static manifest from:
 
 | Channel | Manifest URL |
 | --- | --- |
-| Stable | `https://updates.exifhound.com/stable/latest.json` |
-| Beta | `https://updates.exifhound.com/beta/latest.json` |
-| Internal | `https://updates.exifhound.com/internal/latest.json` |
+| Stable | `https://minimallyexceptional.github.io/exif-hound/stable/latest.json` |
+| Beta | `https://minimallyexceptional.github.io/exif-hound/beta/latest.json` |
+| Internal | `https://minimallyexceptional.github.io/exif-hound/internal/latest.json` |
 
+The site home is <https://minimallyexceptional.github.io/exif-hound/>. Its
+static files and channel manifests are published on the `gh-pages` branch.
 The manifest points to signed artifacts hosted on GitHub Releases. The public
 key compiled into `src-tauri/tauri.conf.json` verifies those artifacts before
 installation. The former Community signing key is the canonical key for the
 consolidated app; the former Pro key is not used.
+
+The repository must be public for end-user updates. The updater sends no GitHub
+credentials, so clients cannot read private release assets. In repository
+settings, enable **Pages → Build and deployment → Deploy from a branch**, then
+select `gh-pages` and `/(root)`. The `Publish update site` workflow creates or
+updates that branch when site files change; the release workflow updates one
+channel manifest and retains the other channels.
 
 Update checks are pull-based and anonymous. They do not transmit license data,
 image metadata, filenames, investigations, analytics, or persistent device
@@ -94,6 +103,9 @@ The workflow in `.github/workflows/release.yml` performs these steps:
 5. Generate and validate `latest.json` from the staged files.
 6. Create a draft GitHub release, upload every file, then publish it only after
    all uploads succeed.
+7. Publish the validated manifest to that channel on `gh-pages`. If this step
+   fails, the release workflow reports failure and the update feed remains
+   stale until the workflow is rerun or the manifest is published manually.
 
 ### Stable release
 
@@ -106,29 +118,33 @@ git push origin "v${VERSION}"
 ```
 
 The workflow rejects a tag that does not exactly match the configured version.
-After the workflow completes, publish its generated `latest.json` at:
+After the workflow completes, the generated `latest.json` is published at:
 
 ```text
-https://updates.exifhound.com/stable/latest.json
+https://minimallyexceptional.github.io/exif-hound/stable/latest.json
 ```
 
-### Internal release
+### Beta and internal releases
 
-Run the Release workflow manually and choose `internal`. Internal runs merge
-`tauri.internal.conf.json`, publish a prerelease under an
-`internal-v<version>` tag, and produce a manifest for:
+Run the Release workflow manually and choose `beta` or `internal`. Beta releases
+use the `beta-v<version>` tag and `tauri.beta.conf.json`; internal releases use
+`internal-v<version>` and `tauri.internal.conf.json`. Both publish prereleases
+and update only their matching Pages manifest. On Windows, prereleases build
+the NSIS installer only because WiX/MSI rejects textual SemVer prerelease
+identifiers.
 
-```text
-https://updates.exifhound.com/internal/latest.json
-```
+For an actual update-chain test, use increasing SemVer prerelease versions (for
+example `2.6.0-test.1` then `2.6.0-test.2`). A client will not offer an update
+whose manifest version is equal to or older than its installed version.
 
-On Windows, internal prereleases build the NSIS installer only. WiX/MSI does
-not accept textual SemVer prerelease identifiers such as `test.1`; NSIS is the
-Windows artifact used by the updater and supports the internal version scheme.
+### Existing installations
 
-For an actual update-chain test, use increasing SemVer prerelease versions
-(for example `2.6.0-test.1` then `2.6.0-test.2`). A client will not offer an
-update whose manifest version is equal to or older than its installed version.
+Installed versions built with the old `updates.exifhound.com` endpoint cannot
+discover the new Pages URL. Install one current release manually from
+[GitHub Releases](https://github.com/minimallyexceptional/exif-hound/releases),
+then later updates use GitHub Pages automatically. The versioned release must
+contain `latest.json` for its channel; releases published before this workflow
+change do not provide that file.
 
 ## Manifest tooling
 
