@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw } from 'lucide-react';
+import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw, Star } from 'lucide-react';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { Button } from './common/Button';
 import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
 import Logomark from './common/Logomark';
+import { isTauriEnvironment } from '../utils/fileSystem';
+
+const GITHUB_REPOSITORY_URL = 'https://github.com/minimallyexceptional/exif-hound';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -29,6 +33,19 @@ export const AppHeader: React.FC<Props> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
+
+  const handleStarOnGitHub = () => {
+    if (!isTauriEnvironment()) {
+      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+      console.error('Unable to open the Exif Hound GitHub repository:', error);
+    });
+    setIsMobileMenuOpen(false);
+  };
 
   useEffect(() => {
     if (!isHelpMenuOpen) return;
@@ -114,6 +131,14 @@ export const AppHeader: React.FC<Props> = ({
             fullWidth
           >
             Check for Updates
+          </Button>
+          <Button
+            variant="ghost"
+            icon={<Star className="w-5 h-5" />}
+            onClick={handleStarOnGitHub}
+            fullWidth
+          >
+            Star on GitHub
           </Button>
         </div>
       </Panel>
