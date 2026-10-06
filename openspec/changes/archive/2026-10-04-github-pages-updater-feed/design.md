@@ -10,7 +10,7 @@ The existing `apps/exif-hound-website` is a Next.js application with server rout
 
 - Use the project Pages URL `https://minimallyexceptional.github.io/exif-hound/` as the public origin. Store manifests at `/stable/latest.json`, `/beta/latest.json`, and `/internal/latest.json`.
 - Add a small static index page that links to releases and lists the manifest URLs.
-- Keep a `gh-pages` branch as the published site and manifest state. The release workflow updates only the current channel manifest on that branch, preserving other channel files and the index. Configure Pages to publish the `gh-pages` branch from its root.
+- Keep a `gh-pages` branch as the site and manifest state. The site workflow updates its static files and the release workflow updates only the current channel manifest, preserving other channel files and the index. Both workflows deploy the resulting branch contents through GitHub Pages Actions.
 - Point each Tauri channel configuration and the TypeScript URL resolver at the matching Pages path.
 - Add beta to the manual release workflow alongside stable and internal. The generated manifest continues to point at signed artifacts on the exact versioned GitHub Release tag. Require a public repository for end-user delivery; do not embed credentials in the client.
 - Keep `updates.exifhound.com` out of the active update chain. A custom domain can be added later by configuring DNS and Pages' custom domain, without changing manifest layout.
@@ -23,7 +23,7 @@ The existing `apps/exif-hound-website` is a Next.js application with server rout
 4. Update `latest.json` under the matching channel directory on `gh-pages`, preserve the other site files, and push the branch update.
 5. GitHub Pages serves the updated branch. The release workflow fails if it cannot publish the manifest.
 
-The Pages source setting is repository configuration and must be enabled once. Release assets remain on GitHub Releases; Pages hosts only the small manifests and static page.
+The Pages source must be set to GitHub Actions once. Release assets remain on GitHub Releases; Pages hosts only the small manifests and static page.
 
 ## Migration and limitations
 

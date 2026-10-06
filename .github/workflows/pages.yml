@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: exif-hound-pages-publish
@@ -20,6 +22,9 @@ jobs:
   publish-site:
     name: Publish static site to gh-pages
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,3 +34,16 @@ jobs:
 
       - name: Publish site and preserve channel manifests
         run: node scripts/updater/publish-pages.mjs --site-dir update-site
+
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: published-site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: published-site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

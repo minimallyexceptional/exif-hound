@@ -22,11 +22,11 @@ installation. The former Community signing key is the canonical key for the
 consolidated app; the former Pro key is not used.
 
 The repository must be public for end-user updates. The updater sends no GitHub
-credentials, so clients cannot read private release assets. In repository
-settings, enable **Pages → Build and deployment → Deploy from a branch**, then
-select `gh-pages` and `/(root)`. The `Publish update site` workflow creates or
-updates that branch when site files change; the release workflow updates one
-channel manifest and retains the other channels.
+credentials, so clients cannot read private release assets. GitHub Pages must
+use **Pages → Build and deployment → GitHub Actions**. The `Publish update site`
+workflow updates the persistent `gh-pages` content branch and deploys the site;
+the release workflow updates one channel manifest and deploys the site while
+retaining the other channels.
 
 Update checks are pull-based and anonymous. They do not transmit license data,
 image metadata, filenames, investigations, analytics, or persistent device
