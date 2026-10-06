@@ -2,6 +2,7 @@
   "name": "exif-hound-website-next",
   "version": "2.5.1",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

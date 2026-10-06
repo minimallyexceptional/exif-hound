@@ -1,117 +1,65 @@
-# EXIF Hound Monorepo
+# Exif Hound
 
-A monorepo for EXIF Hound applications and packages, using Turborepo.
+[![CI](https://github.com/minimallyexceptional/exif-hound/actions/workflows/ci.yml/badge.svg)](https://github.com/minimallyexceptional/exif-hound/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/minimallyexceptional/exif-hound)](https://github.com/minimallyexceptional/exif-hound/releases/latest)
 
-## What's inside?
+Privacy-first desktop app for inspecting image EXIF metadata, mapping photo
+locations, and organizing investigations. **All processing happens locally on
+your device** — image data, metadata, filenames, and investigation data are
+never transmitted.
 
-This monorepo uses [Turborepo](https://turbo.build/repo) for build system and workspace management.
+## Features
 
-### Apps and Packages
+- **EXIF inspection** — full metadata browsing for any image, with comparison
+  and export
+- **Location map** — plot GPS-tagged photos on an interactive map, view routes
+  and clusters (Leaflet)
+- **List view** — spreadsheet-style navigation across imported images
+- **Import/export** — KML import, CSV/JSON export of metadata
+- **Automatic updates** — signed, verified updates delivered through the
+  built-in updater; no account, no telemetry
 
-- `apps/exif-hound-desktop`: A Tauri-based desktop application for EXIF metadata analysis
-- `packages/shared-utils`: Common utilities for formatting and data processing
-- `packages/exif-middleware`: EXIF processing and metadata extraction utilities
+## Download
 
-## Current Status
+Grab the latest signed installer for your platform from the
+[releases page](https://github.com/minimallyexceptional/exif-hound/releases/latest)
+(macOS Apple Silicon, Windows x64, Linux x64 and ARM64). Installed apps update
+themselves automatically over the signed update feed — see
+[docs/updater.md](./docs/updater.md).
 
-The monorepo setup is now complete with the following structure:
+## Repository layout
 
-```
-exif-hound-monorepo/
-├── apps/
-│   └── exif-hound-desktop/  # Tauri desktop app
-├── packages/
-│   ├── shared-utils/        # Common utilities
-│   └── exif-middleware/     # EXIF processing logic
-├── turbo.json               # Turborepo config
-├── build.sh                 # Unix build script
-├── build.bat                # Windows build script
-└── package.json             # Workspace config
-```
+npm workspaces + Turborepo monorepo:
 
-Implementation status:
-
-1. ✅ Create monorepo structure
-2. ✅ Set up Turborepo configuration
-3. ✅ Move existing application to `apps/exif-hound-desktop`
-4. ✅ Create basic shared packages
-5. ✅ Fix dependencies between packages and applications
-6. ✅ Set up build and development workflows
-7. ✅ Update paths and imports in application code
-8. ✅ Fix TypeScript project references
+| Path | What it is |
+| --- | --- |
+| `apps/exif-hound-desktop` | The desktop app: Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript; EXIF parsing in a Web Worker; visx analysis visualizations |
+| `apps/exif-hound-website` | Companion website |
+| `packages/exif-middleware` | Shared EXIF processing middleware (consumed by the desktop app via a Vite alias) |
 
 ## Development
 
-To develop all apps and packages, run the following command:
+Prerequisites: **Node.js >= 20** (npm, not yarn/pnpm), **Rust stable**, and on
+Linux the webkit2gtk-4.1/GTK build deps. Full setup and rules in
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ```bash
-# Build packages first, then start development
+npm install             # installs workspaces + Husky hooks
 npm run build:packages
-npm run dev
+npm run tauri:dev       # desktop app in dev mode
 ```
 
-To develop only the shared packages:
+Quality gates run automatically on every commit (lint, typecheck, unit tests,
+the full E2E suite, and a production build) — don't bypass them.
 
-```bash
-npm run dev:packages
-```
+## Documentation
 
-To run just the desktop application:
-
-```bash
-npm run tauri:dev
-```
-
-## Building
-
-The easiest way to build is using the provided build scripts:
-
-```bash
-# On Unix/Linux/macOS
-./build.sh
-
-# On Windows
-build.bat
-```
-
-Alternatively, you can run the build steps manually:
-
-```bash
-# Type check all packages and apps
-npm run typecheck
-
-# Build all packages and apps
-npm run build
-
-# Or build just packages
-npm run build:packages
-
-# Or build just apps
-npm run build:apps
-
-# Build the desktop application
-npm run tauri:build
-```
-
-## Technology Stack
-
-- Frontend: React, TypeScript, Vite, TailwindCSS
-- Backend: Tauri (Rust)
-- Map: Leaflet/React-Leaflet
-- Image Processing: ExifReader
-- Build System: Turborepo
-
-## Automatic Updates
-
-Exif Hound receives automatic updates through one signed feed per channel
-(`updates.exifhound.com/<channel>/latest.json`). The updater is privacy-first
-and anonymous — see [docs/updater.md](./docs/updater.md) for the architecture,
-privacy contract, signing key, and release runbook.
-
-## Further Documentation
-
-For more details about the monorepo migration process, see [MONOREPO_MIGRATION.md](./MONOREPO_MIGRATION.md).
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — setup, rules, OpenSpec feature workflow
+- [docs/updater.md](./docs/updater.md) — automatic updates, signing, release flow
+- [docs/feature-flags.md](./docs/feature-flags.md) — gating in-progress features
+- [SECURITY.md](./SECURITY.md) — reporting vulnerabilities, security design
 
 ## License
 
-MIT
+[MIT](./LICENSE)
