@@ -2,7 +2,7 @@
   "name": "exif-hound-desktop",
   "private": true,
   "license": "MIT",
-  "version": "2.6.5",
+  "version": "2.6.6",
   "type": "module",
   "scripts": {
     "dev": "vite --port 5176 --clearScreen false",
