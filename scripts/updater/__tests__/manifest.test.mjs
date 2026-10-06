@@ -24,6 +24,10 @@ function goodManifest(overrides = {}) {
       signature: GOOD_SIGNATURE,
       url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_amd64.AppImage',
     },
+    'linux-aarch64': {
+      signature: GOOD_SIGNATURE,
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_arm64.AppImage',
+    },
     ...overrides.platforms,
   };
   return {
@@ -203,5 +207,5 @@ test('rejects URLs pointing at the wrong tag or repo', () => {
 });
 
 test('RELEASED_TARGETS matches what the pipeline actually builds', () => {
-  assert.deepEqual(RELEASED_TARGETS, ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64']);
+  assert.deepEqual(RELEASED_TARGETS, ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64']);
 });

@@ -1,8 +1,9 @@
 name: Release
 
-# Builds one signed Exif Hound app for Windows, Linux, and Apple Silicon.
-# Stable releases are triggered by v<version> tags. Manual runs can target an
-# update channel. See docs/updater.md.
+# Builds signed Exif Hound apps for Windows, Linux x86_64/ARM64, and Apple Silicon.
+# Stable releases are triggered by v<version> tags. Manual runs can target
+# the stable or internal update channel. See docs/updater.md
+
 on:
   push:
     tags:
@@ -89,8 +90,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-14 runners are Apple Silicon (aarch64); Intel is not built.
-        os: [macos-14, ubuntu-latest, windows-latest]
+        # Linux ARM64 uses a native runner so bundles match the target architecture.
+        include:
+          - name: macos-14
+            os: macos-14
+            tauri_target: aarch64-apple-darwin
+            updater_target: darwin-aarch64
+          - name: ubuntu-latest-x86_64
+            os: ubuntu-latest
+            tauri_target: x86_64-unknown-linux-gnu
+            updater_target: linux-x86_64
+          - name: ubuntu-24.04-arm-aarch64
+            os: ubuntu-24.04-arm
+            tauri_target: aarch64-unknown-linux-gnu
+            updater_target: linux-aarch64
+          - name: windows-latest
+            os: windows-latest
+            tauri_target: x86_64-pc-windows-msvc
+            updater_target: windows-x86_64
 
     steps:
       - uses: actions/checkout@v4
@@ -120,29 +137,12 @@ jobs:
             libgtk-3-dev
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.tauri_target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/exif-hound-desktop/src-tauri
-
-      - name: Set Rust and updater targets
-        shell: bash
-        run: |
-          case "$RUNNER_OS" in
-            macOS)
-              echo "TAURI_TARGET=aarch64-apple-darwin" >> "$GITHUB_ENV"
-              echo "UPDATER_TARGET=darwin-aarch64" >> "$GITHUB_ENV"
-              ;;
-            Linux)
-              echo "TAURI_TARGET=x86_64-unknown-linux-gnu" >> "$GITHUB_ENV"
-              echo "UPDATER_TARGET=linux-x86_64" >> "$GITHUB_ENV"
-              ;;
-            Windows)
-              echo "TAURI_TARGET=x86_64-pc-windows-msvc" >> "$GITHUB_ENV"
-              echo "UPDATER_TARGET=windows-x86_64" >> "$GITHUB_ENV"
-              ;;
-            *) echo "Unsupported runner OS: $RUNNER_OS" && exit 1 ;;
-          esac
 
       # The consolidated app continues to trust the former Community key.
       # Secrets may contain newlines, so copy them through GITHUB_ENV blocks.
@@ -218,7 +218,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BUILD_ARGS=(build --target "$TAURI_TARGET")
+          BUILD_ARGS=(build --target "${{ matrix.tauri_target }}")
           if [ "$EXIFHOUND_UPDATE_CHANNEL" != "stable" ]; then
             BUILD_ARGS+=(--config "src-tauri/tauri.${EXIFHOUND_UPDATE_CHANNEL}.conf.json")
           fi
@@ -237,17 +237,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "staging/${UPDATER_TARGET}"
+          mkdir -p "staging/${{ matrix.updater_target }}"
           while IFS= read -r -d '' artifact; do
-            cp "$artifact" "staging/${UPDATER_TARGET}/"
+            cp "$artifact" "staging/${{ matrix.updater_target }}/"
           done < <(
-            find "apps/exif-hound-desktop/src-tauri/target/${TAURI_TARGET}/release/bundle" -type f \
+            find "apps/exif-hound-desktop/src-tauri/target/${{ matrix.tauri_target }}/release/bundle" -type f \
               \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \
                  -o -name '*.exe' -o -name '*.msi' -o -name '*.exe.sig' -o -name '*.msi.sig' \
                  -o -name '*.AppImage' -o -name '*.AppImage.sig' \
                  -o -name '*.deb' -o -name '*.rpm' \) -print0
           )
-          ls -la "staging/${UPDATER_TARGET}"
+          ls -la "staging/${{ matrix.updater_target }}"
 
       - name: Verify updater signature exists
         shell: bash
@@ -258,15 +258,15 @@ jobs:
             Windows) PATTERN='*-setup.exe.sig' ;;
             Linux)   PATTERN='*.AppImage.sig' ;;
           esac
-          compgen -G "staging/${UPDATER_TARGET}/$PATTERN" >/dev/null || {
-            echo "::error::Missing updater signature $PATTERN for ${UPDATER_TARGET}"
+          compgen -G "staging/${{ matrix.updater_target }}/$PATTERN" >/dev/null || {
+            echo "::error::Missing updater signature $PATTERN for ${{ matrix.updater_target }}"
             exit 1
           }
 
       - name: Upload staged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.os }}
+          name: release-${{ matrix.name }}
           path: staging/
           retention-days: 7
           if-no-files-found: error
@@ -297,7 +297,7 @@ jobs:
 
       - name: Verify all expected platforms
         env:
-          EXPECTED_TARGETS: 'darwin-aarch64 windows-x86_64 linux-x86_64'
+          EXPECTED_TARGETS: 'darwin-aarch64 windows-x86_64 linux-x86_64 linux-aarch64'
         shell: bash
         run: |
           set -euo pipefail
