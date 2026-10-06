@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101512" />
+    <meta
+      name="description"
+      content="Download Exif Hound and find the update feed for your release channel."
+    />
+    <title>Exif Hound Updates</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #101512;
+        color: #edf2eb;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+      }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 2rem 1.25rem;
+        background: radial-gradient(ellipse at 50% 0%, #23372a 0, #101512 60%);
+      }
+      main { width: min(100%, 48rem); }
+      .eyebrow {
+        color: #a5d6a7;
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+      h1 { margin: .7rem 0; font-size: clamp(2.5rem, 8vw, 4.5rem); line-height: 1; }
+      .intro { max-width: 38rem; color: #b7c2b8; font-size: 1.1rem; line-height: 1.65; }
+      .actions { display: flex; flex-wrap: wrap; gap: .8rem; margin: 2rem 0 3rem; }
+      a { color: #b6efb9; }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.8rem;
+        padding: .65rem 1rem;
+        border: 1px solid #57745d;
+        border-radius: .65rem;
+        color: #edf2eb;
+        font-weight: 650;
+        text-decoration: none;
+      }
+      .button.primary { border-color: #a5d6a7; background: #a5d6a7; color: #101512; }
+      h2 { margin: 0 0 1rem; font-size: 1.2rem; }
+      .channels { display: grid; gap: .75rem; }
+      .channel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+        border: 1px solid #34443a;
+        border-radius: .8rem;
+        background: #18211b;
+      }
+      .channel p { margin: .3rem 0 0; color: #9ca99e; font-size: .9rem; }
+      .channel a { white-space: nowrap; }
+      footer { margin-top: 3rem; color: #879288; font-size: .85rem; }
+      @media (max-width: 32rem) {
+        .channel { align-items: flex-start; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">Private photo analysis</p>
+      <h1>Exif Hound</h1>
+      <p class="intro">
+        Inspect image metadata, map photo locations, and organize investigations
+        on your computer. Your images stay on your device.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="https://github.com/minimallyexceptional/exif-hound/releases/latest">Download the latest release</a>
+        <a class="button" href="https://github.com/minimallyexceptional/exif-hound">View the source</a>
+      </div>
+
+      <section aria-labelledby="channels-title">
+        <h2 id="channels-title">Update channels</h2>
+        <div class="channels">
+          <div class="channel">
+            <div><strong>Stable</strong><p>Recommended for everyday use.</p></div>
+            <a href="./stable/latest.json">Manifest</a>
+          </div>
+          <div class="channel">
+            <div><strong>Beta</strong><p>Early access to upcoming releases.</p></div>
+            <a href="./beta/latest.json">Manifest</a>
+          </div>
+          <div class="channel">
+            <div><strong>Internal</strong><p>Prereleases for testing.</p></div>
+            <a href="./internal/latest.json">Manifest</a>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        Update manifests contain release versions and signed download links.
+        The updater does not send image or investigation data.
+      </footer>
+    </main>
+  </body>
+</html>
