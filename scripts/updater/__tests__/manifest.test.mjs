@@ -48,8 +48,9 @@ function validate(manifest, overrides = {}) {
 }
 
 test('feedUrl separates update channels', () => {
-  assert.equal(feedUrl('stable'), 'https://updates.exifhound.com/stable/latest.json');
-  assert.equal(feedUrl('internal'), 'https://updates.exifhound.com/internal/latest.json');
+  assert.equal(feedUrl('stable'), 'https://minimallyexceptional.github.io/exif-hound/stable/latest.json');
+  assert.equal(feedUrl('beta'), 'https://minimallyexceptional.github.io/exif-hound/beta/latest.json');
+  assert.equal(feedUrl('internal'), 'https://minimallyexceptional.github.io/exif-hound/internal/latest.json');
   assert.notEqual(feedUrl('stable'), feedUrl('internal'));
 });
 

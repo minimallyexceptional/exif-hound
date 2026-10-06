@@ -10,7 +10,7 @@
  *
  * PRIVACY CONTRACT (see docs/updater.md)
  *   Update checks perform exactly one anonymous HTTPS GET of a static
- *   manifest (e.g. https://updates.exifhound.com/stable/latest.json)
+ *   manifest (e.g. https://minimallyexceptional.github.io/exif-hound/stable/latest.json)
  *   and compare versions locally. No analytics, telemetry, persistent
  *   identifiers, license data, filenames, image metadata, or investigation
  *   data is ever transmitted, stored, or correlated.

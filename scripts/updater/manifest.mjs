@@ -35,7 +35,7 @@ export const SUPPORTED_TARGETS = [
 export const RELEASED_TARGETS = ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64'];
 
 export function feedUrl(channel) {
-  return `https://updates.exifhound.com/${channel}/latest.json`;
+  return `https://minimallyexceptional.github.io/exif-hound/${channel}/latest.json`;
 }
 
 const APP_NAME_PATTERN = /exif[ _-]?hound/i;
