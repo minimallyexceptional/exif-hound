@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Sun, Map as MapIcon } from 'lucide-react';
+import { X, Moon, Sun, Map as MapIcon, Star } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
+import { GITHUB_REPOSITORY_URL } from '../constants/github';
+import { isTauriEnvironment } from '../utils/fileSystem';
 import { useUpdateControl } from './updater/useUpdateControl';
 import { UpdateStateName, UpdateErrorCode } from '../services/updater';
 
@@ -43,6 +46,16 @@ const Settings: React.FC<Props> = ({ onClose }) => {
   const { mapSettings, updateMapSettings } = useSettings();
   const [appVersion, setAppVersion] = useState('…');
   const update = useUpdateControl();
+
+  const handleStarOnGitHub = () => {
+    if (!isTauriEnvironment()) {
+      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+      console.error('Unable to open the Exif Hound GitHub repository:', error);
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -253,6 +266,16 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     investigation data, image metadata, filenames, usage information, or persistent
                     device identifiers.
                   </p>
+                  <div className="mt-4 pt-2 border-t border-app-gray-light/30">
+                    <button
+                      onClick={handleStarOnGitHub}
+                      data-testid="settings-star-on-github"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
+                    >
+                      <Star className="w-4 h-4" />
+                      Star on GitHub
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>

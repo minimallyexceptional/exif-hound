@@ -15,6 +15,20 @@ const appVersion = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, 'src-tauri/tauri.conf.json'), 'utf8'),
 ).version as string;
 
+// In-progress features gated from production builds. Dev/test builds enable
+// the whole registry; production builds enable only names listed in the
+// EXIFHOUND_FEATURES env var (comma-separated). Register new gated features
+// here and guard their UI with isFeatureEnabled() from src/config/featureFlags.
+const GATED_FEATURES = ['investigation'];
+const requestedFeatures = (process.env.EXIFHOUND_FEATURES ?? '')
+  .split(',')
+  .map(name => name.trim())
+  .filter(Boolean);
+const isProductionBuild = process.env.NODE_ENV === 'production';
+const featureFlags = isProductionBuild
+  ? requestedFeatures.filter(name => GATED_FEATURES.includes(name))
+  : [...new Set([...GATED_FEATURES, ...requestedFeatures])];
+
 // Update channel baked into the frontend for display/diagnostics only.
 // The actual feed URL is configured in the matching Tauri channel overlay.
 const updateChannel = (process.env.EXIFHOUND_UPDATE_CHANNEL ?? 'stable').toLowerCase();
@@ -30,6 +44,8 @@ export default defineConfig({
     __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
     // App version from tauri.conf.json (the authoritative version source)
     __APP_VERSION__: JSON.stringify(appVersion),
+    // Feature flags gating in-progress features (see GATED_FEATURES above)
+    __FEATURE_FLAGS__: JSON.stringify(featureFlags),
     // Update channel this build listens to ('stable' | 'beta' | 'internal')
     __UPDATE_CHANNEL__: JSON.stringify(updateChannel),
   },

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw, Star } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { isFeatureEnabled } from '../config/featureFlags';
 import { Button } from './common/Button';
 import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
 import Logomark from './common/Logomark';
 import { isTauriEnvironment } from '../utils/fileSystem';
-
-const GITHUB_REPOSITORY_URL = 'https://github.com/minimallyexceptional/exif-hound';
+import { GITHUB_REPOSITORY_URL } from '../constants/github';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -99,14 +99,16 @@ export const AppHeader: React.FC<Props> = ({
                 List View
               </Button>
               
-              <Button
-                variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                icon={<Search className="w-4 h-4" />}
-                onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                Investigation
-              </Button>
+              {isFeatureEnabled('investigation') && (
+                <Button
+                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                  icon={<Search className="w-4 h-4" />}
+                  onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
+                  fullWidth
+                >
+                  Investigation
+                </Button>
+              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-app-white">Theme</span>
@@ -202,13 +204,15 @@ export const AppHeader: React.FC<Props> = ({
                   List View
                 </Button>
                 
-                <Button
-                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={() => onSetView('investigation')}
-                >
-                  Investigation
-                </Button>
+                {isFeatureEnabled('investigation') && (
+                  <Button
+                    variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
+                    icon={<Search className="w-4 h-4" />}
+                    onClick={() => onSetView('investigation')}
+                  >
+                    Investigation
+                  </Button>
+                )}
               </div>
             )}
 
