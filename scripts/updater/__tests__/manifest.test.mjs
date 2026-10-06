@@ -14,19 +14,19 @@ function goodManifest(overrides = {}) {
   const platforms = {
     'darwin-aarch64': {
       signature: GOOD_SIGNATURE,
-      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound.app.tar.gz',
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound.app.tar.gz',
     },
     'windows-x86_64': {
       signature: GOOD_SIGNATURE,
-      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_x64-setup.exe',
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_x64-setup.exe',
     },
     'linux-x86_64': {
       signature: GOOD_SIGNATURE,
-      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_amd64.AppImage',
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_amd64.AppImage',
     },
     'linux-aarch64': {
       signature: GOOD_SIGNATURE,
-      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound_2.7.0_arm64.AppImage',
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_arm64.AppImage',
     },
     ...overrides.platforms,
   };
@@ -62,8 +62,13 @@ test('artifactMatchesApp accepts consolidated names and rejects legacy editions'
   assert.equal(artifactMatchesApp('Exif Hound.app.tar.gz'), true);
   assert.equal(artifactMatchesApp('Exif Hound_2.7.0_x64-setup.exe'), true);
   assert.equal(artifactMatchesApp('exif-hound_2.7.0_amd64.AppImage'), true);
+  // GitHub replaces spaces with dots in release asset names.
+  assert.equal(artifactMatchesApp('Exif.Hound.app.tar.gz'), true);
+  assert.equal(artifactMatchesApp('Exif.Hound_2.7.0_x64-setup.exe'), true);
   assert.equal(artifactMatchesApp('Exif Hound Community.app.tar.gz'), false);
   assert.equal(artifactMatchesApp('Exif Hound Pro_2.7.0_amd64.AppImage'), false);
+  assert.equal(artifactMatchesApp('Exif.Hound.Community.app.tar.gz'), false);
+  assert.equal(artifactMatchesApp('Exif.Hound.Pro_2.7.0_amd64.AppImage'), false);
   assert.equal(artifactMatchesApp('Another App.app.tar.gz'), false);
 });
 
@@ -92,7 +97,7 @@ test('rejects non-HTTPS artifact URLs', () => {
 test('rejects encoded path separators in artifact filenames', () => {
   const manifest = goodManifest();
   manifest.platforms['linux-x86_64'].url =
-    'https://github.com/acme/exif-hound/releases/download/v2.7.0/%2E%2E%2FExif%20Hound_2.7.0_amd64.AppImage';
+    'https://github.com/acme/exif-hound/releases/download/v2.7.0/%2E%2E%2FExif.Hound_2.7.0_amd64.AppImage';
   const result = validate(manifest);
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.includes('safe artifact filename')));
