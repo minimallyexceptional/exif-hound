@@ -105,10 +105,14 @@ The workflow in `.github/workflows/release.yml` performs these steps:
 4. Build macOS Apple Silicon, Windows x64, and Linux x64 and ARM64 artifacts.
 5. Sign updater artifacts with the Community private key.
 6. Stage installers and signatures from all platforms.
-7. Generate and validate `latest.json` from the staged files.
-8. Create a draft GitHub release, upload every file, then publish it only after
-   all uploads succeed.
-9. Publish the validated manifest to that channel on `gh-pages`. If this step
+7. Normalize staged asset names for GitHub release storage (GitHub replaces
+   spaces in asset names with dots; the manifest must reference the stored
+   names or every updater client gets a 404).
+8. Generate and validate `latest.json` from the staged files.
+9. Create a draft GitHub release, upload every file, then verify that every
+   manifest URL matches a stored release asset
+   (`scripts/updater/verify-release-assets.mjs`) and only then publish.
+10. Publish the validated manifest to that channel on `gh-pages`. If this step
    fails, the release workflow reports failure and the update feed remains
    stale until the workflow is rerun or the manifest is published manually.
 
