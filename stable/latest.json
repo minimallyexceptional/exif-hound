@@ -1,23 +1,23 @@
 {
   "version": "2.6.2",
   "notes": "See the release page for details.",
-  "pub_date": "2026-10-06T14:52:31.174Z",
+  "pub_date": "2026-10-06T15:36:12.322Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVXlNeW1GSWlQb0Y3MWl1dGtuU0lSdG5ZemlINkdBVmZVa1AvVVgvMWtiQ1pTNUZaWjdBcGVEbTVBcGFxWURaSHh5ejJPTk1saEg4ZmIxQS9pekJmQlFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMjk4MTcyCWZpbGU6RXhpZiBIb3VuZC5hcHAudGFyLmd6CXZlcnNpb246Mi42LjIKbjBtcmoyb1o2ZlZTSTVKdnNGRERyWVNySVJYTC96T216eTdjSHZpdGFtL1lZdStHeVAyL2RGc2pvSmtyVUFkZ3hmWmNYOC9qL3QwRXlOR0htczNIQkE9PQo=",
-      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif%20Hound.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVTJaR3dyUFNNY0V4bDhIZDV1TlBoWmxWdHdPc0ZYOG8zNUdwMElNMGlRWGU3VHA5bWZKcWd0SGhrdTVwZHhISFVUbkFLNy8rTkpjMCtWSDdDc2NYUGdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMzAwMzYwCWZpbGU6RXhpZiBIb3VuZC5hcHAudGFyLmd6CXZlcnNpb246Mi42LjIKV1Jqb21FWWdhT205Y0h0aE05N3k5WXNlTUlkZ3RtNVlLWFVValRxY1lGU3hQam1pS1BJMSsySUluSE02UktxQUFKMlVYbXdxcEEvMTdhMlpHYW9SREE9PQo=",
+      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif.Hound.app.tar.gz"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVTkxRUI1ZVZNLy9iK0FBbnh0d00rOHNxdHZBVHk4SHdWUExtVkhlT3AyZ0d4TktJdk9HRU1NanR2VHBWYStlYzlDU0llSHY0cjhDUXlGWVZXWjZLWXdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMjk4MjYwCWZpbGU6RXhpZiBIb3VuZF8yLjYuMl94NjQtc2V0dXAuZXhlCXZlcnNpb246Mi42LjIKWDFPeUNqSGdJWWpFUGplNFFmNExTZ3NwUk5uamI3RUc5M0Q2M2p1a1k3VVVJbUptRWttdTIzTjlLRXdJbmVHVmFkV2NVNmNXRE9aWFZ2SW1rTWh6QUE9PQo=",
-      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif%20Hound_2.6.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVTMwUS9PM3B4UDlTTmwzWkVXTkF6TGxpYU9JSlBhdyt2YVhKZDNRd2d3ZUNoRVJMSjJ6Wmo3bWxtYXd2QlpERmY4eWpXbkszZEtUYTRKVitORjN5SkFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMzAwNTE2CWZpbGU6RXhpZiBIb3VuZF8yLjYuMl94NjQtc2V0dXAuZXhlCXZlcnNpb246Mi42LjIKQVVySXN1ZW05WTYzQ1NMYWVYQWlvNUZvNlZ0L3J4YjdmWTd4b2hiU3pVUGlhUmQ3YnVHNlRrSFdIdWI5cjhUNkJyaTRzYmVxWGJiUHExajFKWS9iQUE9PQo=",
+      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif.Hound_2.6.2_x64-setup.exe"
     },
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVXlGUWkweTlCaEc2ZzQwNytzanNIRXkxalg0bDJadEU2MEdkNUd1RUo2NS8zcG1FNzJTb1hSWUdVSlAxLzVEaHpzd0gxSnBUNGpaN0dxM2ptK25lbXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMjk4MjUxCWZpbGU6RXhpZiBIb3VuZF8yLjYuMl9hbWQ2NC5BcHBJbWFnZQl2ZXJzaW9uOjIuNi4yCk9idkhDK0d4YUthOFB3WElBb3I5dWhKTnlBQlVKWnRFZG5ZVFk2S2l1WnU4a21GY0REOVN1dmZqZ1duNG9MMThhUC94QmEyRER6RFNtMitOdmZGQUF3PT0K",
-      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif%20Hound_2.6.2_amd64.AppImage"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVTEzVkh6YXAraGRUTGNnNzcxamtZV0x2UTY3YjVLSmMxTUhCVHgzeEVmZmdNNWtKQk1IVXNMbjFLQis2dmVzYUFlV1FzbWxmTnFTS0NoT3ZGUDJCdVFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMzAwOTQzCWZpbGU6RXhpZiBIb3VuZF8yLjYuMl9hbWQ2NC5BcHBJbWFnZQl2ZXJzaW9uOjIuNi4yCnF5QUM5RUxnOVk3WmczQ09VLzVlMFVpNmFyd2hHZXZYS1ZycFZTODF1NXlzby9jV0kzdXQ5Uy9KeThkNitIQTQ3OWpoOU5OZi9rNGgyYUlqL3YzVUF3PT0K",
+      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif.Hound_2.6.2_amd64.AppImage"
     },
     "linux-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVTBnQ3pnV0w5VW90OUNPUTNtUG9BdzJDYnlIc0Nud20wZERDbXFQNGpNYXRYRjZHNWF3UkFSbjJwRjRPeWlraGJWbmdGeUtFQ3pEZ0U3SUZDY0hndUF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMjk4MzMwCWZpbGU6RXhpZiBIb3VuZF8yLjYuMl9hYXJjaDY0LkFwcEltYWdlCXZlcnNpb246Mi42LjIKbGZLNkI0bkFoM3RHNVNmbEhZMDRrdjRxSUo2dWNUZnR4aTZPUWROVWV0MkpZeVYxSzVYUDRrR3NxSUhyUnNGSTFLZzBacHFaRnQ0VWFuR0Fac0YvRHc9PQo=",
-      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif%20Hound_2.6.2_aarch64.AppImage"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRY3o4Rm91ZUgvVS9hZGdrcHU5OGxDcm5CSjBURS9icVl2UGtqV3JnWjU5TC96QlNnY1NTMlRqazhVUTlFM0dmalhrM01rNGIzWlAxc0FSM1lUV0FJVDM1YnBBSk43Y1FvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxMzAwNTE1CWZpbGU6RXhpZiBIb3VuZF8yLjYuMl9hYXJjaDY0LkFwcEltYWdlCXZlcnNpb246Mi42LjIKUE9jaFZqb2xTSVQ5d09QUENKaEtpRURESlh3M29KeTFvOWZFdkFoSnVJSytzS0dxbXhyQ1pmOU51UUluS0lZQjg3U3dFWGUzOGNnd2d2UlQrdmttQkE9PQo=",
+      "url": "https://github.com/minimallyexceptional/exif-hound/releases/download/v2.6.2/Exif.Hound_2.6.2_aarch64.AppImage"
     }
   }
 }
