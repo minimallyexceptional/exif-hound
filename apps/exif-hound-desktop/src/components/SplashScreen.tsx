@@ -32,13 +32,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart }) => {
 
   return (
     <div
-      className="h-screen w-full bg-app-black flex flex-col lg:flex-row overflow-hidden"
+      className="h-screen w-full bg-app-black flex flex-col justify-center lg:justify-stretch lg:flex-row overflow-hidden"
       aria-label="Exif Hound"
     >
       {/* Left — the logomark alone, centered */}
-      <div className="relative flex-1 lg:flex-none lg:w-[45%] flex items-center justify-center p-8">
+      <div className="relative flex-none lg:w-[45%] flex items-center justify-center p-8 pb-2 lg:pb-8">
         <div data-testid="splash-logomark">
-          <Logomark className="w-52 h-52 lg:w-64 lg:h-64" />
+          <Logomark className="w-52 h-52 lg:h-[70vh] lg:w-[70vh]" />
         </div>
         <div className="absolute bottom-6 left-6 font-mono text-xs text-app-accent-dim">
           v{__APP_VERSION__}
@@ -54,7 +54,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart }) => {
       {/* Right — action + recent investigations */}
       <div
         data-testid="splash-actions"
-        className={`flex-1 lg:flex-none lg:w-[55%] flex items-center justify-center p-8 transition-all duration-700 ease-out ${
+        className={`flex-none lg:flex-1 flex items-center justify-center p-8 transition-all duration-700 ease-out ${
           showActions ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
         }`}
       >
