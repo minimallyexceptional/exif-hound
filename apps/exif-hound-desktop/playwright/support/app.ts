@@ -21,6 +21,12 @@ export interface BootOptions {
   commands?: Record<string, unknown>;
   localStorage?: Record<string, string>;
   geocoding?: 'success' | 'error' | 'none';
+  /**
+   * Start past the splash screen by clicking "Start new investigation" so
+   * specs land in the app shell directly (default, preserves legacy specs).
+   * Set false to assert on the splash entrypoint itself.
+   */
+  skipSplash?: boolean;
 }
 
 export async function bootApp(page: Page, options: BootOptions = {}): Promise<void> {
@@ -105,7 +111,10 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
   }, { registeredCommands: commands, storageSeed: options.localStorage ?? {} });
 
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+  if (options.skipSplash !== false) {
+    await page.getByRole('button', { name: 'Start new investigation' }).click();
+    await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+  }
 }
 
 export async function uploadImages(page: Page, fixtures: ExifFixture[]): Promise<void> {

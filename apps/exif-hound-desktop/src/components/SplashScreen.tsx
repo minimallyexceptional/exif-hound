@@ -1,81 +1,82 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, BarChart, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { Button } from './common/Button';
 import Logomark from './common/Logomark';
 
-const SplashScreen: React.FC = () => {
-  const [showSecondary, setShowSecondary] = useState(false);
-  const [showTertiary, setShowTertiary] = useState(false);
+interface SplashScreenProps {
+  onStart: () => void;
+}
+
+// Start fully composed (no hidden pre-entrance state) when the OS prefers
+// reduced motion, so nothing fades in for those users.
+const prefersReducedMotion = (): boolean =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * App entrypoint: full-bleed stage with the logomark on the left and the
+ * "Start new investigation" action plus the (currently empty) recent
+ * investigations region on the right. Entering the app hands off to the
+ * existing upload flow; everything downstream is untouched by this surface.
+ */
+const SplashScreen: React.FC<SplashScreenProps> = ({ onStart }) => {
+  const [reduceMotion] = useState(prefersReducedMotion);
+  const [showActions, setShowActions] = useState(reduceMotion);
 
   useEffect(() => {
-    const secondaryTimer = setTimeout(() => setShowSecondary(true), 400);
-    const tertiaryTimer = setTimeout(() => setShowTertiary(true), 800);
-
-    return () => {
-      clearTimeout(secondaryTimer);
-      clearTimeout(tertiaryTimer);
-    };
-  }, []);
+    if (reduceMotion) return undefined;
+    const timer = setTimeout(() => setShowActions(true), 200);
+    return () => clearTimeout(timer);
+  }, [reduceMotion]);
 
   return (
-    <div className="fixed inset-0 bg-app-black flex items-center justify-center z-50">
-      <div className="max-w-md w-full mx-auto px-4">
-        {/* Logo container */}
-        <div className="relative h-40 flex items-center justify-center mb-10">
-          <Logomark 
-            className={`w-24 h-24 z-10 transform transition-all duration-700 ease-out ${
-              showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-            }`}
-          />
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-4 border-app-white rounded-full transform transition-all duration-1000 ${
-            showSecondary ? 'scale-100 opacity-20' : 'scale-50 opacity-0'
-          }`} />
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 border-4 border-app-accent rounded-full transform transition-all duration-1000 delay-200 ${
-            showSecondary ? 'scale-100 opacity-10' : 'scale-50 opacity-0'
-          }`} />
+    <div
+      className="h-screen w-full bg-app-black flex flex-col lg:flex-row overflow-hidden"
+      aria-label="Exif Hound"
+    >
+      {/* Left — the logomark alone, centered */}
+      <div className="relative flex-1 lg:flex-none lg:w-[45%] flex items-center justify-center p-8">
+        <div data-testid="splash-logomark">
+          <Logomark className="w-52 h-52 lg:w-64 lg:h-64" />
         </div>
-        
-        {/* Title */}
-        <div className={`text-center mb-14 transition-all duration-700 ease-out ${
-          showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-        }`}>
-          <h1 className="text-3xl font-bold text-app-white mb-2">
-            EXIF HOUND
-          </h1>
-          <p className="text-app-accent-dim font-mono">
-            INITIALIZING METADATA ANALYSIS...
-          </p>
+        <div className="absolute bottom-6 left-6 font-mono text-xs text-app-accent-dim">
+          v{__APP_VERSION__}
         </div>
-        
-        {/* Feature icons */}
-        <div className={`grid grid-cols-3 gap-8 mb-16 transition-all duration-700 ease-out ${
-          showTertiary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-        }`}>
-          <div className="text-center">
-            <Eye className="w-8 h-8 mx-auto mb-2 text-app-white" />
-            <p className="text-sm text-app-accent-dim font-mono">DETECT</p>
+      </div>
+
+      {/* Hairline divider — desktop split only */}
+      <div
+        className="hidden lg:block w-px self-stretch my-24 bg-app-gray-light"
+        aria-hidden="true"
+      />
+
+      {/* Right — action + recent investigations */}
+      <div
+        data-testid="splash-actions"
+        className={`flex-1 lg:flex-none lg:w-[55%] flex items-center justify-center p-8 transition-all duration-700 ease-out ${
+          showActions ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+        }`}
+      >
+        <div className="w-full max-w-md">
+          <Button
+            variant="primary"
+            size="lg"
+            icon={<Plus className="w-4 h-4" />}
+            fullWidth
+            onClick={onStart}
+          >
+            Start new investigation
+          </Button>
+
+          <h2 className="mt-10 mb-3 text-xs font-mono uppercase tracking-widest text-app-accent-dim">
+            Recent investigations
+          </h2>
+          <div className="rounded-lg border border-dashed border-app-gray-light/50 px-4 py-8 text-center">
+            <p className="font-mono text-xs text-app-accent-dim">
+              No investigations yet — start your first above
+            </p>
           </div>
-          <div className="text-center">
-            <BarChart className="w-8 h-8 mx-auto mb-2 text-app-white" />
-            <p className="text-sm text-app-accent-dim font-mono">ANALYZE</p>
-          </div>
-          <div className="text-center">
-            <Search className="w-8 h-8 mx-auto mb-2 text-app-white" />
-            <p className="text-sm text-app-accent-dim font-mono">SOLVE</p>
-          </div>
-        </div>
-        
-        {/* Progress bar with explicit spacing */}
-        <div className={`w-48 h-1 mx-auto bg-app-gray rounded-full overflow-hidden transition-all duration-700 ${
-          showTertiary ? 'opacity-100' : 'opacity-0'
-        }`}>
-          <div className="h-full bg-app-white rounded-full animate-progress" />
-        </div>
-        
-        {/* Version */}
-        <div className={`text-center mt-16 font-mono text-xs text-app-accent-dim transition-all duration-700 ${
-          showTertiary ? 'opacity-100' : 'opacity-0'
-        }`}>
-          SYSTEM v{__APP_VERSION__}
         </div>
       </div>
     </div>
