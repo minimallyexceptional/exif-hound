@@ -49,10 +49,12 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
   await page.addInitScript(({ registeredCommands, storageSeed }) => {
     const handlers = new Map(Object.entries(registeredCommands));
     const calls: string[] = [];
+    const callsDetailed: Array<{ command: string; args: unknown }> = [];
     let callbackId = 0;
     const callbacks = new Map<number, unknown>();
     const invoke = (cmd: string, args?: unknown): Promise<unknown> => {
       calls.push(cmd);
+      callsDetailed.push({ command: cmd, args });
       const handler = handlers.get(cmd);
       if (handler === undefined) return Promise.reject(new Error(`[tauri-mock] no canned response registered for command "${cmd}"`));
       if (handler instanceof Error) return Promise.reject(handler);
@@ -66,9 +68,10 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
       registerCommand: (cmd: string, result: unknown) => handlers.set(cmd, result),
       clearCommands: () => handlers.clear(),
       calls,
+      callsDetailed,
     };
     const w = window as unknown as {
-      __tauriMock: { registerCommand: (cmd: string, result: unknown) => void; clearCommands: () => void; calls: string[] };
+      __tauriMock: { registerCommand: (cmd: string, result: unknown) => void; clearCommands: () => void; calls: string[]; callsDetailed: Array<{ command: string; args: unknown }> };
       __TAURI_INTERNALS__: unknown;
       __TAURI__: unknown;
       __TAURI_IPC__: () => void;
@@ -144,7 +147,7 @@ export async function switchView(page: Page, name: 'Map View' | 'List View' | 'I
 
 declare global {
   interface Window {
-    __tauriMock: { calls: string[]; registerCommand: (cmd: string, result: unknown) => void };
+    __tauriMock: { calls: string[]; callsDetailed: Array<{ command: string; args: unknown }>; registerCommand: (cmd: string, result: unknown) => void };
     __savePickerCalls: Array<{ suggestedName: string; types: { accept: Record<string, string[]> } }>;
     __lastSaveWritable: { content: string };
     __clipboardWrites: string[];

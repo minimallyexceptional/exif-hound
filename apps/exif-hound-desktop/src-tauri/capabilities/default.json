@@ -17,6 +17,14 @@
     "core:window:allow-set-title",
     "log:default",
     "dialog:default",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [{ "path": "**" }]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [{ "path": "**" }]
+    },
     "http:default",
     "http:allow-fetch",
     "http:allow-fetch-cancel",

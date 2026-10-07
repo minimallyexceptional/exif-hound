@@ -20,10 +20,10 @@ function mockMatchMedia(matches: boolean): void {
   });
 }
 
-function renderSplash(onStart = jest.fn()) {
+function renderSplash(onStart = jest.fn(), props: Partial<React.ComponentProps<typeof SplashScreen>> = {}) {
   return render(
     <ThemeProvider>
-      <SplashScreen onStart={onStart} />
+      <SplashScreen onStart={onStart} onOpen={jest.fn()} onResume={jest.fn()} {...props} />
     </ThemeProvider>
   );
 }

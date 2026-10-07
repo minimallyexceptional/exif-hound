@@ -17,6 +17,10 @@ import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
 import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
+import { saveInvestigation, openInvestigation, RestoredSession, ArchiveViewMode } from './services/investigationArchive/ArchiveSessionService';
+import { saveArchiveWithDialog, pickAndReadArchive, readArchiveFile } from './services/investigationArchive/fileAccess';
+import { recordRecentInvestigation, getRecentInvestigations, RecentInvestigation } from './utils/recentInvestigations';
+import { InvalidArchiveError, UnsupportedFormatError } from 'investigation-archive';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -41,8 +45,18 @@ function App() {
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
   const [importError, setImportError] = useState<string | null>(null);
   // Entrypoint gate: the splash screen owns the window until the user starts
-  // (or resumes, later) an investigation. Everything downstream is unchanged.
+  // a new investigation or opens/resumes a saved one. Everything downstream
+  // is unchanged.
   const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
+  const [recentInvestigations, setRecentInvestigations] = useState<RecentInvestigation[]>(() => getRecentInvestigations());
+  const [splashError, setSplashError] = useState<string | null>(null);
+
+  // Session identity + save lifecycle.
+  const [sessionName, setSessionName] = useState<string | null>(null);
+  const [sessionCreatedAt, setSessionCreatedAt] = useState<Date>(new Date());
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [investigationTool, setInvestigationTool] = useState<string | null>(null);
 
   const handleImageUpload = (imageData: ImageData) => {
     // ImageUploader emits each image twice (placeholder while processing, then
@@ -158,7 +172,7 @@ function App() {
           <Suspense fallback={<div className="flex items-center justify-center h-full">
             <div className="text-app-white">Loading investigation tools...</div>
           </div>}>
-            <Investigation images={images} />
+            <Investigation images={images} initialTool={investigationTool} />
           </Suspense>
         );
       default:
@@ -166,8 +180,126 @@ function App() {
     }
   };
 
+  const describeError = (error: unknown, fallback: string): string => {
+    if (error instanceof UnsupportedFormatError) {
+      return error.message;
+    }
+    if (error instanceof InvalidArchiveError) {
+      return error.message;
+    }
+    if (error instanceof Error && error.message) return error.message;
+    return fallback;
+  };
+
+  const applyRestored = (restored: RestoredSession) => {
+    // Commit the whole session at once — callers only call this after the
+    // archive fully parsed, so a failure never leaves a partial state.
+    setImages(restored.images);
+    setSelectedImageId(null);
+    setShowRoute(restored.showRoute);
+    setViewMode(restored.viewMode);
+    setInvestigationTool(restored.investigationTool);
+    setImportedData(undefined);
+    setSessionName(restored.meta.name);
+    setSessionCreatedAt(restored.meta.createdAt);
+    setSaveStatus('idle');
+    setSaveError(null);
+    setSessionState('active');
+    if (restored.importedRaw) {
+      const { type, data } = restored.importedRaw;
+      parseImportData({ type, data })
+        .then((result) => {
+          // CSV point entries were already restored as images; exposing the
+          // parsed points again would duplicate them on the map.
+          setImportedData(type === 'kml' ? result : { ...result, points: undefined });
+        })
+        .catch((error: unknown) => {
+          if (__DEV__) console.error('Failed to re-parse imported data:', error);
+          setImportError('Previously imported overlay data could not be restored.');
+        });
+    }
+  };
+
+  const handleSaveInvestigation = async () => {
+    if (images.length === 0 || saveStatus === 'saving') return;
+    setSaveStatus('saving');
+    setSaveError(null);
+    try {
+      const stamp = sessionName ?? `Investigation ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
+      const defaultName = `${stamp}.investigation`;
+      const saved = await saveArchiveWithDialog(defaultName, async (name) => {
+        const { bytes } = await saveInvestigation({
+          name,
+          createdAt: sessionCreatedAt,
+          images,
+          importedRaw: importedData && (importedData.type === 'kml' || importedData.type === 'csv')
+            ? { type: importedData.type, data: importedData.data }
+            : null,
+          viewMode: viewMode as ArchiveViewMode,
+          showRoute,
+          investigationTool,
+        });
+        return bytes;
+      });
+      if (!saved) {
+        setSaveStatus('idle'); // dialog cancelled — silent no-op
+        return;
+      }
+      recordRecentInvestigation(saved.path, saved.name);
+      setSessionName(saved.name);
+      setRecentInvestigations(getRecentInvestigations());
+      setSaveStatus('saved');
+      window.setTimeout(() => setSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev)), 2000);
+    } catch (error) {
+      if (__DEV__) console.error('Failed to save investigation:', error);
+      setSaveStatus('error');
+      setSaveError(describeError(error, 'Failed to save the investigation. Try a different location.'));
+    }
+  };
+
+  const handleOpenInvestigation = async () => {
+    setSplashError(null);
+    try {
+      const picked = await pickAndReadArchive();
+      if (!picked) return; // cancelled
+      const restored = await openInvestigation(picked.bytes);
+      recordRecentInvestigation(picked.path, restored.meta.name);
+      setRecentInvestigations(getRecentInvestigations());
+      applyRestored(restored);
+    } catch (error) {
+      if (__DEV__) console.error('Failed to open investigation:', error);
+      setSplashError(describeError(error, 'This file could not be opened as an investigation.'));
+    }
+  };
+
+  const handleResumeInvestigation = async (path: string) => {
+    setSplashError(null);
+    try {
+      const bytes = await readArchiveFile(path);
+      const restored = await openInvestigation(bytes);
+      recordRecentInvestigation(path, restored.meta.name);
+      setRecentInvestigations(getRecentInvestigations());
+      applyRestored(restored);
+    } catch (error) {
+      if (__DEV__) console.error('Failed to resume investigation:', error);
+      setSplashError(describeError(error, 'This investigation could no longer be opened.'));
+    }
+  };
+
   if (sessionState === 'splash') {
-    return <SplashScreen onStart={() => setSessionState('active')} />;
+    return (
+      <SplashScreen
+        onStart={() => {
+          setSessionName(null);
+          setSessionCreatedAt(new Date());
+          setSessionState('active');
+        }}
+        onOpen={handleOpenInvestigation}
+        onResume={handleResumeInvestigation}
+        recent={recentInvestigations}
+        error={splashError}
+      />
+    );
   }
 
   return (
@@ -185,6 +317,8 @@ function App() {
           setShowSettings(true);
           void getUpdateService().check({ silent: false });
         }}
+        onSave={handleSaveInvestigation}
+        saveStatus={saveStatus}
       />
 
       <ImageUploader 
@@ -211,6 +345,20 @@ function App() {
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
+            {saveError && (
+              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">{saveError}</div>
+                <button
+                  type="button"
+                  onClick={() => setSaveError(null)}
+                  className="p-0.5 rounded hover:bg-red-500/10"
+                  aria-label="Dismiss save error"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             {importError && (
               <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />

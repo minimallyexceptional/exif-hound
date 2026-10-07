@@ -17,6 +17,22 @@ if (typeof URL.revokeObjectURL !== 'function') {
 (URL as typeof URL & { revokeObjectURL: typeof URL.revokeObjectURL }).revokeObjectURL = jest.fn();
 }
 
+// jsdom's Blob polyfill lacks the async read methods the archive save flow
+// uses (File → bytes). Polyfill from the underlying data where possible.
+if (typeof Blob !== 'undefined' && typeof Blob.prototype.arrayBuffer !== 'function') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (Blob.prototype as any).arrayBuffer = async function arrayBuffer(this: Blob) {
+    // jsdom stores Blob parts internally; fall back to a FileReader on a copy.
+    const reader = new FileReader();
+    const promise = new Promise<ArrayBuffer>((resolve, reject) => {
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = () => reject(reader.error);
+    });
+    reader.readAsArrayBuffer(this);
+    return promise;
+  };
+}
+
 // Mock the Leaflet library
 jest.mock('leaflet', () => {
   return {
