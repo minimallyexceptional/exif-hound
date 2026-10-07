@@ -16,6 +16,7 @@ import { parseImportData, ImportedData, ImportedPoint } from './utils/importData
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
 import { isFeatureEnabled } from './config/featureFlags';
+import SplashScreen from './components/SplashScreen';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -39,6 +40,9 @@ function App() {
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
   const [importError, setImportError] = useState<string | null>(null);
+  // Entrypoint gate: the splash screen owns the window until the user starts
+  // (or resumes, later) an investigation. Everything downstream is unchanged.
+  const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
 
   const handleImageUpload = (imageData: ImageData) => {
     // ImageUploader emits each image twice (placeholder while processing, then
@@ -161,6 +165,10 @@ function App() {
         return null;
     }
   };
+
+  if (sessionState === 'splash') {
+    return <SplashScreen onStart={() => setSessionState('active')} />;
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">
