@@ -56,11 +56,14 @@ export default defineConfig({
       // Pre-bundle it so the browser doesn't have to resolve them one by one
       // during the first Cypress page load.
       'lucide-react',
+      'investigation-archive',
+      'sql.js',
     ],
   },
   resolve: {
     alias: [
-      { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') }
+      { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') },
+      { find: 'investigation-archive', replacement: path.join(packagesDir, 'investigation-archive/dist') }
     ],
   },
   

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw, Star } from 'lucide-react';
+import { Upload, List, Map as MapIcon, Download, Save as SaveIcon, Check, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw, Star } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { isFeatureEnabled } from '../config/featureFlags';
 import { Button } from './common/Button';
@@ -20,6 +20,9 @@ interface Props {
   onSetView: (view: ViewMode) => void;
   /** Manual update check (Help -> Check for Updates). */
   onCheckForUpdates: () => void;
+  /** Save the session as a .investigation archive. */
+  onSave: () => void;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
 }
 
 export const AppHeader: React.FC<Props> = ({
@@ -30,6 +33,8 @@ export const AppHeader: React.FC<Props> = ({
   onOpenSettings,
   onSetView,
   onCheckForUpdates,
+  onSave,
+  saveStatus,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
@@ -72,6 +77,16 @@ export const AppHeader: React.FC<Props> = ({
 
           {imagesCount > 0 && (
             <>
+              <Button
+                variant="secondary"
+                icon={saveStatus === 'saved' ? <Check className="w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
+                onClick={() => { onSave(); setIsMobileMenuOpen(false); }}
+                disabled={saveStatus === 'saving'}
+                fullWidth
+              >
+                {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+              </Button>
+
               <Button
                 variant="secondary"
                 icon={<Download className="w-4 h-4" />}
@@ -180,6 +195,17 @@ export const AppHeader: React.FC<Props> = ({
             {/* Secondary Actions */}
             {imagesCount > 0 && (
               <div className="flex items-center gap-2 border-l border-r border-app-gray-light/30 px-4">
+                <Button
+                  variant="secondary"
+                  icon={saveStatus === 'saved'
+                    ? <Check className="w-4 h-4" />
+                    : <SaveIcon className="w-4 h-4" />}
+                  onClick={onSave}
+                  disabled={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
+                </Button>
+
                 <Button
                   variant="secondary"
                   icon={<Download className="w-4 h-4" />}

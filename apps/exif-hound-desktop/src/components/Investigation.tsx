@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ImageData } from '../types';
-import { Search, Map, Calendar, Database, ArrowLeft, Maximize2, Minimize2, ChevronRight, Images } from 'lucide-react';
-import DeviceDendrogram from './analysis/DeviceDendrogram';
+import { Search, Map, Calendar, Database, ArrowLeft, Maximize2, Minimize2, ChevronRight, Images } from 'lucide-react';import DeviceDendrogram from './analysis/DeviceDendrogram';
 import TimelineAnalysis from './analysis/TimelineAnalysis';
 import SoftwareProcessingAnalysis from './analysis/SoftwareProcessingAnalysis';
 import GeographicalAnalysis from './analysis/GeographicalAnalysis';
 
 interface Props {
   images: ImageData[];
+  /** Tool restored from a saved investigation; applied on first mount. */
+  initialTool?: string | null;
 }
 
 type AnalysisTool = 'pattern' | 'geolocation' | 'timeline' | 'software' | null;
@@ -19,8 +20,10 @@ interface ToolDefinition {
   description: string;
 }
 
-const Investigation: React.FC<Props> = ({ images }) => {
-  const [selectedTool, setSelectedTool] = useState<AnalysisTool>(null);
+const Investigation: React.FC<Props> = ({ images, initialTool = null }) => {
+  const [selectedTool, setSelectedTool] = useState<AnalysisTool>(
+    (initialTool as AnalysisTool) ?? null
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = useState(false);
