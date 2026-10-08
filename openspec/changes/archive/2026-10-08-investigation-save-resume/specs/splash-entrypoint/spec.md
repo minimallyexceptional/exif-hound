@@ -10,7 +10,7 @@ resume that investigation (open the file from disk and restore the session).
 Entries whose file cannot be opened SHALL surface the same clear error as the
 open action and leave the app unchanged; entries are not silently pruned.
 
-#### Scenario: No history yet
+#### Scenario: Empty state
 - **WHEN** no investigations have been saved or opened
 - **THEN** the region shows its empty state inviting the user to start their first investigation
 
