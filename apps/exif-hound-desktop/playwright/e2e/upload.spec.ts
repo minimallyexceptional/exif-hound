@@ -17,7 +17,7 @@ test('handles multiple files at once', async ({ page }) => {
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.noGps.name}"]`)).toBeAttached();
   await expect(page.getByText('Model', { exact: true }).locator('..').locator('div').last()).toHaveText('Hound-2');
   await switchView(page, 'Investigation');
-  await expect(page.getByText('2 images', { exact: true })).toBeVisible();
+  await expect(page.getByText('2 images', { exact: true }).first()).toBeVisible();
 });
 
 test('rejects non-image files', async ({ page }) => {
