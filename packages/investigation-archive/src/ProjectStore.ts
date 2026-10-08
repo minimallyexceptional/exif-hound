@@ -78,6 +78,7 @@ export class ProjectStore {
       throw new ProjectExistsError(rootPath);
     }
     await deps.fs.mkdir(rootPath);
+    await deps.fs.mkdir(joinPath(rootPath, DATA_DIR));
 
     // data.db first — before anything else is written.
     const engine = await deps.dbProvider.open();
