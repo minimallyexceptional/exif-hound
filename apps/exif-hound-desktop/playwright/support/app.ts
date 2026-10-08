@@ -17,10 +17,25 @@ export const MOCK_REVERSE_GEOCODE = {
   address: { road: 'Charing Cross Rd', city: 'London', state: 'England', country: 'United Kingdom', postcode: 'WC2H 0NN' },
 };
 
+/**
+ * In-memory filesystem emulation for plugin:fs commands. The seed is
+ * serializable state; the handler logic is installed in-page by bootApp.
+ * Files are base64-encoded so binary content can cross the init-script
+ * boundary.
+ */
+export interface FsEmulation {
+  /** base64-encoded file contents by absolute path. */
+  files?: Record<string, string>;
+  /** Known directory paths. */
+  dirs?: string[];
+}
+
 export interface BootOptions {
   commands?: Record<string, unknown>;
   localStorage?: Record<string, string>;
   geocoding?: 'success' | 'error' | 'none';
+  /** Emulate plugin:fs against an in-memory filesystem (project flows). */
+  fsEmulation?: FsEmulation;
   /**
    * Start past the splash screen by clicking "Start new investigation" so
    * specs land in the app shell directly (default, preserves legacy specs).
@@ -45,16 +60,28 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     return route.abort();
   });
 
-  const commands = { 'plugin:app|version': APP_VERSION, 'plugin:updater|check': null, ...options.commands };
+  const commands = {
+    'plugin:app|version': APP_VERSION,
+    'plugin:updater|check': null,
+    // Default parent folder for bootApp's implicit project creation.
+    'plugin:dialog|open': '/tmp/e2e-projects',
+    ...options.commands,
+  };
+  // The active app requires a bound project, so the implicit boot creates one
+  // through the create-project flow (fs emulation backs the folder writes).
+  const fsEmulation = options.fsEmulation ?? { dirs: [], files: {} };
   await page.addInitScript(({ registeredCommands, storageSeed }) => {
     const handlers = new Map(Object.entries(registeredCommands));
     const calls: string[] = [];
-    const callsDetailed: Array<{ command: string; args: unknown }> = [];
+    const callsDetailed: Array<{ command: string; args: unknown; headers?: Record<string, string> }> = [];
     let callbackId = 0;
     const callbacks = new Map<number, unknown>();
-    const invoke = (cmd: string, args?: unknown): Promise<unknown> => {
+    const invoke = (cmd: string, args?: unknown, options?: { headers?: Record<string, string> }): Promise<unknown> => {
       calls.push(cmd);
-      callsDetailed.push({ command: cmd, args });
+      callsDetailed.push({ command: cmd, args, headers: options?.headers });
+      if (options?.headers?.path !== undefined) {
+        mock.writePath = decodeURIComponent(options.headers.path);
+      }
       const handler = handlers.get(cmd);
       if (handler === undefined) return Promise.reject(new Error(`[tauri-mock] no canned response registered for command "${cmd}"`));
       if (handler instanceof Error) return Promise.reject(handler);
@@ -69,9 +96,10 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
       clearCommands: () => handlers.clear(),
       calls,
       callsDetailed,
+      writePath: undefined as string | undefined,
     };
     const w = window as unknown as {
-      __tauriMock: { registerCommand: (cmd: string, result: unknown) => void; clearCommands: () => void; calls: string[]; callsDetailed: Array<{ command: string; args: unknown }> };
+      __tauriMock: { registerCommand: (cmd: string, result: unknown) => void; clearCommands: () => void; calls: string[]; callsDetailed: Array<{ command: string; args: unknown; headers?: Record<string, string> }>; writePath?: string };
       __TAURI_INTERNALS__: unknown;
       __TAURI__: unknown;
       __TAURI_IPC__: () => void;
@@ -113,9 +141,46 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     for (const [key, value] of Object.entries(storageSeed)) window.localStorage.setItem(key, value);
   }, { registeredCommands: commands, storageSeed: options.localStorage ?? {} });
 
+  {
+    await page.addInitScript((seed) => {
+      const w = window as unknown as { __tauriMock: { registerCommand: (cmd: string, result: unknown) => void } };
+      const files = new Map<string, number[]>(Object.entries(seed.files ?? {}).map(([path, b64]) => [path, Array.from(atob(b64)).map((c) => c.charCodeAt(0))]));
+      const dirs = new Set<string>(seed.dirs ?? []);
+      w.__tauriMock.registerCommand('plugin:fs|exists', (args: { path?: string } | undefined) => {
+        const p = args?.path ?? '';
+        return files.has(p) || dirs.has(p);
+      });
+      w.__tauriMock.registerCommand('plugin:fs|mkdir', (args: { path?: string } | undefined) => {
+        dirs.add(args?.path ?? '');
+        return null;
+      });
+      // write_file carries the bytes as invoke args; the path rides in IPC
+      // headers (see plugin-fs writeFile) — handled by the invoke wrapper
+      // via window.__tauriMock.writePath.
+      w.__tauriMock.registerCommand('plugin:fs|write_file', (data: unknown) => {
+        const path = (window as unknown as { __tauriMock: { writePath?: string } }).__tauriMock.writePath;
+        if (!path) throw new Error('[tauri-mock] write_file without a path header');
+        files.set(path, Array.isArray(data) ? (data as number[]) : []);
+        return null;
+      });
+      w.__tauriMock.registerCommand('plugin:fs|read_file', (args: { path?: string } | undefined) => {
+        const data = files.get(args?.path ?? '');
+        if (data === undefined) throw new Error(`ENOENT: ${args?.path}`);
+        return data;
+      });
+      w.__tauriMock.registerCommand('plugin:fs|remove', (args: { path?: string } | undefined) => {
+        files.delete(args?.path ?? '');
+        return null;
+      });
+    }, { files: fsEmulation.files ?? {}, dirs: fsEmulation.dirs ?? [] });
+  }
+
   await page.goto('/');
   if (options.skipSplash !== false) {
     await page.getByRole('button', { name: 'Start new investigation' }).click();
+    await page.getByLabel('Project name').fill('E2E Project');
+    await page.getByRole('button', { name: 'Choose parent folder' }).click();
+    await page.getByRole('button', { name: 'Create project' }).click();
     await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
   }
 }
@@ -147,7 +212,7 @@ export async function switchView(page: Page, name: 'Map View' | 'List View' | 'I
 
 declare global {
   interface Window {
-    __tauriMock: { calls: string[]; callsDetailed: Array<{ command: string; args: unknown }>; registerCommand: (cmd: string, result: unknown) => void };
+    __tauriMock: { calls: string[]; callsDetailed: Array<{ command: string; args: unknown; headers?: Record<string, string> }>; writePath?: string; registerCommand: (cmd: string, result: unknown) => void };
     __savePickerCalls: Array<{ suggestedName: string; types: { accept: Record<string, string[]> } }>;
     __lastSaveWritable: { content: string };
     __clipboardWrites: string[];

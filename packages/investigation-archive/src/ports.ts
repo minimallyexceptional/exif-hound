@@ -1,7 +1,7 @@
 /**
- * Ports (dependency inversion) for the archive service. The package owns all
- * format/domain logic; concrete runtimes (sql.js wasm in the app, sql.js in
- * Node tests, fflate zip) are bound from outside.
+ * Ports (dependency inversion) for the project store. The package owns all
+ * project/domain logic; concrete runtimes (sql.js wasm in the app, sql.js in
+ * Node tests, Tauri fs in the desktop app) are bound from outside.
  */
 
 export type SqlMethod = 'run' | 'all' | 'get' | 'values';
@@ -19,9 +19,9 @@ export interface DatabaseEngine {
    * positional rows (for `get`, a single row or an empty array).
    */
   exec(sql: string, params?: unknown[], method?: SqlMethod): Promise<QueryResult>;
-  /** Serialize the database to bytes for embedding in the archive. */
+  /** Serialize the database to bytes for writing to disk. */
   serialize(): Promise<Uint8Array>;
-  /** Release engine resources (no-op for engines without any). */
+  /** Release engine resources. */
   close(): void;
 }
 
@@ -30,7 +30,15 @@ export interface DatabaseEngineProvider {
   open(bytes?: Uint8Array): Promise<DatabaseEngine>;
 }
 
-export interface Zipper {
-  zip(entries: Map<string, Uint8Array>): Promise<Uint8Array>;
-  unzip(bytes: Uint8Array): Promise<Map<string, Uint8Array>>;
+/**
+ * Filesystem port for project folder operations. Paths are project-absolute
+ * POSIX-style ('images/beach.jpg', 'data/data.db') joined onto a root path
+ * supplied by the caller.
+ */
+export interface FsPort {
+  exists(path: string): Promise<boolean>;
+  mkdir(path: string): Promise<void>;
+  writeFile(path: string, data: Uint8Array): Promise<void>;
+  readFile(path: string): Promise<Uint8Array>;
+  deleteFile(path: string): Promise<void>;
 }

@@ -13,6 +13,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '\\?worker&url$': '<rootDir>/src/__mocks__/fileMock.cjs',
+    '\\?url$': '<rootDir>/src/__mocks__/fileMock.cjs',
     '\\.(css|less|scss)$': '<rootDir>/src/__mocks__/styleMock.cjs',
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/src/__mocks__/fileMock.cjs',
   },

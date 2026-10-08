@@ -25,6 +25,14 @@
       "identifier": "fs:allow-write-file",
       "allow": [{ "path": "**" }]
     },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [{ "path": "**" }]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [{ "path": "**" }]
+    },
     "http:default",
     "http:allow-fetch",
     "http:allow-fetch-cancel",

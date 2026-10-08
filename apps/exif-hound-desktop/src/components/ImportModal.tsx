@@ -30,7 +30,7 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
         if (!looksLikeKml(text)) {
           throw new Error('Invalid KML file format');
         }
-        await onImport({ type: 'kml', data: text });
+        await onImport({ type: 'kml', data: text, name: file.name });
       } else {
         // Basic CSV validation and parsing
         const lines = text.split('\n');
@@ -40,7 +40,7 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
         }
         
         // Pass the data to the Map component for processing
-        await onImport({ type: 'csv', data: text });
+        await onImport({ type: 'csv', data: text, name: file.name });
       }
       
       onClose();

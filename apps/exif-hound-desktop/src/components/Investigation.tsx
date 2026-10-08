@@ -12,8 +12,10 @@ import type { AnalysisTool } from './investigation/AnalysisTool';
 
 interface Props {
   images: ImageData[];
-  /** Tool restored from a saved investigation; applied on first mount. */
+  /** Tool restored from the project store; applied on first mount. */
   initialTool?: string | null;
+  /** Notified when the user selects/deselects an analysis tool (persistence hook). */
+  onToolChange?: (tool: string | null) => void;
 }
 
 /** Shared, stateless insights engine. */
@@ -59,10 +61,14 @@ function toInsightImage(image: ImageData): InsightImage {
   };
 }
 
-const Investigation: React.FC<Props> = ({ images, initialTool = null }) => {
+const Investigation: React.FC<Props> = ({ images, initialTool = null, onToolChange }) => {
   const [selectedTool, setSelectedTool] = useState<AnalysisTool>(
     (initialTool as AnalysisTool) ?? null
   );
+  // Persistence hook: notify the app whenever the tool selection changes.
+  useEffect(() => {
+    onToolChange?.(selectedTool);
+  }, [selectedTool, onToolChange]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = useState(false);
