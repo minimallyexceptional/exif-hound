@@ -18,6 +18,12 @@ export class InMemoryFs {
   }
 
   async writeFile(path: string, data: Uint8Array): Promise<void> {
+    // Realistic: fail when the parent directory does not exist (the real
+    // filesystem does; this once masked a missing mkdir in ProjectStore).
+    const parent = path.slice(0, path.lastIndexOf('/'));
+    if (parent && !this.dirs.has(parent)) {
+      throw new Error(`ENOENT: parent directory missing for ${path}`);
+    }
     this.operationOrder.push(`write:${path}`);
     this.files.set(path, new Uint8Array(data));
   }

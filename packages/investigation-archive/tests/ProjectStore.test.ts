@@ -36,8 +36,9 @@ describe('project creation and validation', () => {
     );
 
     // db exists before images dir was created (write order matters)
-    expect(fs.operationOrder.slice(0, 3)).toEqual([
+    expect(fs.operationOrder.slice(0, 4)).toEqual([
       `mkdir:/projects/Case 042`,
+      `mkdir:/projects/Case 042/data`,
       `write:/projects/Case 042/data/data.db`,
       `mkdir:/projects/Case 042/images`,
     ]);
@@ -89,6 +90,7 @@ describe('project creation and validation', () => {
     const foreignBytes = foreign.export();
     foreign.close();
     await fs.mkdir('/projects/ForeignDb/images');
+    await fs.mkdir('/projects/ForeignDb/data');
     await fs.writeFile('/projects/ForeignDb/data/data.db', foreignBytes);
     await expect(
       ProjectStore.validate({ dbProvider, fs }, '/projects/ForeignDb')
