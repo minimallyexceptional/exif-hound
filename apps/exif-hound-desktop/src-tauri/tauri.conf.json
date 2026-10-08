@@ -5,7 +5,7 @@
   "identifier": "com.exifhound.app",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5176",
+    "devUrl": "http://127.0.0.1:5176",
     "beforeDevCommand": "npm run build -w shared-utils -w exif-middleware && npm run dev",
     "beforeBuildCommand": "npm run build -w shared-utils -w exif-middleware && npm run build"
   },
