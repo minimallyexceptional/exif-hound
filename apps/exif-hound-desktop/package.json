@@ -41,6 +41,7 @@
     "@visx/shape": "^4.0.0",
     "@visx/tooltip": "^4.0.0",
     "@visx/zoom": "^4.0.0",
+    "exif-insights": "*",
     "exif-middleware": "*",
     "exifreader": "^4.46.0",
     "investigation-archive": "*",

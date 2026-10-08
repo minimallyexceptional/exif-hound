@@ -63,7 +63,8 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') },
-      { find: 'investigation-archive', replacement: path.join(packagesDir, 'investigation-archive/dist') }
+      { find: 'investigation-archive', replacement: path.join(packagesDir, 'investigation-archive/dist') },
+      { find: 'exif-insights', replacement: path.join(packagesDir, 'exif-insights/dist') }
     ],
   },
   
