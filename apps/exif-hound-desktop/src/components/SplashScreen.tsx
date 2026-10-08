@@ -49,39 +49,39 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart, onOpen, onResume, 
 
   return (
     <div
-      className="h-screen w-full bg-app-black flex flex-col justify-center lg:justify-stretch lg:flex-row overflow-hidden"
+      className="h-screen w-full bg-app-black flex flex-col justify-center lg:justify-stretch lg:flex-row gap-4 lg:gap-6 overflow-hidden p-4 lg:p-6"
       aria-label="Exif Hound"
     >
-      {/* Left — the logomark alone, centered */}
-      <div className="relative flex-none lg:w-[45%] flex items-center justify-center p-8 pb-2 lg:pb-8">
-        <div data-testid="splash-logomark">
-          <Logomark className="w-52 h-52 lg:h-[70vh] lg:w-[70vh]" />
-        </div>
-        <div className="absolute bottom-6 left-6 font-mono text-xs text-app-accent-dim">
-          v{__APP_VERSION__}
+      {/* Left pane — the logomark + version, framed */}
+      <div className="flex-1 lg:flex-none lg:w-[45%] flex items-center justify-center p-4 lg:p-8">
+        <div
+          className="w-full h-full flex flex-col items-center justify-center gap-3 rounded-xl border border-app-gray-light/40 bg-app-gray/30"
+          data-testid="splash-logo-pane"
+        >
+          <div data-testid="splash-logomark">
+            <Logomark className="w-52 h-52 lg:h-[56vh] lg:w-[56vh]" />
+          </div>
+          <div className="font-mono text-xs text-app-accent-dim">
+            v{__APP_VERSION__}
+          </div>
         </div>
       </div>
 
-      {/* Hairline divider — desktop split only */}
-      <div
-        className="hidden lg:block w-px self-stretch my-24 bg-app-gray-light"
-        aria-hidden="true"
-      />
-
-      {/* Right — actions + recent investigations */}
+      {/* Right pane — actions + recent investigations, framed */}
       <div
         data-testid="splash-actions"
-        className={`flex-none lg:flex-1 flex items-center justify-center p-8 transition-all duration-700 ease-out ${
+        className={`flex-1 lg:w-[55%] flex items-center justify-center p-4 lg:p-8 transition-all duration-700 ease-out ${
           showActions ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
         }`}
       >
-        <div className="w-full max-w-md">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="w-full max-w-md self-center lg:self-stretch lg:max-w-none lg:mx-16 rounded-xl border border-app-gray-light/40 bg-app-gray/30 p-6 lg:p-8 flex flex-col justify-center">
+          <div className="flex flex-col gap-3">
             <Button
               variant="primary"
               size="lg"
               icon={<Plus className="w-4 h-4" />}
               onClick={onStart}
+              fullWidth
             >
               Start new investigation
             </Button>
@@ -90,6 +90,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart, onOpen, onResume, 
               size="lg"
               icon={<FolderOpen className="w-4 h-4" />}
               onClick={onOpen}
+              fullWidth
             >
               Open investigation…
             </Button>
@@ -104,7 +105,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart, onOpen, onResume, 
             </div>
           )}
 
-          <h2 className="mt-10 mb-3 text-xs font-mono uppercase tracking-widest text-app-accent-dim">
+          <h2 className="mt-8 mb-3 text-xs font-mono uppercase tracking-widest text-app-accent-dim">
             Recent investigations
           </h2>
 
@@ -115,13 +116,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart, onOpen, onResume, 
               </p>
             </div>
           ) : (
-            <ul className="rounded-lg border border-app-gray-light/30 divide-y divide-app-gray-light/30 overflow-hidden">
+            <ul className="divide-y divide-app-gray-light/30">
               {recent.map((entry) => (
                 <li key={entry.path}>
                   <button
                     type="button"
                     onClick={() => onResume(entry.path)}
-                    className="w-full text-left px-4 py-3 flex items-center justify-between gap-4 hover:bg-app-gray-light/30 transition-colors duration-200 focus-visible:outline-none"
+                    className="w-full text-left px-4 py-3 flex items-center justify-between gap-4 hover:bg-app-gray-light/30 transition-colors duration-200 focus-visible:outline-none rounded-lg"
                     data-testid="recent-investigation-entry"
                   >
                     <span className="text-sm text-app-white truncate">{entry.name}</span>
