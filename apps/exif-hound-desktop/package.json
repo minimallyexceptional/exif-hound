@@ -5,7 +5,7 @@
   "version": "2.7.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 5176 --clearScreen false",
+    "dev": "vite --port 5176 --strictPort --clearScreen false",
     "dev:test": "vite --port 5276 --strictPort --host 127.0.0.1",
     "build": "vite build",
     "lint": "eslint .",
