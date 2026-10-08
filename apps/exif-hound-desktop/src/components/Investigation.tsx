@@ -1,9 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { InsightsEngine } from 'exif-insights';
+import type { InsightImage } from 'exif-insights';
 import { ImageData } from '../types';
-import { Search, Map, Calendar, Database, ArrowLeft, Maximize2, Minimize2, ChevronRight, Images } from 'lucide-react';import DeviceDendrogram from './analysis/DeviceDendrogram';
+import DeviceDendrogram from './analysis/DeviceDendrogram';
 import TimelineAnalysis from './analysis/TimelineAnalysis';
 import SoftwareProcessingAnalysis from './analysis/SoftwareProcessingAnalysis';
 import GeographicalAnalysis from './analysis/GeographicalAnalysis';
+import InvestigationDashboard from './investigation/InvestigationDashboard';
+import type { AnalysisTool } from './investigation/AnalysisTool';
 
 interface Props {
   images: ImageData[];
@@ -11,13 +16,47 @@ interface Props {
   initialTool?: string | null;
 }
 
-type AnalysisTool = 'pattern' | 'geolocation' | 'timeline' | 'software' | null;
+/** Shared, stateless insights engine. */
+const insightsEngine = new InsightsEngine();
 
 interface ToolDefinition {
-  id: AnalysisTool;
+  id: Exclude<AnalysisTool, null>;
   name: string;
-  icon: React.ReactNode;
   description: string;
+}
+
+/** Adapt the app's ImageData records to the exif-insights input shape. */
+function toInsightImage(image: ImageData): InsightImage {
+  const { exif } = image;
+  return {
+    id: image.id,
+    isProcessing: image.isProcessing,
+    latitude: exif.latitude,
+    longitude: exif.longitude,
+    gpsAltitude: exif.gpsAltitude,
+    dateTimeOriginal: exif.dateTimeOriginal,
+    make: exif.make,
+    model: exif.model,
+    lensModel: exif.lensModel,
+    software: exif.software,
+    artist: exif.artist,
+    copyright: exif.copyright,
+    imageWidth: exif.imageWidth,
+    imageHeight: exif.imageHeight,
+    orientation: exif.orientation,
+    location: exif.location
+      ? {
+          formatted: exif.location.formatted,
+          country: exif.location.country,
+          state: exif.location.state,
+          city: exif.location.city,
+          town: exif.location.town,
+          village: exif.location.village,
+          suburb: exif.location.suburb,
+          road: exif.location.road
+        }
+      : null
+  };
 }
 
 const Investigation: React.FC<Props> = ({ images, initialTool = null }) => {
@@ -28,34 +67,34 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [fullscreen, setFullscreen] = useState(false);
 
+  // Insights aggregate in the background from the already-parsed EXIF
+  // records and refresh automatically as the dataset changes.
+  const insightImages = useMemo(() => images.map(toInsightImage), [images]);
+  const insights = useMemo(() => insightsEngine.compute(insightImages), [insightImages]);
+
   // Only real images with capture dates feed the temporal tools; the
   // dataset is never augmented with synthetic entries.
   const imagesWithDates = images.filter(img => img.exif.dateTimeOriginal);
 
-  // Define all tools with consistent structure
   const tools: ToolDefinition[] = [
     {
       id: 'pattern',
       name: 'Pattern Analysis',
-      icon: <Search className="w-5 h-5" />,
       description: 'Identify patterns and connections across image metadata'
     },
     {
       id: 'geolocation',
       name: 'Geolocation Analysis',
-      icon: <Map className="w-5 h-5" />,
       description: 'Map and analyze geographical data from images'
     },
     {
       id: 'timeline',
       name: 'Timeline Analysis',
-      icon: <Calendar className="w-5 h-5" />,
       description: 'Visualize temporal relationships between images'
     },
     {
       id: 'software',
       name: 'Software Processing',
-      icon: <Database className="w-5 h-5" />,
       description: 'Analyze software editing patterns and metadata anomalies'
     }
   ];
@@ -134,54 +173,12 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null }) => {
       }`}
     >
       {!selectedTool ? (
-        // Tool selection view
-        <div className="p-4 sm:p-6 overflow-y-auto">
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-app-white">Investigation Dashboard</h2>
-              <p className="text-app-accent-dim text-sm mt-1">
-                Analyze and correlate data from your images
-              </p>
-            </div>
-            <div className="flex items-center gap-2 glass-panel px-3 py-1.5 rounded-full shrink-0">
-              <Images className="w-4 h-4 text-app-accent" />
-              <span className="text-sm font-medium text-app-white tabular-nums">
-                {images.length} image{images.length === 1 ? '' : 's'}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {tools.map(tool => (
-              <button
-                key={tool.id}
-                className="glass-panel group p-4 rounded-lg text-left transition-all duration-200 hover:bg-app-gray-light hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:opacity-40 disabled:pointer-events-none"
-                onClick={() => setSelectedTool(tool.id)}
-                aria-label={`Open ${tool.name}`}
-                disabled={images.length === 0}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-app-accent">
-                    {tool.icon}
-                    <h3 className="text-base font-medium text-app-white">{tool.name}</h3>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-app-accent-dim transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-app-accent" />
-                </div>
-                <p className="text-xs text-app-accent-dim leading-relaxed">{tool.description}</p>
-              </button>
-            ))}
-          </div>
-
-          {images.length === 0 && (
-            <div className="glass-panel mt-6 p-8 rounded-lg text-center">
-              <Images className="w-10 h-10 text-app-accent-dim mx-auto mb-3" />
-              <h3 className="text-base font-medium text-app-white mb-1">No images loaded</h3>
-              <p className="text-sm text-app-accent-dim">
-                Upload images to begin your investigation
-              </p>
-            </div>
-          )}
-        </div>
+        // Insights dashboard
+        <InvestigationDashboard
+          images={images}
+          insights={insights}
+          onOpenTool={setSelectedTool}
+        />
       ) : (
         // Tool view with minimal chrome
         <div className="flex flex-col h-full">
