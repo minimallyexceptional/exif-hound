@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Plus, FolderOpen } from 'lucide-react';
 import { Button } from './common/Button';
 import Logomark from './common/Logomark';
-import { RecentInvestigation } from '../utils/recentInvestigations';
+import { RecentProject } from '../utils/recentProjects';
 
 interface SplashScreenProps {
   onStart: () => void;
   onOpen: () => void;
   onResume: (path: string) => void;
-  recent?: RecentInvestigation[];
+  recent?: RecentProject[];
   /** Error surfaced by a failed open/resume; naming the problem. */
   error?: string | null;
 }
@@ -92,7 +92,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart, onOpen, onResume, 
               onClick={onOpen}
               fullWidth
             >
-              Open investigation…
+              Open existing project
             </Button>
           </div>
 

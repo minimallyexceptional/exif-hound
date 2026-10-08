@@ -17,7 +17,11 @@ test.describe('Splash screen entrypoint', () => {
   test('starting a new investigation enters the upload flow', async ({ page }) => {
     await bootApp(page, { skipSplash: false });
 
+    // The create-project modal opens; completing it enters the app.
     await page.getByRole('button', { name: 'Start new investigation' }).click();
+    await page.getByLabel('Project name').fill('Splash Case');
+    await page.getByRole('button', { name: 'Choose parent folder' }).click();
+    await page.getByRole('button', { name: 'Create project' }).click();
 
     // Existing entrypoint: app shell with the empty-state upload panel.
     await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();

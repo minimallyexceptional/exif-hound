@@ -57,6 +57,8 @@ export interface MapStyle {
 export interface ImportData {
   type: 'kml' | 'csv';
   data: string;
+  /** Original file name; persisted to the project's data/ folder. */
+  name?: string;
 }
 
 export interface MapSettings {

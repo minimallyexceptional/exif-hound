@@ -1,95 +1,74 @@
 /**
- * Stable identifiers for the .investigation archive format. Version 1:
+ * Project folder layout and record types.
  *
- *   investigation.json   manifest (cheap inspection, formatVersion gate)
- *   investigation.db     SQLite database (source of truth for metadata)
- *   images/<name>        uploaded images, bit-identical original bytes
+ * A project is a named folder inside a user-chosen parent:
+ *
+ *   <parent>/<project-name>/images/   uploaded images, original bytes
+ *   <parent>/<project-name>/data/     data.db + imported KML/CSV files
  */
 
-export const FORMAT_VERSION = 1;
+export const DATA_DIR = 'data';
+export const IMAGES_DIR = 'images';
+export const DATABASE_FILE = 'data.db';
+export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const MANIFEST_ENTRY = 'investigation.json';
-export const DATABASE_ENTRY = 'investigation.db';
-export const IMAGES_DIR = 'images/';
+export const SCHEMA_FORMAT_VERSION = 2;
 
-export const ARCHIVE_EXTENSION = '.investigation';
+export type ImportType = 'kml' | 'csv';
 
-export interface Manifest {
-  formatVersion: number;
-  name: string;
-  /** ISO timestamps. */
-  createdAt: string;
-  savedAt: string;
-  imageCount: number;
-  appVersion: string;
-}
-
-/** Session state captured with the investigation (design.md D4). */
+/** Session/investigation state persisted in investigation_meta. */
 export interface SessionState {
   viewMode: string;
   showRoute: boolean;
   investigationTool: string | null;
-  importType: 'kml' | 'csv' | null;
-  importData: string | null;
 }
 
-export interface SaveInput {
+export interface ProjectMeta {
   name: string;
   createdAt: Date;
-  savedAt: Date;
   appVersion: string;
-  session: SessionState;
-  images: SaveImageInput[];
+  schemaFormatVersion: number;
+  state: SessionState;
 }
 
-export interface SaveImageInput {
+export interface ImageRecord {
   fileName: string;
-  /** Original bytes; null for imported point entries without local image data. */
-  bytes: Uint8Array | null;
-  /** True only when `bytes` is present and stored under images/. */
+  /** Path of the image file relative to the project root ('images/…'). */
+  diskPath: string;
+  /** True only when original bytes live on disk under images/. */
   hasImage: boolean;
-  /** Extracted metadata (serializable). */
+  bytes: Uint8Array | null;
   exif: unknown;
   /** External image URL for imported point entries; null for real images. */
-  sourceUrl?: string | null;
-}
-
-export interface OpenedImage {
-  fileName: string;
-  archivePath: string;
-  hasImage: boolean;
-  bytes: Uint8Array | null;
-  exif: unknown;
   sourceUrl: string | null;
+  addedAt: Date;
 }
 
-export interface OpenResult {
-  meta: {
-    formatVersion: number;
-    name: string;
-    createdAt: Date;
-    savedAt: Date;
-    appVersion: string;
-    imageCount: number;
-    session: SessionState;
-  };
-  images: OpenedImage[];
+export interface ImportRecord {
+  type: ImportType;
+  fileName: string;
 }
 
-/** Filesystem-safe suggestion derived from the investigation name. */
-export function suggestFileName(name: string): string {
-  const safe = name
-    .replace(/[\\/:*?"<>|]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const base = safe.length > 0 ? safe : 'Investigation';
-  return base.endsWith(ARCHIVE_EXTENSION)
-    ? base
-    : `${base}${ARCHIVE_EXTENSION}`;
+/** Path join for project-relative, POSIX-style paths. */
+export function joinPath(root: string, relative: string): string {
+  const r = root.replace(/\/+$/, '');
+  return `${r}/${relative}`;
 }
 
-/** Sanitize an original filename for use inside the archive's images/ dir. */
+/** Sanitize an original filename for use inside the project's images/ dir. */
 export function sanitizeImageName(fileName: string): string {
   const base = fileName.split(/[\\/]/).pop() ?? 'image';
   return base.replace(/[\\/:*?"<>|]/g, '-').trim() || 'image';
+}
+
+/** Sanitize an import filename for data/ (extension preserved by caller). */
+export function sanitizeImportName(fileName: string): string {
+  const base = fileName.split(/[\\/]/).pop() ?? 'import';
+  return base.replace(/[\\/:*?"<>|]/g, '-').trim() || 'import';
+}
+
+/** Sanitize a project folder name. */
+export function sanitizeProjectName(name: string): string {
+  const trimmed = name.trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ');
+  return trimmed.length > 0 ? trimmed : 'Investigation';
 }

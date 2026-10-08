@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy } from 'react';
+import { useState, useRef, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
@@ -17,10 +17,24 @@ import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
 import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
-import { saveInvestigation, openInvestigation, RestoredSession, ArchiveViewMode } from './services/investigationArchive/ArchiveSessionService';
-import { saveArchiveWithDialog, pickAndReadArchive, readArchiveFile } from './services/investigationArchive/fileAccess';
-import { recordRecentInvestigation, getRecentInvestigations, RecentInvestigation } from './utils/recentInvestigations';
-import { InvalidArchiveError, UnsupportedFormatError } from 'investigation-archive';
+import ProjectCreateModal from './components/ProjectCreateModal';
+import { ProjectStore } from 'investigation-archive';
+import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
+import { TauriFsPort } from './services/investigationArchive/TauriFsPort';
+import {
+  toImageData,
+  toStoreImage,
+  toStoreState,
+  serializeExif,
+  ProjectViewMode,
+} from './services/investigationArchive/ProjectSessionService';
+import { pickProjectFolder } from './services/investigationArchive/projectDialogs';
+import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';
+import {
+  InvalidProjectError,
+  ProjectExistsError,
+  UnsupportedSchemaError,
+} from 'investigation-archive';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -44,19 +58,40 @@ function App() {
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
   const [importError, setImportError] = useState<string | null>(null);
-  // Entrypoint gate: the splash screen owns the window until the user starts
-  // a new investigation or opens/resumes a saved one. Everything downstream
-  // is unchanged.
+  // Entrypoint gate: the splash screen owns the window until a project is
+  // created or opened. Everything downstream is unchanged.
   const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
-  const [recentInvestigations, setRecentInvestigations] = useState<RecentInvestigation[]>(() => getRecentInvestigations());
+  const [recentProjects, setRecentProjects] = useState<RecentProject[]>(() => getRecentProjects());
   const [splashError, setSplashError] = useState<string | null>(null);
-
-  // Session identity + save lifecycle.
-  const [sessionName, setSessionName] = useState<string | null>(null);
-  const [sessionCreatedAt, setSessionCreatedAt] = useState<Date>(new Date());
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [investigationTool, setInvestigationTool] = useState<string | null>(null);
+
+  // The bound project: every upload, import, and state change writes through
+  // to this store's folder (images/ + data/data.db). Null on the splash.
+  const projectStoreRef = useRef<ProjectStore | null>(null);
+
+  const persistImage = async (imageData: ImageData) => {
+    // Write-through: original bytes → images/ on disk, EXIF → data.db.
+    const store = projectStoreRef.current;
+    if (!store) return;
+    try {
+      const args = toStoreImage(imageData);
+      if (args.bytes === null && !('hasImage' in imageData)) {
+        const file = imageData.file as unknown as File;
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        await store.addImage(imageData.file.name, bytes, serializeExif(imageData.exif));
+      } else {
+        await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Failed to persist image to project:', error);
+      setImportError(
+        error instanceof Error && error.message
+          ? `Project write failed: ${error.message}`
+          : 'Project write failed — the image is shown but not saved to the project.'
+      );
+    }
+  };
 
   const handleImageUpload = (imageData: ImageData) => {
     // ImageUploader emits each image twice (placeholder while processing, then
@@ -70,6 +105,9 @@ function App() {
     });
     if (imageData.isProcessing || selectedImageId === null || selectedImageId === imageData.id) {
       setSelectedImageId(imageData.id);
+    }
+    if (!imageData.isProcessing) {
+      void persistImage(imageData);
     }
   };
 
@@ -86,8 +124,30 @@ function App() {
     document.getElementById('headerFileInput')?.click();
   };
 
+  const persistSessionState = (
+    overrides: Partial<{ viewMode: ViewMode; showRoute: boolean; investigationTool: string | null }> = {}
+  ) => {
+    const store = projectStoreRef.current;
+    if (!store) return;
+    void store
+      .setState(
+        toStoreState({
+          viewMode: (overrides.viewMode ?? viewMode) as ProjectViewMode,
+          showRoute: overrides.showRoute ?? showRoute,
+          investigationTool: overrides.investigationTool ?? investigationTool,
+        })
+      )
+      .catch((error: unknown) => {
+        if (__DEV__) console.error('Failed to persist session state:', error);
+      });
+  };
+
   const handleRouteClick = () => {
-    setShowRoute(prev => !prev);
+    setShowRoute(prev => {
+      const next = !prev;
+      persistSessionState({ showRoute: next });
+      return next;
+    });
   };
 
   const toggleGallery = () => {
@@ -108,6 +168,20 @@ function App() {
       if (result.type === 'csv' && result.points) {
         const points = result.points as ImportedPoint[];
         setImages(prevImages => [...prevImages, ...points]);
+      }
+
+      // Write-through: raw file to data/ (replaces previous of same type),
+      // and CSV point entries become image records.
+      const store = projectStoreRef.current;
+      if (store) {
+        if (data.name) {
+          await store.addImport(data.type, data.name, data.data);
+        }
+        if (result.type === 'csv' && result.points) {
+          for (const point of result.points as ImportedPoint[]) {
+            await store.addImage(point.file.name, null, serializeExif(point.exif), point.url || null);
+          }
+        }
       }
     } catch (error) {
       if (__DEV__) {
@@ -172,7 +246,14 @@ function App() {
           <Suspense fallback={<div className="flex items-center justify-center h-full">
             <div className="text-app-white">Loading investigation tools...</div>
           </div>}>
-            <Investigation images={images} initialTool={investigationTool} />
+            <Investigation
+              images={images}
+              initialTool={investigationTool}
+              onToolChange={(tool) => {
+                setInvestigationTool(tool);
+                persistSessionState({ investigationTool: tool });
+              }}
+            />
           </Suspense>
         );
       default:
@@ -181,37 +262,54 @@ function App() {
   };
 
   const describeError = (error: unknown, fallback: string): string => {
-    if (error instanceof UnsupportedFormatError) {
+    if (error instanceof UnsupportedSchemaError) {
       return error.message;
     }
-    if (error instanceof InvalidArchiveError) {
+    if (error instanceof InvalidProjectError) {
+      return error.message;
+    }
+    if (error instanceof ProjectExistsError) {
       return error.message;
     }
     if (error instanceof Error && error.message) return error.message;
     return fallback;
   };
 
-  const applyRestored = (restored: RestoredSession) => {
-    // Commit the whole session at once — callers only call this after the
-    // archive fully parsed, so a failure never leaves a partial state.
-    setImages(restored.images);
+  const newStoreDeps = async () => ({
+    dbProvider: await getArchiveDbProvider(),
+    fs: new TauriFsPort(),
+  });
+
+  /** Bind an opened/created project: repopulate everything from the store. */
+  const bindProject = async (store: ProjectStore) => {
+    // Full read before any state commit — a failure here must not leave a
+    // half-loaded session.
+    const records = await store.listImages();
+    const state = await store.getState();
+    const meta = await store.getMeta();
+    const imports = await store.listImports();
+    const importTexts = await Promise.all(imports.map((i) => store.readImport(i.type)));
+
+    projectStoreRef.current = store;
+    recordRecentProject(store.rootPath, meta.name);
+    setRecentProjects(getRecentProjects());
+    setImages(records.map(toImageData));
     setSelectedImageId(null);
-    setShowRoute(restored.showRoute);
-    setViewMode(restored.viewMode);
-    setInvestigationTool(restored.investigationTool);
     setImportedData(undefined);
-    setSessionName(restored.meta.name);
-    setSessionCreatedAt(restored.meta.createdAt);
-    setSaveStatus('idle');
-    setSaveError(null);
+    setImportError(null);
+    setShowRoute(state.showRoute);
+    setViewMode(state.viewMode as ViewMode);
+    setInvestigationTool(state.investigationTool);
     setSessionState('active');
-    if (restored.importedRaw) {
-      const { type, data } = restored.importedRaw;
-      parseImportData({ type, data })
+
+    // Re-parse stored KML/CSV overlays from the data folder.
+    for (const raw of importTexts) {
+      if (!raw) continue;
+      parseImportData({ type: raw.type, data: raw.text })
         .then((result) => {
           // CSV point entries were already restored as images; exposing the
           // parsed points again would duplicate them on the map.
-          setImportedData(type === 'kml' ? result : { ...result, points: undefined });
+          setImportedData(raw.type === 'kml' ? result : { ...result, points: undefined });
         })
         .catch((error: unknown) => {
           if (__DEV__) console.error('Failed to re-parse imported data:', error);
@@ -220,85 +318,53 @@ function App() {
     }
   };
 
-  const handleSaveInvestigation = async () => {
-    if (images.length === 0 || saveStatus === 'saving') return;
-    setSaveStatus('saving');
-    setSaveError(null);
+  const handleCreateProject = async (parent: string, name: string) => {
+    const deps = await newStoreDeps();
+    const store = await ProjectStore.create(deps, parent, name, __APP_VERSION__);
+    await bindProject(store);
+  };
+
+  const handleOpenProject = async () => {
+    setSplashError(null);
     try {
-      const stamp = sessionName ?? `Investigation ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
-      const defaultName = `${stamp}.investigation`;
-      const saved = await saveArchiveWithDialog(defaultName, async (name) => {
-        const { bytes } = await saveInvestigation({
-          name,
-          createdAt: sessionCreatedAt,
-          images,
-          importedRaw: importedData && (importedData.type === 'kml' || importedData.type === 'csv')
-            ? { type: importedData.type, data: importedData.data }
-            : null,
-          viewMode: viewMode as ArchiveViewMode,
-          showRoute,
-          investigationTool,
-        });
-        return bytes;
-      });
-      if (!saved) {
-        setSaveStatus('idle'); // dialog cancelled — silent no-op
-        return;
-      }
-      recordRecentInvestigation(saved.path, saved.name);
-      setSessionName(saved.name);
-      setRecentInvestigations(getRecentInvestigations());
-      setSaveStatus('saved');
-      window.setTimeout(() => setSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev)), 2000);
+      const path = await pickProjectFolder();
+      if (!path) return; // cancelled
+      const deps = await newStoreDeps();
+      await bindProject(await ProjectStore.open(deps, path));
     } catch (error) {
-      if (__DEV__) console.error('Failed to save investigation:', error);
-      setSaveStatus('error');
-      setSaveError(describeError(error, 'Failed to save the investigation. Try a different location.'));
+      if (__DEV__) console.error('Failed to open project:', error);
+      setSplashError(describeError(error, 'This folder could not be opened as a project.'));
     }
   };
 
-  const handleOpenInvestigation = async () => {
+  const handleResumeProject = async (path: string) => {
     setSplashError(null);
     try {
-      const picked = await pickAndReadArchive();
-      if (!picked) return; // cancelled
-      const restored = await openInvestigation(picked.bytes);
-      recordRecentInvestigation(picked.path, restored.meta.name);
-      setRecentInvestigations(getRecentInvestigations());
-      applyRestored(restored);
+      const deps = await newStoreDeps();
+      await bindProject(await ProjectStore.open(deps, path));
     } catch (error) {
-      if (__DEV__) console.error('Failed to open investigation:', error);
-      setSplashError(describeError(error, 'This file could not be opened as an investigation.'));
-    }
-  };
-
-  const handleResumeInvestigation = async (path: string) => {
-    setSplashError(null);
-    try {
-      const bytes = await readArchiveFile(path);
-      const restored = await openInvestigation(bytes);
-      recordRecentInvestigation(path, restored.meta.name);
-      setRecentInvestigations(getRecentInvestigations());
-      applyRestored(restored);
-    } catch (error) {
-      if (__DEV__) console.error('Failed to resume investigation:', error);
-      setSplashError(describeError(error, 'This investigation could no longer be opened.'));
+      if (__DEV__) console.error('Failed to resume project:', error);
+      setSplashError(describeError(error, 'This project could no longer be opened.'));
     }
   };
 
   if (sessionState === 'splash') {
     return (
-      <SplashScreen
-        onStart={() => {
-          setSessionName(null);
-          setSessionCreatedAt(new Date());
-          setSessionState('active');
-        }}
-        onOpen={handleOpenInvestigation}
-        onResume={handleResumeInvestigation}
-        recent={recentInvestigations}
-        error={splashError}
-      />
+      <>
+        <SplashScreen
+          onStart={() => setShowCreateModal(true)}
+          onOpen={handleOpenProject}
+          onResume={handleResumeProject}
+          recent={recentProjects}
+          error={splashError}
+        />
+        {showCreateModal && (
+          <ProjectCreateModal
+            onClose={() => setShowCreateModal(false)}
+            onCreate={handleCreateProject}
+          />
+        )}
+      </>
     );
   }
 
@@ -310,15 +376,16 @@ function App() {
         onUpload={handleUploadClick}
         onExport={() => setShowExportModal(true)}
         onOpenSettings={() => setShowSettings(true)}
-        onSetView={(view: ViewMode) => setViewMode(view)}
+        onSetView={(view: ViewMode) => {
+          setViewMode(view);
+          persistSessionState({ viewMode: view });
+        }}
         onCheckForUpdates={() => {
           // Keep manual checks observable: Settings shows checking/current
           // status while the global updater surface handles updates/errors.
           setShowSettings(true);
           void getUpdateService().check({ silent: false });
         }}
-        onSave={handleSaveInvestigation}
-        saveStatus={saveStatus}
       />
 
       <ImageUploader 
@@ -345,20 +412,6 @@ function App() {
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
-            {saveError && (
-              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">{saveError}</div>
-                <button
-                  type="button"
-                  onClick={() => setSaveError(null)}
-                  className="p-0.5 rounded hover:bg-red-500/10"
-                  aria-label="Dismiss save error"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
             {importError && (
               <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />

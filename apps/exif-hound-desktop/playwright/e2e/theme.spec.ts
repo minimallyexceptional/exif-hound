@@ -28,6 +28,9 @@ test('persists the chosen theme across reloads', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await page.getByRole('button', { name: 'Start new investigation' }).click();
+  await page.getByLabel('Project name').fill('Theme Case');
+  await page.getByRole('button', { name: 'Choose parent folder' }).click();
+  await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page.getByRole('heading', { name: 'Exif Hound' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
