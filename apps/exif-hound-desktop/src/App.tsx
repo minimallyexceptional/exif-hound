@@ -28,7 +28,7 @@ import {
   serializeExif,
   ProjectViewMode,
 } from './services/investigationArchive/ProjectSessionService';
-import { pickProjectFolder } from './services/investigationArchive/projectDialogs';
+import { pickProjectFolder, resolveProjectFolder } from './services/investigationArchive/projectDialogs';
 import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';
 import {
   InvalidProjectError,
@@ -341,7 +341,7 @@ function App() {
     setSplashError(null);
     try {
       const deps = await newStoreDeps();
-      await bindProject(await ProjectStore.open(deps, path));
+      await bindProject(await ProjectStore.open(deps, await resolveProjectFolder(path)));
     } catch (error) {
       if (__DEV__) console.error('Failed to resume project:', error);
       setSplashError(describeError(error, 'This project could no longer be opened.'));

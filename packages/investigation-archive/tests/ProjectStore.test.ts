@@ -103,6 +103,37 @@ describe('project creation and validation', () => {
     expect(meta.name).toBe('Case 042');
     expect(store.rootPath).toBe('/projects/Case 042');
   });
+
+  it('rolls back the half-created folder when creation fails mid-way', async () => {
+    const failingFs = new InMemoryFs();
+    let failNextDataMkdir = false;
+    const origMkdir = failingFs.mkdir.bind(failingFs);
+    failingFs.mkdir = (path: string) => {
+      if (failNextDataMkdir && path.endsWith('/data')) {
+        failNextDataMkdir = false;
+        return Promise.reject(new Error('forbidden path: ' + path));
+      }
+      return origMkdir(path);
+    };
+    failNextDataMkdir = true;
+
+    await expect(
+      ProjectStore.create({ dbProvider, fs: failingFs }, '/projects', 'Doomed', '2.7.0')
+    ).rejects.toThrow('forbidden path');
+
+    // The empty root must not linger — otherwise the retry dies with
+    // ProjectExistsError on a folder that never became a project.
+    expect(await failingFs.exists('/projects/Doomed')).toBe(false);
+
+    // And a retry can succeed cleanly.
+    const store = await ProjectStore.create(
+      { dbProvider, fs: failingFs },
+      '/projects',
+      'Doomed',
+      '2.7.0'
+    );
+    expect(store.rootPath).toBe('/projects/Doomed');
+  });
 });
 
 describe('image write-through', () => {

@@ -49,10 +49,15 @@ export interface ImportRecord {
   fileName: string;
 }
 
-/** Path join for project-relative, POSIX-style paths. */
+/** Join a native project root with a project-relative path. */
 export function joinPath(root: string, relative: string): string {
-  const r = root.replace(/\/+$/, '');
-  return `${r}/${relative}`;
+  const windows = /^[A-Za-z]:[\\/]/.test(root) || root.startsWith('\\\\');
+  const separator = windows ? '\\' : '/';
+  const base = windows
+    ? root.replace(/\//g, '\\').replace(/[\\/]+$/, '')
+    : root.replace(/\/+$/, '');
+  const child = relative.replace(/[\\/]/g, separator).replace(/^[\\/]+/, '');
+  return `${base}${separator}${child}`;
 }
 
 /** Sanitize an original filename for use inside the project's images/ dir. */

@@ -1082,6 +1082,7 @@ dependencies = [
 name = "exif-hound"
 version = "0.1.0"
 dependencies = [
+ "dunce",
  "log",
  "serde",
  "serde_json",

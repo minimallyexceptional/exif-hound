@@ -41,4 +41,6 @@ export interface FsPort {
   writeFile(path: string, data: Uint8Array): Promise<void>;
   readFile(path: string): Promise<Uint8Array>;
   deleteFile(path: string): Promise<void>;
+  /** Remove a directory and everything inside it (best-effort rollback). */
+  removeDir(path: string): Promise<void>;
 }
