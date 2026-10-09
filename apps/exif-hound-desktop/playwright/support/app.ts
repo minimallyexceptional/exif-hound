@@ -212,7 +212,7 @@ export async function closeSettings(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toHaveCount(0);
 }
 
-export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Investigation'): Promise<void> {
+export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Workbench'): Promise<void> {
   await page.locator('header').getByRole('button', { name, exact: true }).click();
 }
 

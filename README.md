@@ -34,7 +34,7 @@ npm workspaces + Turborepo monorepo:
 
 | Path | What it is |
 | --- | --- |
-| `apps/exif-hound-desktop` | The desktop app: Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript; EXIF parsing in a Web Worker; visx analysis visualizations |
+| `apps/exif-hound-desktop` | The desktop app: Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript; EXIF parsing in a Web Worker; Map, List, and Workbench views |
 | `apps/exif-hound-website` | Companion website |
 | `packages/exif-middleware` | Shared EXIF processing middleware (consumed by the desktop app via a Vite alias) |
 
@@ -51,13 +51,12 @@ npm run tauri:dev       # desktop app in dev mode
 ```
 
 Quality gates run automatically on every commit (lint, typecheck, unit tests,
-the full E2E suite, and a production build) — don't bypass them.
+and a production build). Playwright E2E tests run in CI on pull requests.
 
 ## Documentation
 
 - [CONTRIBUTING.md](./CONTRIBUTING.md) — setup, rules, OpenSpec feature workflow
 - [docs/updater.md](./docs/updater.md) — automatic updates, signing, release flow
-- [docs/feature-flags.md](./docs/feature-flags.md) — gating in-progress features
 - [SECURITY.md](./SECURITY.md) — reporting vulnerabilities, security design
 
 ## License

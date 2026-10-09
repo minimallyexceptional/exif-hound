@@ -114,10 +114,24 @@ describe('toImageData', () => {
 });
 
 describe('state mapping', () => {
-  it('maps app state to store state and back', () => {
-    const app = { viewMode: 'investigation' as const, showRoute: true, investigationTool: 'timeline' };
+  it('maps supported app state to store state and back', () => {
+    const app = { viewMode: 'workbench' as const, showRoute: true };
     const store = toStoreState(app);
     expect(store).toEqual(app);
     expect(fromStoreState(store)).toEqual(app);
+  });
+
+  it('opens projects saved in the retired Investigation view in Workbench', () => {
+    expect(fromStoreState({ viewMode: 'investigation', showRoute: true })).toEqual({
+      viewMode: 'workbench',
+      showRoute: true,
+    });
+  });
+
+  it('falls back to Map for unknown saved views', () => {
+    expect(fromStoreState({ viewMode: 'unknown', showRoute: false })).toEqual({
+      viewMode: 'map',
+      showRoute: false,
+    });
   });
 });

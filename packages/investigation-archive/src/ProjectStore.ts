@@ -192,7 +192,6 @@ export class ProjectStore {
       schemaFormatVersion: SCHEMA_FORMAT_VERSION,
       viewMode: 'map',
       showRoute: false,
-      investigationTool: null,
     });
 
     const store = new ProjectStore({ ...deps, rootPath }, engine, db);
@@ -546,7 +545,6 @@ export class ProjectStore {
     return {
       viewMode: row.viewMode,
       showRoute: row.showRoute,
-      investigationTool: row.investigationTool,
     };
   }
 
@@ -556,7 +554,6 @@ export class ProjectStore {
       .set({
         viewMode: state.viewMode,
         showRoute: state.showRoute,
-        investigationTool: state.investigationTool,
       })
       .where(eq(schema.investigations.id, 1));
     await this.flush();
@@ -576,7 +573,6 @@ export class ProjectStore {
       state: {
         viewMode: row.viewMode,
         showRoute: row.showRoute,
-        investigationTool: row.investigationTool,
       },
     };
   }

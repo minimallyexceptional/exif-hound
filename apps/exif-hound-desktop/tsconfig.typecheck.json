@@ -18,7 +18,6 @@
     "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "exif-insights": ["../../packages/exif-insights/dist"],
       "exif-middleware": ["../../packages/exif-middleware/dist"],
       "image-forensics-middleware": ["../../packages/image-forensics-middleware/dist"]
     }

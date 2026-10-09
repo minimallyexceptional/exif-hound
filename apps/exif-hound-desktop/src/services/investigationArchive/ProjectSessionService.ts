@@ -8,7 +8,7 @@ import { SessionState } from 'investigation-archive';
 import { ImageData, ExifData } from '../../types';
 import { ImportedPoint } from '../../utils/importData';
 
-export type ProjectViewMode = 'map' | 'list' | 'investigation' | 'workbench';
+export type ProjectViewMode = 'map' | 'list' | 'workbench';
 
 /** Union with the app's ImportedPoint marker field. */
 export type SessionEntry = ImageData | ImportedPoint;
@@ -21,7 +21,6 @@ export interface ImportRaw {
 export interface AppSessionState {
   viewMode: ProjectViewMode;
   showRoute: boolean;
-  investigationTool: string | null;
 }
 
 /** Strip runtime-only fields (geocoding loading state) before persisting. */
@@ -121,14 +120,17 @@ export function toStoreState(state: AppSessionState): SessionState {
   return {
     viewMode: state.viewMode,
     showRoute: state.showRoute,
-    investigationTool: state.investigationTool,
   };
 }
 
 export function fromStoreState(state: SessionState): AppSessionState {
+  const viewMode: ProjectViewMode = state.viewMode === 'investigation'
+    ? 'workbench'
+    : state.viewMode === 'list' || state.viewMode === 'workbench'
+      ? state.viewMode
+      : 'map';
   return {
-    viewMode: state.viewMode as ProjectViewMode,
+    viewMode,
     showRoute: state.showRoute,
-    investigationTool: state.investigationTool,
   };
 }

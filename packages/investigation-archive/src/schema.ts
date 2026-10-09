@@ -15,6 +15,8 @@ export const investigations = sqliteTable('investigation_meta', {
   // Session state (restored on open).
   viewMode: text('view_mode').notNull(),
   showRoute: integer('show_route', { mode: 'boolean' }).notNull(),
+  // Retained in the physical schema for compatibility with existing projects;
+  // the application no longer reads or writes this retired view setting.
   investigationTool: text('investigation_tool'),
 });
 

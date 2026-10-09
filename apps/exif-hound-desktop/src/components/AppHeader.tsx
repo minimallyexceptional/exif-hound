@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw, Star, PanelsTopLeft } from 'lucide-react';
+import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, CircleHelp, Info, RefreshCw, Star, PanelsTopLeft } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { isFeatureEnabled } from '../config/featureFlags';
 import { Button } from './common/Button';
 import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
@@ -9,7 +8,7 @@ import Logomark from './common/Logomark';
 import { isTauriEnvironment } from '../utils/fileSystem';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
 
-type ViewMode = 'map' | 'list' | 'investigation' | 'workbench';
+type ViewMode = 'map' | 'list' | 'workbench';
 
 interface Props {
   imagesCount: number;
@@ -112,16 +111,6 @@ export const AppHeader: React.FC<Props> = ({
                 Workbench
               </Button>
               
-              {imagesCount > 0 && isFeatureEnabled('investigation') && (
-                <Button
-                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
-                  fullWidth
-                >
-                  Investigation
-                </Button>
-              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-app-white">Theme</span>
@@ -228,15 +217,6 @@ export const AppHeader: React.FC<Props> = ({
                   Workbench
                 </Button>
                 
-                {imagesCount > 0 && isFeatureEnabled('investigation') && (
-                  <Button
-                    variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                    icon={<Search className="w-4 h-4" />}
-                    onClick={() => onSetView('investigation')}
-                  >
-                    Investigation
-                  </Button>
-                )}
               </div>
 
             {/* System Actions */}
