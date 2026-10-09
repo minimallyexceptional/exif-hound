@@ -64,4 +64,39 @@ describe('workflow graph', () => {
     const invalid = { ...graph, nodes: graph.nodes.map((node) => node.id === 'image' ? { ...node, settings: { imageId: null } } : node) };
     expect(validateRunnableWorkflow(invalid).map((issue) => issue.message)).toContain('Choose a project image for every connected Image node.');
   });
+
+  it('accepts connected provenance and visual identifier transforms with evidence outputs', () => {
+    const forensic: WorkflowGraph = {
+      formatVersion: 1,
+      name: 'Forensic triage',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 9 } },
+        { id: 'provenance', type: 'provenance', position: { x: 1, y: 0 }, settings: {} },
+        { id: 'identifiers', type: 'visual-identifiers', position: { x: 1, y: 2 }, settings: { language: 'eng' } },
+        { id: 'evidence', type: 'evidence', position: { x: 2, y: 1 }, settings: {} },
+      ],
+      edges: [
+        { id: 'p-in', source: 'image', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'p-out', source: 'provenance', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+        { id: 'i-in', source: 'image', sourcePort: 'image', target: 'identifiers', targetPort: 'image' },
+        { id: 'i-out', source: 'identifiers', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+      ],
+    };
+
+    expect(validateRunnableWorkflow(forensic)).toEqual([]);
+    expect(parseWorkflow(serializeWorkflow(forensic))).toEqual(forensic);
+  });
+
+  it('rejects a forensic transform without an Evidence Report output', () => {
+    const incomplete: WorkflowGraph = {
+      formatVersion: 1, name: 'Incomplete',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 9 } },
+        { id: 'provenance', type: 'provenance', position: { x: 1, y: 0 }, settings: {} },
+      ],
+      edges: [{ id: 'in', source: 'image', sourcePort: 'image', target: 'provenance', targetPort: 'image' }],
+    };
+
+    expect(validateRunnableWorkflow(incomplete).map(issue => issue.message)).toContain('Connect every forensic transform to an Evidence Report output.');
+  });
 });

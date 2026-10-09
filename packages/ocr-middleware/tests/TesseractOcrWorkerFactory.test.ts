@@ -5,7 +5,7 @@ import { TesseractOcrWorkerFactory } from '../src/TesseractOcrWorkerFactory';
 jest.mock('tesseract.js', () => ({ createWorker: jest.fn(), OEM: { LSTM_ONLY: 1 } }));
 
 const makeWorker = () => ({
-  recognize: jest.fn().mockResolvedValue({ data: { text: 'found text', confidence: 88 } }),
+  recognize: jest.fn().mockResolvedValue({ data: { text: 'found text', confidence: 88, words: [] } }),
   reinitialize: jest.fn().mockResolvedValue(undefined),
   terminate: jest.fn().mockResolvedValue(undefined),
 });
@@ -38,8 +38,29 @@ describe('TesseractOcrWorkerFactory', () => {
     createWorker.mockResolvedValue(engineWorker);
     const worker: OcrWorker = await new TesseractOcrWorkerFactory().create(['eng'], {}, () => {});
 
-    await expect(worker.recognize(image)).resolves.toEqual({ text: 'found text', confidence: 88 });
-    expect(engineWorker.recognize).toHaveBeenCalledWith(image, {}, { text: true });
+    await expect(worker.recognize(image)).resolves.toEqual({ text: 'found text', confidence: 88, words: [] });
+    expect(engineWorker.recognize).toHaveBeenCalledWith(image, {}, { text: true, blocks: true });
+  });
+
+  it('normalizes Tesseract word boxes to the source image dimensions', async () => {
+    const engineWorker = makeWorker();
+    engineWorker.recognize.mockResolvedValue({ data: {
+      text: 'ABC 123', confidence: 91,
+      blocks: [{ paragraphs: [{ lines: [{ words: [
+        { text: 'ABC', confidence: 90, bbox: { x0: 20, y0: 10, x1: 60, y1: 30 } },
+      ] }] }] }],
+    } });
+    createWorker.mockResolvedValue(engineWorker);
+    const worker = await new TesseractOcrWorkerFactory(async () => ({ width: 200, height: 100 }))
+      .create(['eng'], {}, () => {});
+
+    await expect(worker.recognize(new Uint8Array([1]))).resolves.toEqual({
+      text: 'ABC 123', confidence: 91,
+      words: [{
+        text: 'ABC', confidence: 90,
+        boundingBox: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+      }],
+    });
   });
 
   it('reinitializes languages and terminates the underlying worker', async () => {
@@ -60,6 +81,6 @@ describe('TesseractOcrWorkerFactory', () => {
     createWorker.mockResolvedValue(engineWorker);
     const worker = await new TesseractOcrWorkerFactory().create(['eng'], {}, () => {});
 
-    await expect(worker.recognize(new Uint8Array([0]))).resolves.toEqual({ text: '', confidence: 0 });
+    await expect(worker.recognize(new Uint8Array([0]))).resolves.toEqual({ text: '', confidence: 0, words: [] });
   });
 });

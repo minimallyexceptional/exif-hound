@@ -48,6 +48,7 @@ describe('WorkflowRunner', () => {
   it('keeps earlier results and reports the failing node when a later handler fails', async () => {
     const runner = new WorkflowRunner();
     const persisted: string[] = [];
+    const failures: Array<{ nodeId: string; message: string }> = [];
     let failure: unknown;
     await expect(runner.run(workflow, {
       handlers: {
@@ -58,9 +59,11 @@ describe('WorkflowRunner', () => {
         },
       },
       persistResult: async (node) => { persisted.push(node.id); },
+      persistFailure: async (node, message) => { failures.push({ nodeId: node.id, message }); },
       onEvent: (event) => { if (event.type === 'failed') failure = event; },
     })).rejects.toThrow('OCR failed');
     expect(persisted).toEqual(['ocr1']);
+    expect(failures).toEqual([{ nodeId: 'ocr2', message: 'OCR failed' }]);
     expect(failure).toEqual(expect.objectContaining({ type: 'failed', nodeId: 'ocr2' }));
   });
 
@@ -76,5 +79,37 @@ describe('WorkflowRunner', () => {
     await expect(runner.run(workflow, { handlers: {}, persistResult: async () => {} })).rejects.toThrow('already running');
     release();
     await running;
+  });
+
+  it('runs local forensic transforms in graph order and persists each transform result', async () => {
+    const graph: WorkflowGraph = {
+      formatVersion: 1, name: 'Forensic pipeline',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 1 } },
+        { id: 'provenance', type: 'provenance', position: { x: 1, y: 0 }, settings: {} },
+        { id: 'report', type: 'evidence', position: { x: 2, y: 0 }, settings: {} },
+      ],
+      edges: [
+        { id: 'in', source: 'image', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'out', source: 'provenance', sourcePort: 'evidence', target: 'report', targetPort: 'evidence' },
+      ],
+    };
+    const calls: string[] = [];
+    const persisted: string[] = [];
+
+    await new WorkflowRunner().run(graph, {
+      handlers: {
+        image: async () => ({ data: { imageId: 1 } }),
+        provenance: async (_node, context) => {
+          calls.push('provenance');
+          expect(context.inputs.get('image')).toEqual({ imageId: 1 });
+          return { data: { indicators: ['editor-tag'] } };
+        },
+      },
+      persistResult: async node => { persisted.push(node.id); },
+    });
+
+    expect(calls).toEqual(['provenance']);
+    expect(persisted).toEqual(['provenance']);
   });
 });

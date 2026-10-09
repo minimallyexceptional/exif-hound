@@ -12,7 +12,7 @@ export const IMAGES_DIR = 'images';
 export const DATABASE_FILE = 'data.db';
 export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const SCHEMA_FORMAT_VERSION = 4;
+export const SCHEMA_FORMAT_VERSION = 5;
 
 export type ImportType = 'kml' | 'csv';
 
@@ -56,6 +56,21 @@ export interface OcrResultRecord {
   workflowId?: string | null;
   workflowRunId?: string | null;
   nodeId?: string | null;
+}
+
+export interface WorkflowToolResultRecord {
+  id?: number;
+  imageId: number;
+  imageName: string;
+  result: unknown;
+  resultStatus: 'success' | 'failed';
+  workflowId: string;
+  workflowRunId: string;
+  nodeId: string;
+  toolVersion: string;
+  startedAt: Date;
+  finishedAt: Date;
+  error?: string | null;
 }
 
 export interface ProjectWorkflowRecord {

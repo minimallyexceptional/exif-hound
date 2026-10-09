@@ -1,7 +1,7 @@
 import { sqliteTable, integer, real, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * Drizzle schema for the project database (schema format version 4).
+ * Drizzle schema for the project database (schema format version 5).
  * Mirrors migrations.ts DDL — the test suite asserts both stay in sync
  * via round-trips through a real sql.js engine.
  */
@@ -68,5 +68,35 @@ export const workflowRuns = sqliteTable('workflow_runs', {
   currentNodeId: text('current_node_id'),
   completedNodes: integer('completed_nodes').notNull(),
   totalNodes: integer('total_nodes').notNull(),
+  error: text('error'),
+});
+
+export const imageProvenanceResults = sqliteTable('image_provenance_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+  imageName: text('image_name').notNull(),
+  resultJson: text('result_json').notNull(),
+  resultStatus: text('result_status').notNull(),
+  workflowId: text('workflow_id').notNull().references(() => workbenchWorkflows.id, { onDelete: 'cascade' }),
+  workflowRunId: text('workflow_run_id').notNull().references(() => workflowRuns.id, { onDelete: 'cascade' }),
+  nodeId: text('node_id').notNull(),
+  toolVersion: text('tool_version').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at').notNull(),
+  error: text('error'),
+});
+
+export const visualIdentifierResults = sqliteTable('visual_identifier_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+  imageName: text('image_name').notNull(),
+  resultJson: text('result_json').notNull(),
+  resultStatus: text('result_status').notNull(),
+  workflowId: text('workflow_id').notNull().references(() => workbenchWorkflows.id, { onDelete: 'cascade' }),
+  workflowRunId: text('workflow_run_id').notNull().references(() => workflowRuns.id, { onDelete: 'cascade' }),
+  nodeId: text('node_id').notNull(),
+  toolVersion: text('tool_version').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at').notNull(),
   error: text('error'),
 });

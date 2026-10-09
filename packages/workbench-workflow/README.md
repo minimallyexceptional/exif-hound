@@ -6,6 +6,8 @@ This package owns platform-neutral workflow graph types, connection validation, 
 
 The desktop app supplies a handler for each node type and persistence callbacks to `WorkflowRunner`. Handlers receive a typed node record and values from connected inputs, then return a result. Presentation components only render state and dispatch actions; they do not execute handlers or write data.
 
+The node contract includes Image, OCR → Text, Image Provenance → Evidence Report, and Visual Text & Identifiers → Evidence Report. Evidence Report accepts multiple evidence inputs and is inspection-only; the runner executes each connected transform in dependency order and persists each transform result before advancing. Forensic handlers are adapters to the independently tested `image-forensics-middleware` services.
+
 ## Adding a node type
 
 1. Add its input/output port types and validation rules in `src/workflow.ts`.

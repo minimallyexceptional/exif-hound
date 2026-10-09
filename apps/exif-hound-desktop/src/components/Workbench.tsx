@@ -5,32 +5,64 @@ import {
 } from '@xyflow/react';
 import { Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord } from 'investigation-archive';
-import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, getTextOutputSource, parseWorkflow, serializeWorkflow, validateConnection, validateRunnableWorkflow, WorkflowRunner, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
+import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord, WorkflowToolResultRecord } from 'investigation-archive';
+import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, createImageProvenanceNodeHandler, createVisualIdentifierNodeHandler, getEvidenceOutputSources, getTextOutputSource, parseWorkflow, serializeWorkflow, transformNodeTypes, validateConnection, validateRunnableWorkflow, WorkflowRunner, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
+import { ImageProvenanceAnalyzer, VisualIdentifierDetector, type CandidateFamily } from 'image-forensics-middleware';
+import type { OcrResult } from 'ocr-middleware';
 import type { ImageData } from '../types';
 import { Button } from './common/Button';
 import ImageFlowNode from './workbench/ImageFlowNode';
 import OcrFlowNode from './workbench/OcrFlowNode';
+import ProvenanceFlowNode from './workbench/ProvenanceFlowNode';
+import VisualIdentifiersFlowNode from './workbench/VisualIdentifiersFlowNode';
 import TextFlowNode from './workbench/TextFlowNode';
+import EvidenceFlowNode from './workbench/EvidenceFlowNode';
 import type { WorkbenchFlowData } from './workbench/NodeFrame';
 
 interface Template { name: string; content: string }
 interface Props {
   images: ImageData[];
   store: ProjectStore | null;
-  recognizeImage: (image: ImageData, language: string, onProgress: (progress: number, status?: string) => void) => Promise<{ text: string; confidence: number }>;
+  recognizeImage: (image: ImageData, language: string, onProgress: (progress: number, status?: string) => void) => Promise<OcrResult>;
 }
 
 type CanvasNode = Node<WorkbenchFlowData, NodeKind>;
-const nodeTypes = { image: ImageFlowNode, ocr: OcrFlowNode, text: TextFlowNode };
+const nodeTypes = {
+  image: ImageFlowNode, ocr: OcrFlowNode, provenance: ProvenanceFlowNode,
+  'visual-identifiers': VisualIdentifiersFlowNode, text: TextFlowNode, evidence: EvidenceFlowNode,
+};
 const portDefaults: Record<NodeKind, { title: string; settings: WorkflowNode['settings'] }> = {
   image: { title: 'Image', settings: { imageId: null } },
   ocr: { title: 'OCR', settings: { language: 'eng' } },
+  provenance: { title: 'Image Provenance', settings: {} },
+  'visual-identifiers': { title: 'Text & Identifiers', settings: { language: 'eng', enabledFamilies: 'email,url-domain,phone-like,coordinate-pair', licensePlateProfile: null } },
   text: { title: 'Text output', settings: {} },
+  evidence: { title: 'Evidence Report', settings: {} },
 };
+
+const identifierFamilies: Array<{ id: CandidateFamily; title: string }> = [
+  { id: 'email', title: 'Email addresses' },
+  { id: 'url-domain', title: 'URLs and domains' },
+  { id: 'phone-like', title: 'Phone-like numbers' },
+  { id: 'coordinate-pair', title: 'Coordinate pairs' },
+];
+
+interface EvidenceEntry { sourceNode: WorkflowNode; record: WorkflowToolResultRecord }
+interface EvidencePayload {
+  facts?: unknown;
+  indicators?: Array<{ code?: string; message?: string; observedValue?: string }>;
+  text?: string;
+  candidates?: Array<{ family: string; value: string; confidence: number; boundingBox: unknown }>;
+}
 
 function makeId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function readImageBytes(image: ImageData): Promise<Uint8Array> {
+  const file = image.file as unknown as Blob;
+  if (typeof file.arrayBuffer !== 'function') throw new Error('The selected project image bytes are unavailable.');
+  return new Uint8Array(await file.arrayBuffer());
 }
 
 function toCanvas(graph: WorkflowGraph, images: ImageData[], states: Record<string, WorkbenchFlowData['state']> = {}): { nodes: CanvasNode[]; edges: Edge[] } {
@@ -77,6 +109,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [openingTemplate, setOpeningTemplate] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [resultEntries, setResultEntries] = useState<OcrResultRecord[]>([]);
+  const [evidenceEntries, setEvidenceEntries] = useState<EvidenceEntry[]>([]);
   const [runHistory, setRunHistory] = useState<WorkflowRunRecord[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +122,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const runner = useRef(new WorkflowRunner());
   const dialogRef = useRef<HTMLDivElement>(null);
   const runProgressRef = useRef({ completed: 0, total: 0, current: 0, nodeId: '' });
+  const stepStartedAt = useRef<Record<string, Date>>({});
+  const provenanceAnalyzer = useRef(new ImageProvenanceAnalyzer());
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -187,6 +222,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setRunStates({});
       setRunHistory([]);
       setResultEntries([]);
+      setEvidenceEntries([]);
       setSelectedNodeId(null);
       setError(null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The project workflow is invalid.'); }
@@ -266,7 +302,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     const id = makeId();
     const startedAt = new Date();
     const pipelineNodeIds = new Set<string>();
-    for (const transform of currentGraph.nodes.filter((node) => node.type === 'ocr')) {
+    stepStartedAt.current = {};
+    for (const transform of currentGraph.nodes.filter((node) => transformNodeTypes.includes(node.type))) {
       pipelineNodeIds.add(transform.id);
       const imageEdge = currentGraph.edges.find((edge) => edge.target === transform.id && edge.targetPort === 'image');
       if (imageEdge) pipelineNodeIds.add(imageEdge.source);
@@ -294,17 +331,76 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
             });
             return recognized;
           }),
+          provenance: createImageProvenanceNodeHandler(async (imageInput, _settings, reportProgress) => {
+            const image = imageInput.payload as ImageData;
+            const bytes = await readImageBytes(image);
+            reportProgress(0.1, 'Reading local image metadata');
+            const result = await provenanceAnalyzer.current.analyze({
+              imageId: imageInput.imageId, imageName: imageInput.imageName, bytes, metadata: image.exif as Record<string, unknown>,
+            });
+            reportProgress(1, 'Provenance indicators ready');
+            return result;
+          }),
+          'visual-identifiers': createVisualIdentifierNodeHandler(async (imageInput, settings, reportProgress) => {
+            const image = imageInput.payload as ImageData;
+            const bytes = await readImageBytes(image);
+            const detector = new VisualIdentifierDetector({
+              recognize: async (_localBytes, options) => {
+                const recognized = await recognizeImage(image, String(options?.languages ?? 'eng'), (progress, status) => {
+                  setRunProgress(current => ({ ...current, current: progress }));
+                  options?.onProgress?.({ progress, status: status ?? '' });
+                });
+                return { ...recognized, words: recognized.words ?? [] };
+              },
+            });
+            return detector.detect({
+              imageId: imageInput.imageId, imageName: imageInput.imageName, bytes,
+              settings: {
+                language: String(settings.language ?? 'eng'),
+                enabledFamilies: String(settings.enabledFamilies ?? 'email,url-domain,phone-like,coordinate-pair'),
+                licensePlateProfile: typeof settings.licensePlateProfile === 'string' ? settings.licensePlateProfile : null,
+              },
+            }, reportProgress);
+          }),
         },
         persistResult: async (node, result) => {
-          if (node.type !== 'ocr') return;
-          const value = result.data as OcrNodeOutput;
-          await store.appendWorkflowOcrResult({
-            ...value, processedAt: new Date(), resultStatus: value.text.trim() ? 'success' : 'no-text',
-            workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id,
-          });
+          const finishedAt = new Date();
+          if (node.type === 'ocr') {
+            const value = result.data as OcrNodeOutput;
+            await store.appendWorkflowOcrResult({
+              ...value, processedAt: finishedAt, resultStatus: value.text.trim() ? 'success' : 'no-text',
+              workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id,
+            });
+            return;
+          }
+          if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
+          const value = result.data as { imageId: number; imageName: string; toolVersion: string };
+          const record: WorkflowToolResultRecord = {
+            imageId: value.imageId, imageName: value.imageName, result: result.data, resultStatus: 'success',
+            workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id, toolVersion: value.toolVersion,
+            startedAt: stepStartedAt.current[node.id] ?? startedAt, finishedAt,
+          };
+          if (node.type === 'provenance') await store.appendWorkflowProvenanceResult(record);
+          else await store.appendWorkflowIdentifierResult(record);
+        },
+        persistFailure: async (node, errorMessage) => {
+          if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
+          const imageEdge = currentGraph.edges.find(edge => edge.target === node.id && edge.targetPort === 'image');
+          const imageNode = imageEdge && currentGraph.nodes.find(candidate => candidate.id === imageEdge.source);
+          const imageId = imageNode?.settings.imageId;
+          const image = typeof imageId === 'number' ? images.find(candidate => candidate.projectImageId === imageId) : undefined;
+          if (!image || image.projectImageId === undefined) return;
+          const record: WorkflowToolResultRecord = {
+            imageId: image.projectImageId, imageName: image.file.name, result: {}, resultStatus: 'failed',
+            workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id, toolVersion: '1.0.0',
+            startedAt: stepStartedAt.current[node.id] ?? new Date(), finishedAt: new Date(), error: errorMessage,
+          };
+          if (node.type === 'provenance') await store.appendWorkflowProvenanceResult(record);
+          else await store.appendWorkflowIdentifierResult(record);
         },
         onEvent: async (event: RunEvent) => {
           if (event.type === 'node-started') {
+            stepStartedAt.current[event.nodeId] = new Date();
             runProgressRef.current = { completed: event.completed, total: event.total, current: 0, nodeId: event.nodeId };
             setRunProgress(runProgressRef.current);
             setRunStates((current) => ({ ...current, [event.nodeId]: 'running' }));
@@ -333,11 +429,13 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       await store.updateWorkflowRun({ ...run, status: 'completed', finishedAt: new Date(), completedNodes: total });
       setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
       if (selectedNode?.type === 'text') await loadOutputResults(selectedNode.id, currentGraph);
+      if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
       setError(message);
       await store.updateWorkflowRun({ ...run, status: 'failed', finishedAt: new Date(), currentNodeId: runProgressRef.current.nodeId || null, completedNodes: runProgressRef.current.completed, error: message });
       setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
+      if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
     } finally { setIsRunning(false); }
   };
 
@@ -348,8 +446,31 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     setResultEntries(await store.listWorkflowOcrResults(activeWorkflowId, source.id));
   };
 
+  const loadEvidenceResults = async (evidenceNodeId: string, graph = currentGraph) => {
+    if (!store || !activeWorkflowId || !graph) return;
+    const sources = getEvidenceOutputSources(graph, evidenceNodeId);
+    const records = await Promise.all(sources.map(async source => {
+      const rows = source.type === 'provenance'
+        ? await store.listWorkflowProvenanceResults(activeWorkflowId, source.id)
+        : await store.listWorkflowIdentifierResults(activeWorkflowId, source.id);
+      return rows.map(record => ({ sourceNode: source, record }));
+    }));
+    setEvidenceEntries(records.flat().sort((left, right) => right.record.finishedAt.getTime() - left.record.finishedAt.getTime()));
+  };
+
+  const copyEvidenceValue = async (value: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard access is unavailable.');
+      await navigator.clipboard.writeText(value);
+      setNotice('Evidence value copied to clipboard.');
+    } catch {
+      setError('Clipboard access is unavailable.');
+    }
+  };
+
   useEffect(() => {
     if (selectedNode?.type === 'text') void loadOutputResults(selectedNode.id);
+    if (selectedNode?.type === 'evidence') void loadEvidenceResults(selectedNode.id);
     // loadOutputResults is intentionally scoped to current graph/selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNodeId, activeWorkflowId, store]);
@@ -407,7 +528,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
           <aside className="flex w-52 flex-none flex-col border-r border-app-gray-light/40 bg-app-dark p-3" aria-label="Workflow nodes">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2><Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setDialog('save')} title="Save reusable workflow" aria-label="Save reusable workflow" tooltip="Save a reusable copy of this workflow on this machine" icon={<Save className="h-4 w-4" />} /></div>
             {(['Inputs', 'Transforms', 'Outputs'] as const).map((category) => {
-              const types: NodeKind[] = category === 'Inputs' ? ['image'] : category === 'Transforms' ? ['ocr'] : ['text'];
+              const types: NodeKind[] = category === 'Inputs' ? ['image'] : category === 'Transforms'
+                ? ['ocr', 'provenance', 'visual-identifiers'] : ['text', 'evidence'];
               return <div key={category} className="mb-4">
                 <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.12em] text-app-accent-dim">{category}</h3>
                 {types.map((type) => <button key={type} type="button" draggable={!loading} disabled={loading} onDragStart={(event) => dragStart(event, type)} onClick={() => addNode(type)} className="mb-1 flex min-h-10 w-full cursor-grab items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-sm text-app-white hover:border-app-gray-light hover:bg-app-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent active:cursor-grabbing disabled:cursor-wait disabled:opacity-60" aria-label={`Add ${portDefaults[type].title} node`} title={loading ? 'Loading project workflow' : `Drag ${portDefaults[type].title} onto the canvas, or click to add it`}>
@@ -421,7 +543,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
           <div className="relative min-w-0 flex-1" onDrop={onDrop} onDragOver={(event) => event.preventDefault()}>
             {loading ? <div className="flex h-full items-center justify-center text-sm text-app-accent-dim">Loading project workflow…</div> : (
               <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} defaultViewport={{ x: 0, y: 0, zoom: 1 }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={handleConnect}
-                onNodeClick={(_, node) => { setSelectedNodeId(node.id); if (node.type !== 'text') setResultEntries([]); }} onPaneClick={() => { setSelectedNodeId(null); setResultEntries([]); }} minZoom={0.15} maxZoom={2} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }}>
+                onNodeClick={(_, node) => { setSelectedNodeId(node.id); if (node.type !== 'text') setResultEntries([]); if (node.type !== 'evidence') setEvidenceEntries([]); }} onPaneClick={() => { setSelectedNodeId(null); setResultEntries([]); setEvidenceEntries([]); }} minZoom={0.15} maxZoom={2} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }}>
                 <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="var(--app-gray-light)" />
                 <Controls showInteractive={false} />
               </ReactFlow>
@@ -443,13 +565,46 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               </div>
             ) : selectedNode.type === 'ocr' ? (
               <div className="space-y-4 p-4"><label className="block text-xs font-medium text-app-accent-dim">OCR language<select className="mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white" value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label><p className="text-xs leading-relaxed text-app-accent-dim">OCR runs as one step in the connected workflow. Each run is saved to this project.</p></div>
-            ) : (
+            ) : selectedNode.type === 'provenance' ? (
+              <div className="space-y-3 p-4"><p className="text-xs leading-relaxed text-app-accent-dim">Inspect embedded metadata, recorded timestamp relationships, and available JPEG/container structure facts.</p><p className="rounded-lg border border-app-gray-light/50 bg-app-gray/50 p-3 text-xs leading-relaxed text-app-accent-dim">Findings are observable indicators for review. They do not determine whether an image is authentic or manipulated.</p></div>
+            ) : selectedNode.type === 'visual-identifiers' ? (
+              <div className="space-y-4 p-4">
+                <label className="block text-xs font-medium text-app-accent-dim">OCR language<select className="mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white" value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label>
+                <fieldset><legend className="mb-2 text-xs font-medium text-app-accent-dim">Candidate patterns</legend><div className="space-y-2">{identifierFamilies.map((family) => {
+                  const enabled = String(selectedNode.data.settings.enabledFamilies ?? 'email,url-domain,phone-like,coordinate-pair').split(',').includes(family.id);
+                  return <label key={family.id} className="flex items-center gap-2 text-xs text-app-white"><input type="checkbox" checked={enabled} onChange={(event) => {
+                    const current = new Set(String(selectedNode.data.settings.enabledFamilies ?? 'email,url-domain,phone-like,coordinate-pair').split(',').filter(Boolean));
+                    if (event.target.checked) current.add(family.id); else current.delete(family.id);
+                    updateSettings(selectedNode.id, { ...selectedNode.data.settings, enabledFamilies: Array.from(current).join(',') });
+                  }} />{family.title}</label>;
+                })}</div></fieldset>
+                <label className="block text-xs font-medium text-app-accent-dim">License-plate profile<select className="mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white" value={String(selectedNode.data.settings.licensePlateProfile ?? '')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, licensePlateProfile: event.target.value || null })}><option value="">Off</option><option value="us-general">US general candidate pattern</option></select></label>
+                <p className="text-xs leading-relaxed text-app-accent-dim">Matches are pattern candidates with source coordinates, not identity claims. OCR uses local image bytes.</p>
+              </div>
+            ) : selectedNode.type === 'text' ? (
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 <div className="mb-3 flex items-center justify-between"><p className="text-xs text-app-accent-dim">Saved output history</p><span className="text-[10px] text-app-accent-dim">{resultEntries.length} entries</span></div>
                 {resultEntries.length === 0 ? <p className="rounded-lg border border-dashed border-app-gray-light p-3 text-xs text-app-accent-dim">Run the connected workflow to create an output.</p> : <ul className="space-y-3">{resultEntries.map((result) => <li key={result.id ?? `${result.workflowRunId}-${result.processedAt.toISOString()}`} className="rounded-lg border border-app-gray-light/60 bg-app-gray/60 p-3">
                   <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`}</p></div><button type="button" className="rounded p-2 text-app-accent-dim hover:bg-app-gray hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" aria-label={`Copy extracted text from ${result.imageName}`} title="Copy extracted text" onClick={() => void navigator.clipboard.writeText(result.text).then(() => setNotice('Text copied to clipboard.')).catch(() => setError('Clipboard access is unavailable.'))}><Copy className="h-4 w-4" /></button></div>
                   <pre className="selectable-value mt-3 whitespace-pre-wrap break-words font-sans text-xs text-app-white">{result.text || 'No text could be extracted.'}</pre>
                 </li>)}</ul>}
+                {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
+              </div>
+            ) : (
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <div className="mb-3 flex items-center justify-between"><p className="text-xs text-app-accent-dim">Saved forensic history</p><span className="text-[10px] text-app-accent-dim">{evidenceEntries.length} entries</span></div>
+                {evidenceEntries.length === 0 ? <p className="rounded-lg border border-dashed border-app-gray-light p-3 text-xs text-app-accent-dim">Run the connected workflow to create an evidence report.</p> : <ul className="space-y-3">{evidenceEntries.map(({ sourceNode, record }) => {
+                  const payload = record.result as EvidencePayload;
+                  return <li key={record.id ?? `${record.workflowRunId}-${record.nodeId}-${record.startedAt.toISOString()}`} className="rounded-lg border border-app-gray-light/60 bg-app-gray/60 p-3">
+                    <div className="mb-2"><p className="truncate text-xs font-medium text-app-white">{record.imageName} <span className="text-app-accent-dim">· ID {record.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{sourceNode.type === 'provenance' ? 'Image Provenance' : 'Text & Identifiers'} · {record.finishedAt.toLocaleString()} · v{record.toolVersion}</p></div>
+                    {record.resultStatus === 'failed' ? <p className="rounded bg-app-danger-bg p-2 text-xs text-app-danger">Analysis failed: {record.error ?? 'Unknown error'}</p> : <>
+                      {payload.facts !== undefined && <details className="mb-3"><summary className="cursor-pointer text-xs text-app-accent">Image facts and timestamps</summary><pre className="selectable-value mt-2 whitespace-pre-wrap break-words text-[10px] text-app-accent-dim">{JSON.stringify(payload.facts, null, 2)}</pre></details>}
+                      {payload.text !== undefined && <div className="mb-3"><p className="mb-1 text-[10px] uppercase tracking-wide text-app-accent-dim">Recognized text</p><pre className="selectable-value whitespace-pre-wrap break-words text-xs text-app-white">{payload.text || 'No text was recognized.'}</pre></div>}
+                      {payload.indicators?.length ? <ul className="space-y-2">{payload.indicators.map((indicator, index) => <li key={`${indicator.code}-${index}`} className="rounded-lg border border-app-gray-light/40 p-2"><p className="text-xs font-medium text-app-white">{indicator.code ?? 'Indicator'}</p><p className="mt-1 text-[11px] leading-relaxed text-app-accent-dim">{indicator.message}</p>{indicator.observedValue && <p className="selectable-value mt-1 break-all text-xs text-app-white">{indicator.observedValue}</p>}<button type="button" className="mt-1 rounded px-2 py-1 text-[10px] text-app-accent hover:bg-app-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" onClick={() => void copyEvidenceValue(indicator.observedValue ?? indicator.message ?? indicator.code ?? '')}>Copy value</button></li>)}</ul> : payload.indicators && <p className="text-xs text-app-accent-dim">No provenance indicators were found in this run.</p>}
+                      {payload.candidates?.length ? <ul className="space-y-2">{payload.candidates.map((candidate, index) => <li key={`${candidate.family}-${candidate.value}-${index}`} className="rounded-lg border border-app-gray-light/40 p-2"><p className="text-[10px] uppercase tracking-wide text-app-accent-dim">{candidate.family} · {Math.round(candidate.confidence)}% OCR confidence</p><p className="selectable-value mt-1 break-all text-sm text-app-white">{candidate.value}</p><p className="mt-1 text-[10px] text-app-accent-dim">Image region: {JSON.stringify(candidate.boundingBox)}</p><button type="button" className="mt-1 rounded px-2 py-1 text-[10px] text-app-accent hover:bg-app-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" onClick={() => void copyEvidenceValue(candidate.value)}>Copy candidate</button></li>)}</ul> : payload.candidates && <p className="text-xs text-app-accent-dim">No identifier candidates matched the enabled patterns.</p>}
+                    </>}
+                  </li>;
+                })}</ul>}
                 {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
               </div>
             )}

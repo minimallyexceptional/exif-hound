@@ -1,4 +1,4 @@
-import { createImageNodeHandler, createOcrNodeHandler, getTextOutputSource, type WorkflowGraph } from '../src';
+import { createImageNodeHandler, createOcrNodeHandler, createImageProvenanceNodeHandler, createVisualIdentifierNodeHandler, getEvidenceOutputSources, getTextOutputSource, type WorkflowGraph } from '../src';
 
 describe('node handlers', () => {
   const imageNode = { id: 'image', type: 'image' as const, position: { x: 0, y: 0 }, settings: { imageId: 14 } };
@@ -36,5 +36,36 @@ describe('node handlers', () => {
   it('finds only the connected OCR node for a text output', () => {
     expect(getTextOutputSource(graph, 'text')).toEqual(ocrNode);
     expect(getTextOutputSource(graph, 'missing')).toBeNull();
+  });
+
+  it('passes connected image, node settings, and progress to local forensic services', async () => {
+    const input = { imageId: 14, imageName: 'poster.jpg', payload: 'local-image' };
+    const forensicImage = { ...imageNode, id: 'provenance', type: 'provenance' as const, settings: { detail: true } };
+    const identifiers = { ...imageNode, id: 'identifiers', type: 'visual-identifiers' as const, settings: { language: 'eng' } };
+    const progress = jest.fn();
+    const analyze = jest.fn(async () => ({ flags: [] }));
+    const identify = jest.fn(async () => ({ candidates: [] }));
+    const context = { inputs: new Map([['image', input]]), reportProgress: progress };
+
+    await expect(createImageProvenanceNodeHandler(analyze)(forensicImage, context)).resolves.toEqual({ data: { flags: [] } });
+    await expect(createVisualIdentifierNodeHandler(identify)(identifiers, context)).resolves.toEqual({ data: { candidates: [] } });
+    expect(analyze).toHaveBeenCalledWith(input, forensicImage.settings, progress);
+    expect(identify).toHaveBeenCalledWith(input, identifiers.settings, progress);
+  });
+
+  it('lists both forensic transforms connected to an Evidence Report node', () => {
+    const evidenceGraph: WorkflowGraph = {
+      formatVersion: 1, name: 'Evidence',
+      nodes: [
+        { id: 'p', type: 'provenance', position: { x: 0, y: 0 }, settings: {} },
+        { id: 'v', type: 'visual-identifiers', position: { x: 0, y: 1 }, settings: {} },
+        { id: 'e', type: 'evidence', position: { x: 1, y: 1 }, settings: {} },
+      ],
+      edges: [
+        { id: 'p-e', source: 'p', sourcePort: 'evidence', target: 'e', targetPort: 'evidence' },
+        { id: 'v-e', source: 'v', sourcePort: 'evidence', target: 'e', targetPort: 'evidence' },
+      ],
+    };
+    expect(getEvidenceOutputSources(evidenceGraph, 'e').map(node => node.id)).toEqual(['p', 'v']);
   });
 });

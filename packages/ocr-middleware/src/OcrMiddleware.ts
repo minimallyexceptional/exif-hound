@@ -101,6 +101,7 @@ export class OcrMiddleware {
       return {
         text: result.text,
         confidence: normalizeConfidence(result.confidence),
+        words: result.words ?? [],
       };
     } finally {
       this.progressHandler = undefined;

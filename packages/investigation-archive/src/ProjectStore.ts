@@ -2,6 +2,7 @@ import {
   ImageRecord,
   ImportRecord,
   OcrResultRecord,
+  WorkflowToolResultRecord,
   ProjectWorkflowRecord,
   WorkflowRunRecord,
   ImportType,
@@ -45,6 +46,31 @@ function mapOcrResult(row: typeof schema.ocrResults.$inferSelect): OcrResultReco
     workflowRunId: row.workflowRunId,
     nodeId: row.nodeId,
     processedAt: new Date(row.processedAt),
+  };
+}
+
+type WorkflowToolRow = typeof schema.imageProvenanceResults.$inferSelect | typeof schema.visualIdentifierResults.$inferSelect;
+
+function mapWorkflowToolResult(row: WorkflowToolRow): WorkflowToolResultRecord {
+  let result: unknown;
+  try {
+    result = JSON.parse(row.resultJson);
+  } catch {
+    throw new InvalidProjectError(`Corrupt ${row.nodeId} workflow result.`);
+  }
+  return {
+    id: row.id,
+    imageId: row.imageId,
+    imageName: row.imageName,
+    result,
+    resultStatus: row.resultStatus as WorkflowToolResultRecord['resultStatus'],
+    workflowId: row.workflowId,
+    workflowRunId: row.workflowRunId,
+    nodeId: row.nodeId,
+    toolVersion: row.toolVersion,
+    startedAt: new Date(row.startedAt),
+    finishedAt: new Date(row.finishedAt),
+    error: row.error,
   };
 }
 
@@ -178,7 +204,7 @@ export class ProjectStore {
         'all',
       );
       const version = versionRows.rows[0]?.[0];
-      if (typeof version === 'number' && ![2, 3, SCHEMA_FORMAT_VERSION].includes(version)) {
+      if (typeof version === 'number' && ![2, 3, 4, SCHEMA_FORMAT_VERSION].includes(version)) {
         throw new UnsupportedSchemaError(
           `Project database schema version ${version} is not supported (this app supports ${SCHEMA_FORMAT_VERSION}).`
         );
@@ -331,6 +357,50 @@ export class ProjectStore {
       .filter((row) => row.workflowId === workflowId && row.nodeId === nodeId)
       .sort((a, b) => b.id - a.id)
       .map(mapOcrResult);
+  }
+
+  async appendWorkflowProvenanceResult(result: WorkflowToolResultRecord): Promise<WorkflowToolResultRecord> {
+    await this.assertHealthy();
+    const imageRows = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
+    if (!imageRows[0] || !imageRows[0].hasImage) throw new InvalidProjectError('Forensic results require a local project image.');
+    await this.db.insert(schema.imageProvenanceResults).values({
+      imageId: result.imageId, imageName: imageRows[0].fileName, resultJson: JSON.stringify(result.result),
+      resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
+      nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
+      finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
+    });
+    await this.flush();
+    const rows = await this.db.select().from(schema.imageProvenanceResults);
+    return mapWorkflowToolResult(rows.sort((a, b) => b.id - a.id)[0]);
+  }
+
+  async listWorkflowProvenanceResults(workflowId: string, nodeId: string): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.imageProvenanceResults);
+    return rows.filter(row => row.workflowId === workflowId && row.nodeId === nodeId)
+      .sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
+  async appendWorkflowIdentifierResult(result: WorkflowToolResultRecord): Promise<WorkflowToolResultRecord> {
+    await this.assertHealthy();
+    const imageRows = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
+    if (!imageRows[0] || !imageRows[0].hasImage) throw new InvalidProjectError('Forensic results require a local project image.');
+    await this.db.insert(schema.visualIdentifierResults).values({
+      imageId: result.imageId, imageName: imageRows[0].fileName, resultJson: JSON.stringify(result.result),
+      resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
+      nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
+      finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
+    });
+    await this.flush();
+    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    return mapWorkflowToolResult(rows.sort((a, b) => b.id - a.id)[0]);
+  }
+
+  async listWorkflowIdentifierResults(workflowId: string, nodeId: string): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    return rows.filter(row => row.workflowId === workflowId && row.nodeId === nodeId)
+      .sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
   }
 
   async saveWorkflow(record: ProjectWorkflowRecord): Promise<void> {

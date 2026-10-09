@@ -4,6 +4,7 @@ node_modules
 .pnp.js
 
 # Build output
+apps/exif-hound-desktop/public/ocr/
 dist/
 .next/
 out/
