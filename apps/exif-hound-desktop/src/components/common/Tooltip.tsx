@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 
 interface TooltipProps {
   content: string;
@@ -12,6 +12,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   position = 'top'
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const tooltipId = useId();
 
   const positionClasses = {
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
@@ -21,19 +22,26 @@ export const Tooltip: React.FC<TooltipProps> = ({
   };
 
   return (
-    <div 
+    <span
       className="relative inline-block"
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
+      onFocusCapture={() => setIsVisible(true)}
+      onBlurCapture={() => setIsVisible(false)}
+      onKeyDown={(event) => { if (event.key === 'Escape') setIsVisible(false); }}
     >
-      {children}
+      {React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ 'aria-describedby'?: string }>, {
+        'aria-describedby': isVisible ? tooltipId : undefined,
+      }) : children}
       {isVisible && (
-        <div 
-          className={`absolute z-50 px-2 py-1 text-xs text-app-white bg-app-gray/95 backdrop-blur-sm rounded border border-app-gray-light/30 whitespace-nowrap ${positionClasses[position]}`}
+        <span
+          id={tooltipId}
+          role="tooltip"
+          className={`pointer-events-none absolute z-50 max-w-64 rounded border border-app-gray-light bg-app-gray px-2 py-1 text-xs text-app-white shadow-lg ${positionClasses[position]}`}
         >
           {content}
-        </div>
+        </span>
       )}
-    </div>
+    </span>
   );
-}; 
+};

@@ -1,4 +1,4 @@
-import { useState, useRef, Suspense, lazy } from 'react';
+import { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
@@ -15,16 +15,17 @@ import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
-import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
+import type { OcrMiddleware, OcrProgress, OcrResult } from 'ocr-middleware';
 import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
 import { TauriFsPort } from './services/investigationArchive/TauriFsPort';
 import {
   toImageData,
   toStoreImage,
   toStoreState,
+  fromStoreState,
   serializeExif,
   ProjectViewMode,
 } from './services/investigationArchive/ProjectSessionService';
@@ -38,9 +39,9 @@ import {
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
-const Investigation = lazy(() => import('./components/Investigation'));
+const Workbench = lazy(() => import('./components/Workbench'));
 
-type ViewMode = 'map' | 'list' | 'investigation';
+type ViewMode = ProjectViewMode;
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -61,10 +62,14 @@ function App() {
   // Entrypoint gate: the splash screen owns the window until a project is
   // created or opened. Everything downstream is unchanged.
   const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
+  const [activeProjectStore, setActiveProjectStore] = useState<ProjectStore | null>(null);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>(() => getRecentProjects());
   const [splashError, setSplashError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [investigationTool, setInvestigationTool] = useState<string | null>(null);
+  const ocrMiddlewareRef = useRef<Promise<OcrMiddleware> | null>(null);
+  useEffect(() => () => {
+    void ocrMiddlewareRef.current?.then(middleware => middleware.dispose());
+  }, []);
 
   // The bound project: every upload, import, and state change writes through
   // to this store's folder (images/ + data/data.db). Null on the splash.
@@ -76,13 +81,15 @@ function App() {
     if (!store) return;
     try {
       const args = toStoreImage(imageData);
+      let savedImage;
       if (args.bytes === null && !('hasImage' in imageData)) {
         const file = imageData.file as unknown as File;
         const bytes = new Uint8Array(await file.arrayBuffer());
-        await store.addImage(imageData.file.name, bytes, serializeExif(imageData.exif));
+        savedImage = await store.addImage(imageData.file.name, bytes, serializeExif(imageData.exif));
       } else {
-        await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
+        savedImage = await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
       }
+      setImages(current => current.map(image => image.id === imageData.id ? { ...image, projectImageId: savedImage.id } : image));
     } catch (error) {
       if (__DEV__) console.error('Failed to persist image to project:', error);
       setImportError(
@@ -120,12 +127,34 @@ function App() {
     setGallerySelectionRequest(request => request + 1);
   };
 
+  const handleRecognizeImage = async (
+    image: Blob,
+    language: string,
+    onProgress: (progress: number, status?: string) => void,
+  ): Promise<OcrResult> => {
+    if (!projectStoreRef.current) throw new Error('Save this image to the project before running OCR.');
+    const file = image;
+    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware, PaddleOcrWorkerFactory }) => new Middleware({
+      workerFactory: new PaddleOcrWorkerFactory({
+        // These are app-root assets. Resolving against href would append them to
+        // any nested pathname and could fetch the SPA fallback HTML as a model TAR.
+        detectionModelUrl: new URL('/ocr/paddle/PP-OCRv6_small_det_onnx_infer.tar', window.location.origin).toString(),
+        recognitionModelUrl: new URL('/ocr/paddle/PP-OCRv6_small_rec_onnx_infer.tar', window.location.origin).toString(),
+        wasmPaths: new URL('/ocr/paddle/ort/', window.location.origin).toString(),
+      }),
+    }));
+    return (await ocrMiddlewareRef.current).recognize(file, {
+      languages: language,
+      onProgress: (progress: OcrProgress) => onProgress(progress.progress, progress.status),
+    });
+  };
+
   const handleUploadClick = () => {
     document.getElementById('headerFileInput')?.click();
   };
 
   const persistSessionState = (
-    overrides: Partial<{ viewMode: ViewMode; showRoute: boolean; investigationTool: string | null }> = {}
+    overrides: Partial<{ viewMode: ViewMode; showRoute: boolean }> = {}
   ) => {
     const store = projectStoreRef.current;
     if (!store) return;
@@ -134,7 +163,6 @@ function App() {
         toStoreState({
           viewMode: (overrides.viewMode ?? viewMode) as ProjectViewMode,
           showRoute: overrides.showRoute ?? showRoute,
-          investigationTool: overrides.investigationTool ?? investigationTool,
         })
       )
       .catch((error: unknown) => {
@@ -202,8 +230,8 @@ function App() {
         return 'Location Map';
       case 'list':
         return 'Image Details';
-      case 'investigation':
-        return isFeatureEnabled('investigation') ? 'Investigation' : 'Location Map';
+      case 'workbench':
+        return 'Workbench';
       default:
         return '';
     }
@@ -238,21 +266,14 @@ function App() {
             onSelect={handleSelectImage}
           />
         );
-      case 'investigation':
-        // Defensive: the flag gates all entry points, so this only triggers if
-        // a gated view is requested in a build without the flag.
-        if (!isFeatureEnabled('investigation')) return renderMap();
+      case 'workbench':
         return (
-          <Suspense fallback={<div className="flex items-center justify-center h-full">
-            <div className="text-app-white">Loading investigation tools...</div>
-          </div>}>
-            <Investigation
+          <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading Workbench...</div>}>
+            <Workbench
+              key={activeProjectStore?.rootPath ?? 'no-project'}
               images={images}
-              initialTool={investigationTool}
-              onToolChange={(tool) => {
-                setInvestigationTool(tool);
-                persistSessionState({ investigationTool: tool });
-              }}
+              store={activeProjectStore}
+              recognizeImage={handleRecognizeImage}
             />
           </Suspense>
         );
@@ -291,15 +312,16 @@ function App() {
     const importTexts = await Promise.all(imports.map((i) => store.readImport(i.type)));
 
     projectStoreRef.current = store;
+    setActiveProjectStore(store);
     recordRecentProject(store.rootPath, meta.name);
     setRecentProjects(getRecentProjects());
     setImages(records.map(toImageData));
     setSelectedImageId(null);
     setImportedData(undefined);
     setImportError(null);
-    setShowRoute(state.showRoute);
-    setViewMode(state.viewMode as ViewMode);
-    setInvestigationTool(state.investigationTool);
+    const restoredState = fromStoreState(state);
+    setShowRoute(restoredState.showRoute);
+    setViewMode(restoredState.viewMode);
     setSessionState('active');
 
     // Re-parse stored KML/CSV overlays from the data folder.
@@ -399,7 +421,7 @@ function App() {
           showSidebar={images.length > 0 && viewMode === 'map'}
           isGalleryCollapsed={isGalleryCollapsed}
           onToggleGallery={toggleGallery}
-          isEmpty={images.length === 0}
+          isEmpty={images.length === 0 && viewMode !== 'workbench'}
           sidebar={
             <ImageGallery 
               images={images}
@@ -408,7 +430,7 @@ function App() {
             />
           }
         >
-          <div className="flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30">
+          <div className={`flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30 ${viewMode === 'workbench' ? 'hidden' : ''}`}>
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
@@ -433,7 +455,7 @@ function App() {
         </AppLayout>
 
         {/* EXIF Panel - Only show for map and list views */}
-        {selectedImage && viewMode !== 'investigation' && (
+        {selectedImage && viewMode !== 'workbench' && (
           <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
           }`}>

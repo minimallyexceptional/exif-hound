@@ -32,7 +32,7 @@ const GalleryItem = React.memo<{
       }
     }}
   >
-    <div className={`relative w-full cursor-pointer transition-transform duration-200 ${
+    <div className={`relative cursor-pointer transition-transform duration-200 w-full ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
     }`}>
       <div className="aspect-[3/2] w-full rounded-lg overflow-hidden shadow-lg">
@@ -75,12 +75,11 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     });
   }, [images]);
 
-  // Setup virtualizer for vertical scrolling
   const virtualizer = useVirtualizer({
     count: imagesWithImages.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => 200, // Estimated item height including gap
-    overscan: 3, // Render 3 extra items for smooth scrolling
+    estimateSize: () => 200,
+    overscan: 3,
   });
 
   // Memoized select handler
@@ -128,7 +127,7 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
     <div className="relative group h-full">
       <div 
         ref={containerRef}
-        className="h-full overflow-y-auto overflow-x-hidden scroll-smooth px-4 pt-12 pb-12"
+        className="h-full scroll-smooth overflow-y-auto overflow-x-hidden px-4 pt-12 pb-12"
       >
         {/* Virtualized list container */}
         <div
@@ -151,7 +150,7 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                   width: '100%',
                   height: `${virtualItem.size}px`,
                   transform: `translateY(${virtualItem.start}px)`,
-                  paddingBottom: '16px', // Gap between items
+                  paddingBottom: '16px',
                 }}
               >
                 <GalleryItem

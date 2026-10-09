@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, Search, CircleHelp, Info, RefreshCw, Star } from 'lucide-react';
+import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, CircleHelp, Info, RefreshCw, Star, PanelsTopLeft } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { isFeatureEnabled } from '../config/featureFlags';
 import { Button } from './common/Button';
 import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
@@ -9,7 +8,7 @@ import Logomark from './common/Logomark';
 import { isTauriEnvironment } from '../utils/fileSystem';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
 
-type ViewMode = 'map' | 'list' | 'investigation';
+type ViewMode = 'map' | 'list' | 'workbench';
 
 interface Props {
   imagesCount: number;
@@ -70,45 +69,48 @@ export const AppHeader: React.FC<Props> = ({
             Import
           </Button>
 
-          {imagesCount > 0 && (
+          {(
             <>
-              <Button
-                variant="secondary"
-                icon={<Download className="w-4 h-4" />}
-                onClick={() => { onExport(); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                Export
-              </Button>
-
-              <Button
-                variant={viewMode === 'map' ? 'primary' : 'secondary'}
-                icon={<MapIcon className="w-4 h-4" />}
-                onClick={() => { onSetView('map'); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                Map View
-              </Button>
-              
-              <Button
-                variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                icon={<List className="w-4 h-4" />}
-                onClick={() => { onSetView('list'); setIsMobileMenuOpen(false); }}
-                fullWidth
-              >
-                List View
-              </Button>
-              
-              {isFeatureEnabled('investigation') && (
+              {imagesCount > 0 && (
                 <Button
-                  variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={() => { onSetView('investigation'); setIsMobileMenuOpen(false); }}
+                  variant="secondary"
+                  icon={<Download className="w-4 h-4" />}
+                  onClick={() => { onExport(); setIsMobileMenuOpen(false); }}
                   fullWidth
                 >
-                  Investigation
+                  Export
                 </Button>
               )}
+
+              {imagesCount > 0 && <>
+                <Button
+                  variant={viewMode === 'map' ? 'primary' : 'secondary'}
+                  icon={<MapIcon className="w-4 h-4" />}
+                  onClick={() => { onSetView('map'); setIsMobileMenuOpen(false); }}
+                  fullWidth
+                >
+                  Map View
+                </Button>
+
+                <Button
+                  variant={viewMode === 'list' ? 'primary' : 'secondary'}
+                  icon={<List className="w-4 h-4" />}
+                  onClick={() => { onSetView('list'); setIsMobileMenuOpen(false); }}
+                  fullWidth
+                >
+                  List View
+                </Button>
+              </>}
+
+              <Button
+                variant={viewMode === 'workbench' ? 'primary' : 'secondary'}
+                icon={<PanelsTopLeft className="w-4 h-4" />}
+                onClick={() => { onSetView('workbench'); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                Workbench
+              </Button>
+              
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-app-white">Theme</span>
@@ -178,8 +180,8 @@ export const AppHeader: React.FC<Props> = ({
             </div>
 
             {/* Secondary Actions */}
-            {imagesCount > 0 && (
               <div className="flex items-center gap-2 border-l border-r border-app-gray-light/30 px-4">
+                {imagesCount > 0 && (
                 <Button
                   variant="secondary"
                   icon={<Download className="w-4 h-4" />}
@@ -187,34 +189,35 @@ export const AppHeader: React.FC<Props> = ({
                 >
                   Export
                 </Button>
+                )}
+
+                {imagesCount > 0 && <>
+                  <Button
+                    variant={viewMode === 'map' ? 'primary' : 'secondary'}
+                    icon={<MapIcon className="w-4 h-4" />}
+                    onClick={() => onSetView('map')}
+                  >
+                    Map View
+                  </Button>
+
+                  <Button
+                    variant={viewMode === 'list' ? 'primary' : 'secondary'}
+                    icon={<List className="w-4 h-4" />}
+                    onClick={() => onSetView('list')}
+                  >
+                    List View
+                  </Button>
+                </>}
 
                 <Button
-                  variant={viewMode === 'map' ? 'primary' : 'secondary'}
-                  icon={<MapIcon className="w-4 h-4" />}
-                  onClick={() => onSetView('map')}
+                  variant={viewMode === 'workbench' ? 'primary' : 'secondary'}
+                  icon={<PanelsTopLeft className="w-4 h-4" />}
+                  onClick={() => onSetView('workbench')}
                 >
-                  Map View
+                  Workbench
                 </Button>
                 
-                <Button
-                  variant={viewMode === 'list' ? 'primary' : 'secondary'}
-                  icon={<List className="w-4 h-4" />}
-                  onClick={() => onSetView('list')}
-                >
-                  List View
-                </Button>
-                
-                {isFeatureEnabled('investigation') && (
-                  <Button
-                    variant={viewMode === 'investigation' ? 'primary' : 'secondary'}
-                    icon={<Search className="w-4 h-4" />}
-                    onClick={() => onSetView('investigation')}
-                  >
-                    Investigation
-                  </Button>
-                )}
               </div>
-            )}
 
             {/* System Actions */}
             <div className="flex items-center gap-2">

@@ -111,6 +111,57 @@ test('opening an existing project repopulates views from the database', async ({
   await expect(page.getByText(FIXTURE_IMAGES.noGps.name, { exact: true })).toBeVisible();
 });
 
+test('Workbench opens the node editor and can save a machine-wide workflow template', async ({ page }) => {
+  const seed = await buildProjectFixture('Workflow Case');
+  await bootApp(page, {
+    skipSplash: false,
+    fsEmulation: seed,
+    localStorage: {
+      'exifhound.recentProjects': JSON.stringify([
+        { path: '/projects-root/Workflow Case', name: 'Workflow Case', lastOpenedAt: Date.now() },
+      ]),
+    },
+  });
+  await page.getByTestId('recent-investigation-entry').first().click();
+  await page.getByRole('button', { name: 'Workbench' }).click();
+  await expect(page.getByRole('heading', { name: 'Inputs' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Image Provenance node' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Text & Identifiers node' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Evidence Report node' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run Workflow' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Saved workflows' }).click();
+  await expect(page.getByRole('heading', { name: 'Saved workflows' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Editor' }).click();
+  await page.getByTitle('Save reusable workflow').click();
+  await page.getByLabel('Workflow name').fill('Evidence starter');
+  await page.getByRole('button', { name: 'Save workflow' }).click();
+  await expect.poll(async () => page.evaluate(() => window.__tauriMock.calls.includes('save_workflow_template'))).toBe(true);
+});
+
+test('Workbench supports dragging nodes onto the canvas and connecting compatible ports', async ({ page }) => {
+  await bootApp(page, { skipSplash: false });
+  await page.getByRole('button', { name: 'Start new investigation' }).click();
+  await page.getByLabel('Project name').fill('Workflow drag case');
+  await page.getByRole('button', { name: 'Choose parent folder' }).click();
+  await page.getByRole('button', { name: 'Create project' }).click();
+  await page.getByRole('button', { name: 'Workbench' }).click();
+
+  const canvas = page.locator('.react-flow__pane');
+  await page.getByRole('button', { name: 'Add Image node' }).dragTo(canvas, { targetPosition: { x: 250, y: 300 } });
+  await page.getByRole('button', { name: 'Add OCR node' }).dragTo(canvas, { targetPosition: { x: 530, y: 300 } });
+  await page.getByRole('button', { name: 'Add Text output node' }).dragTo(canvas, { targetPosition: { x: 810, y: 300 } });
+
+  const image = page.getByTestId('flow-node-image');
+  const ocr = page.getByTestId('flow-node-ocr');
+  const output = page.getByTestId('flow-node-text');
+  await image.locator('.react-flow__handle-right').dragTo(ocr.locator('.react-flow__handle-left'));
+  await ocr.locator('.react-flow__handle-right').dragTo(output.locator('.react-flow__handle-left'));
+
+  await expect(page.locator('.react-flow__edge')).toHaveCount(2);
+  await expect(page.getByText('Choose a project image for every connected Image node.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run Workflow' })).toBeDisabled();
+});
+
 test('invalid project folders are rejected with an error on the splash', async ({ page }) => {
   await bootApp(page, {
     skipSplash: false,

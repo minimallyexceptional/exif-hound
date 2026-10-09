@@ -40,6 +40,8 @@ export interface ImageFile {
 
 export interface ImageData {
   id: string;
+  /** Stable project database identity; absent for transient/unpersisted images. */
+  projectImageId?: number;
   url: string;
   file: ImageFile;
   exif: ExifData;

@@ -1,12 +1,18 @@
 // Add Jest-DOM custom matchers
 import '@testing-library/jest-dom';
 
+if (typeof ResizeObserver === 'undefined') {
+  (globalThis as typeof globalThis & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 // Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
 // Kept false in tests to mirror production behavior and silence dev logging.
 (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
 (globalThis as { __APP_VERSION__?: string }).__APP_VERSION__ = '0.0.0-test';
-// Tests behave like dev builds: every gated in-progress feature is enabled.
-(globalThis as { __FEATURE_FLAGS__?: string[] }).__FEATURE_FLAGS__ = ['investigation'];
 (globalThis as { __UPDATE_CHANNEL__?: string }).__UPDATE_CHANNEL__ = 'stable';
 
 // jsdom does not implement blob URL methods

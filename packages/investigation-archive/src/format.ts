@@ -12,7 +12,7 @@ export const IMAGES_DIR = 'images';
 export const DATABASE_FILE = 'data.db';
 export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const SCHEMA_FORMAT_VERSION = 2;
+export const SCHEMA_FORMAT_VERSION = 7;
 
 export type ImportType = 'kml' | 'csv';
 
@@ -20,7 +20,6 @@ export type ImportType = 'kml' | 'csv';
 export interface SessionState {
   viewMode: string;
   showRoute: boolean;
-  investigationTool: string | null;
 }
 
 export interface ProjectMeta {
@@ -32,6 +31,7 @@ export interface ProjectMeta {
 }
 
 export interface ImageRecord {
+  id: number;
   fileName: string;
   /** Path of the image file relative to the project root ('images/…'). */
   diskPath: string;
@@ -42,6 +42,58 @@ export interface ImageRecord {
   /** External image URL for imported point entries; null for real images. */
   sourceUrl: string | null;
   addedAt: Date;
+}
+
+export interface OcrResultRecord {
+  imageId: number;
+  imageName?: string;
+  text: string;
+  confidence: number | null;
+  processedAt: Date;
+  id?: number;
+  resultStatus?: 'success' | 'no-text';
+  workflowId?: string | null;
+  workflowRunId?: string | null;
+  nodeId?: string | null;
+  provider?: 'tesseract' | 'paddle';
+  engineVersion?: string;
+  preprocessingManifest?: unknown;
+  words?: Array<{ text: string; confidence: number; boundingBox: { x: number; y: number; width: number; height: number } }>;
+}
+
+export interface WorkflowToolResultRecord {
+  id?: number;
+  imageId: number;
+  imageName: string;
+  result: unknown;
+  resultStatus: 'success' | 'failed';
+  workflowId: string;
+  workflowRunId: string;
+  nodeId: string;
+  toolVersion: string;
+  startedAt: Date;
+  finishedAt: Date;
+  error?: string | null;
+  preprocessingManifest?: unknown;
+}
+
+export interface ProjectWorkflowRecord {
+  id: string;
+  name: string;
+  graphJson: string;
+  updatedAt: Date;
+}
+
+export interface WorkflowRunRecord {
+  id: string;
+  workflowId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: Date;
+  finishedAt: Date | null;
+  currentNodeId: string | null;
+  completedNodes: number;
+  totalNodes: number;
+  error: string | null;
 }
 
 export interface ImportRecord {

@@ -28,6 +28,59 @@ export const MIGRATIONS: readonly string[] = [
     file_name TEXT NOT NULL,
     added_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS ocr_results (
+    image_id INTEGER PRIMARY KEY REFERENCES images(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    processed_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS workbench_workflows (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    graph_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS workflow_runs (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL REFERENCES workbench_workflows(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    current_node_id TEXT,
+    completed_nodes INTEGER NOT NULL DEFAULT 0,
+    total_nodes INTEGER NOT NULL DEFAULT 0,
+    error TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS image_provenance_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_id INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    image_name TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    workflow_id TEXT NOT NULL REFERENCES workbench_workflows(id) ON DELETE CASCADE,
+    workflow_run_id TEXT NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    tool_version TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    error TEXT,
+    preprocessing_manifest_json TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS visual_identifier_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_id INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    image_name TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    workflow_id TEXT NOT NULL REFERENCES workbench_workflows(id) ON DELETE CASCADE,
+    workflow_run_id TEXT NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    tool_version TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    error TEXT,
+    preprocessing_manifest_json TEXT
+  )`,
 ];
 
 /** Tables every valid project database must have. */
@@ -37,10 +90,59 @@ export const EXPECTED_TABLES = [
   'project_imports',
 ];
 
-export async function runMigrations(engine: {
-  exec(sql: string, params?: unknown[], method?: 'run'): Promise<unknown>;
-}): Promise<void> {
+export async function runMigrations(engine: DatabaseEngine): Promise<void> {
   for (const ddl of MIGRATIONS) {
     await engine.exec(ddl, [], 'run');
   }
+  const columns = await engine.exec('PRAGMA table_info(ocr_results)', [], 'all');
+  const hasAppendOnlyId = columns.rows.some((row) => row[1] === 'id');
+  if (!hasAppendOnlyId) {
+    await engine.exec('BEGIN TRANSACTION', [], 'run');
+    try {
+      await engine.exec('ALTER TABLE ocr_results RENAME TO ocr_results_v3', [], 'run');
+      await engine.exec(`CREATE TABLE ocr_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        image_id INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+        image_name TEXT NOT NULL,
+        text TEXT NOT NULL,
+        confidence REAL,
+        result_status TEXT NOT NULL,
+        workflow_id TEXT,
+    workflow_run_id TEXT,
+    node_id TEXT,
+    processed_at TEXT NOT NULL,
+    preprocessing_manifest_json TEXT,
+    provider TEXT NOT NULL DEFAULT 'paddle',
+    engine_version TEXT NOT NULL DEFAULT 'PaddleOCR.js@0.4.2 / PP-OCRv6_small'
+      )`, [], 'run');
+      await engine.exec(`INSERT INTO ocr_results
+        (image_id, image_name, text, confidence, result_status, processed_at)
+        SELECT old.image_id, images.file_name, old.text, old.confidence,
+          CASE WHEN trim(old.text) = '' THEN 'no-text' ELSE 'success' END, old.processed_at
+        FROM ocr_results_v3 AS old JOIN images ON images.id = old.image_id`, [], 'run');
+      await engine.exec('DROP TABLE ocr_results_v3', [], 'run');
+      await engine.exec('COMMIT', [], 'run');
+    } catch (error) {
+      await engine.exec('ROLLBACK', [], 'run').catch(() => {});
+      throw error;
+    }
+  }
+  for (const table of ['ocr_results', 'image_provenance_results', 'visual_identifier_results']) {
+    const tableColumns = await engine.exec(`PRAGMA table_info(${table})`, [], 'all');
+    if (!tableColumns.rows.some((row) => row[1] === 'preprocessing_manifest_json')) {
+      await engine.exec(`ALTER TABLE ${table} ADD COLUMN preprocessing_manifest_json TEXT`, [], 'run');
+    }
+  }
+  const ocrColumns = await engine.exec('PRAGMA table_info(ocr_results)', [], 'all');
+  if (!ocrColumns.rows.some((row) => row[1] === 'words_json')) {
+    await engine.exec('ALTER TABLE ocr_results ADD COLUMN words_json TEXT', [], 'run');
+  }
+  if (!ocrColumns.rows.some((row) => row[1] === 'provider')) {
+    await engine.exec("ALTER TABLE ocr_results ADD COLUMN provider TEXT NOT NULL DEFAULT 'tesseract'", [], 'run');
+  }
+  if (!ocrColumns.rows.some((row) => row[1] === 'engine_version')) {
+    await engine.exec("ALTER TABLE ocr_results ADD COLUMN engine_version TEXT NOT NULL DEFAULT 'Tesseract.js'", [], 'run');
+  }
+  await engine.exec('UPDATE investigation_meta SET schema_format_version = 7 WHERE schema_format_version < 7', [], 'run');
 }
+import type { DatabaseEngine } from './ports';
