@@ -1,57 +1,50 @@
 # OCR Middleware
 
-UI-independent OCR services for Exif Hound. The package accepts local `Blob` or `Uint8Array` image data and uses Tesseract.js in a reusable worker. It contains no React or Tauri dependencies.
+UI-independent PaddleOCR service for Exif Hound. The package accepts local `Blob` or `Uint8Array` image data and runs PP-OCRv6 small through a reusable worker. It contains no React or Tauri dependencies.
 
 ## Basic use
 
-```ts
-import { OcrMiddleware } from 'ocr-middleware';
+Configure local model and ONNX Runtime WebAssembly assets in the host application:
 
-const ocr = new OcrMiddleware({ languages: ['eng'] });
+```ts
+import { OcrMiddleware, PaddleOcrWorkerFactory } from 'ocr-middleware';
+
+const ocr = new OcrMiddleware({
+  languages: ['eng'],
+  workerFactory: new PaddleOcrWorkerFactory({
+    detectionModelUrl: '/ocr/paddle/PP-OCRv6_small_det_onnx_infer.tar',
+    recognitionModelUrl: '/ocr/paddle/PP-OCRv6_small_rec_onnx_infer.tar',
+    wasmPaths: '/ocr/paddle/ort/',
+  }),
+});
 
 try {
   const result = await ocr.recognize(imageBytes, {
-    onProgress: ({ status, progress }) => {
-      // progress is a number from 0 to 1
-      console.info(status, progress);
-    },
+    onProgress: ({ status, progress }) => console.info(status, progress),
   });
-
-  console.info(result.text, result.confidence);
+  console.info(result.text, result.confidence, result.provider, result.engineVersion);
 } finally {
   await ocr.dispose();
 }
 ```
 
-`languages` defaults to English (`eng`). A recognition request can override languages; requests submitted to one instance are processed in order, and the worker is reinitialized when the language set changes. The result contains recognized `text`, aggregate `confidence` from 0 to 100, and `words`. Each available word contains its text, confidence from 0 to 100, and a `boundingBox` with normalized `x`, `y`, `width`, and `height` values in image coordinates (0 to 1). Tesseract's pixel coordinates are divided by the source image dimensions. An image with no recognized text resolves with an empty string and an empty word list. Existing callers can continue to use `text` and `confidence` and ignore `words`.
+PaddleOCR is the only supported engine. An omitted provider uses PaddleOCR; explicit requests for the removed Tesseract provider fail instead of silently running a different engine. The bundled model currently supports English (`eng` or `en`). Results include recognized text, aggregate confidence from 0 to 100, provider/model attribution, and a `words` collection. PP-OCRv6 small returns line polygons rather than word boxes, so `words` remains empty instead of presenting line boxes as word coordinates.
 
-## Worker resources
+## Local runtime assets
 
-Tesseract.js worker, core, language-data, and cache paths can be configured for packaged local resources:
+The desktop app packages `@paddleocr/paddleocr-js` 0.4.2, ONNX Runtime Web 1.30.0, and the PP-OCRv6 small English detection and recognition models. Model archives are Apache-2.0 licensed; source URLs and checksums are in `apps/exif-hound-desktop/assets/ocr/paddle/README.md`. The local worker uses portable single-thread WebAssembly, not platform-specific native binaries. Explicit local paths prevent CDN fallback and let recognition run without network access after installation.
 
-```ts
-const ocr = new OcrMiddleware({
-  languages: ['eng'],
-  workerOptions: {
-    workerPath: '/resources/worker.min.js',
-    corePath: '/resources/tesseract-core',
-    langPath: '/resources/traineddata',
-    cacheMethod: 'write',
-  },
-});
-```
-
-When paths are omitted, Tesseract.js uses its upstream defaults; browser deployments may fetch trained language data from a CDN. For workflows that must remain offline, configure packaged local worker, core, and language-data resources. Image bytes are passed to the local OCR worker and are not sent to an OCR service. Tesseract word boxes are normalized with `createImageBitmap`; environments without local image-dimension support can still use plain OCR text, but cannot produce word-location evidence.
+Tesseract was removed from the runtime package and app assets. Historical project OCR rows retain their original Tesseract provider and engine attribution so existing results remain readable; all new OCR rows use PaddleOCR.
 
 ## Testing
 
-The worker factory is injectable so service tests can use a fake worker without loading WASM or language data:
+The worker factory is injectable so service tests can use a fake worker without loading WASM or model data:
 
 ```ts
 const ocr = new OcrMiddleware({ workerFactory: fakeWorkerFactory });
 ```
 
-Run the package checks from the repository root:
+Run package checks from the repository root:
 
 ```sh
 npm test --workspace=ocr-middleware

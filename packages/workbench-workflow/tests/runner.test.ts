@@ -1,5 +1,6 @@
 import { WorkflowRunner } from '../src/runner';
 import { WorkflowGraph } from '../src/workflow';
+import { createImageNodeHandler } from '../src/handlers';
 
 const workflow: WorkflowGraph = {
   formatVersion: 1,
@@ -21,6 +22,50 @@ const workflow: WorkflowGraph = {
 };
 
 describe('WorkflowRunner', () => {
+  it('preprocesses a shared image node once before its branches and fails closed', async () => {
+    const graph: WorkflowGraph = {
+      formatVersion: 1, name: 'Shared image',
+      nodes: [workflow.nodes[0], workflow.nodes[1], { id: 'provenance', type: 'provenance', position: { x: 1, y: 1 }, settings: {} }, workflow.nodes[2], { id: 'evidence', type: 'evidence', position: { x: 2, y: 1 }, settings: {} }],
+      edges: [
+        { id: 'ocr-in', source: 'img1', sourcePort: 'image', target: 'ocr1', targetPort: 'image' },
+        { id: 'provenance-in', source: 'img1', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'text-out', source: 'ocr1', sourcePort: 'text', target: 'text1', targetPort: 'text' },
+        { id: 'evidence-out', source: 'provenance', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+      ],
+    };
+    const preprocess = jest.fn(async (_image, report) => {
+      report(0.5, 'Preprocessing');
+      return { processedBytes: new Uint8Array([9]), manifest: { profile: 'ocr-default-v1' } };
+    });
+    const preparedInput = { imageId: 1, imageName: 'source.png', payload: null, sourceBytes: new Uint8Array([1]) };
+    let ocrInput: unknown;
+    let provenanceInput: unknown;
+    const runner = new WorkflowRunner();
+    await runner.run(graph, {
+      handlers: {
+        image: createImageNodeHandler(() => preparedInput, preprocess),
+        ocr: async (_node, context) => { ocrInput = context.inputs.get('image'); return { data: 'text' }; },
+        provenance: async (_node, context) => { provenanceInput = context.inputs.get('image'); return { data: 'facts' }; },
+      },
+      persistResult: async () => {},
+    });
+    expect(preprocess).toHaveBeenCalledTimes(1);
+    expect(ocrInput).toBe(provenanceInput);
+    expect(ocrInput).toMatchObject({ sourceBytes: new Uint8Array([1]), processedBytes: new Uint8Array([9]) });
+
+    const failed = new WorkflowRunner();
+    const downstream = jest.fn();
+    await expect(failed.run(graph, {
+      handlers: {
+        image: createImageNodeHandler(() => preparedInput, async () => { throw new Error('decode failed'); }),
+        ocr: downstream,
+        provenance: downstream,
+      },
+      persistResult: async () => {},
+    })).rejects.toThrow('decode failed');
+    expect(downstream).not.toHaveBeenCalled();
+  });
+
   it('runs each image and transform in dependency order, reports progress, and persists tool results', async () => {
     const runner = new WorkflowRunner();
     const calls: string[] = [];

@@ -17,7 +17,8 @@
     "test": "jest --config jest.config.cjs"
   },
   "dependencies": {
-    "tesseract.js": "^7.0.0"
+    "@paddleocr/paddleocr-js": "^0.4.2",
+    "onnxruntime-web": "1.30.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

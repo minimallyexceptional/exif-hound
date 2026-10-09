@@ -28,6 +28,22 @@ describe('workflow graph', () => {
     expect(parseWorkflow(serializeWorkflow(graph))).toEqual(graph);
   });
 
+  it('normalizes legacy OCR provider settings to Paddle-only workflow data', () => {
+    const legacy: WorkflowGraph = {
+      ...graph,
+      edges: [],
+      nodes: [
+        { id: 'legacy-tesseract', type: 'ocr', position: { x: 1, y: 2 }, settings: { language: 'eng', provider: 'tesseract' } },
+        { id: 'legacy-default', type: 'ocr', position: { x: 3, y: 4 }, settings: { language: 'eng' } },
+      ],
+    };
+
+    expect(parseWorkflow(JSON.stringify(legacy)).nodes.map(node => node.settings))
+      .toEqual([{ language: 'eng' }, { language: 'eng' }]);
+    expect(JSON.parse(serializeWorkflow(legacy)).nodes.map((node: { settings: object }) => node.settings))
+      .toEqual([{ language: 'eng' }, { language: 'eng' }]);
+  });
+
   it('opens the checked-in portable workflow fixture', () => {
     const fixture = readFileSync(join(__dirname, 'fixtures', 'portable-workflow.json'), 'utf8');
     const opened = parseWorkflow(fixture);

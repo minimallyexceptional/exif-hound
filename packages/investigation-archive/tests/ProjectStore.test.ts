@@ -114,7 +114,7 @@ describe('project creation and validation', () => {
     legacyEngine.close();
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Legacy');
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(5);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(7);
     expect((await reopened.listImages())[0].exif).toEqual({ make: 'kept' });
   });
 
@@ -216,6 +216,8 @@ describe('image write-through', () => {
     const result = await store.appendWorkflowOcrResult({
       imageId: image.id, imageName: image.fileName, text: '', confidence: null,
       processedAt: now, resultStatus: 'no-text', workflowId: 'flow-1', workflowRunId: 'run-1', nodeId: 'ocr-1',
+      preprocessingManifest: { profile: 'ocr-default-v1', middlewareVersion: '0.1.0' },
+      words: [{ text: 'source', confidence: 99, boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }],
     });
     await store.updateWorkflowRun({
       id: 'run-1', workflowId: 'flow-1', status: 'completed', startedAt: now, finishedAt: now,
@@ -223,7 +225,7 @@ describe('image write-through', () => {
     });
     expect(await store.listWorkflows()).toMatchObject([{ id: 'flow-1', name: 'Inspect' }]);
     expect(await store.listWorkflowRuns('flow-1')).toMatchObject([{ status: 'completed', completedNodes: 1 }]);
-    expect(result).toMatchObject({ imageName: 'empty.png', text: '', resultStatus: 'no-text', nodeId: 'ocr-1' });
+    expect(result).toMatchObject({ imageName: 'empty.png', text: '', resultStatus: 'no-text', nodeId: 'ocr-1', provider: 'paddle', engineVersion: 'PaddleOCR.js@0.4.2 / PP-OCRv6_small', preprocessingManifest: { profile: 'ocr-default-v1' }, words: [{ boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }] });
     expect(await store.listWorkflowOcrResults('flow-1', 'ocr-1')).toHaveLength(1);
   });
 
@@ -240,6 +242,7 @@ describe('image write-through', () => {
       imageId: image.id, imageName: image.fileName, result: { indicators: [] }, resultStatus: 'success' as const,
       workflowId: 'forensic-flow', workflowRunId: 'forensic-run', nodeId: 'provenance-1',
       toolVersion: '1.0.0', startedAt: now, finishedAt: now,
+      preprocessingManifest: { profile: 'ocr-default-v1', operations: [] },
     };
     const identifier = {
       ...provenance, result: { text: '', words: [], candidates: [] }, nodeId: 'identifiers-1',
@@ -250,14 +253,15 @@ describe('image write-through', () => {
     await store.appendWorkflowProvenanceResult({
       ...provenance, result: {}, resultStatus: 'failed', nodeId: 'provenance-1',
       error: 'Malformed image structure', startedAt: new Date(now.getTime() + 1000), finishedAt: new Date(now.getTime() + 1000),
+      preprocessingManifest: { profile: 'ocr-default-v1', middlewareVersion: '0.1.0', operations: [] },
     });
 
     await expect(store.listWorkflowProvenanceResults('forensic-flow', 'provenance-1')).resolves.toMatchObject([
-      { resultStatus: 'failed', error: 'Malformed image structure', workflowRunId: 'forensic-run' },
-      { resultStatus: 'success', result: { indicators: [] }, imageName: 'evidence.jpg', toolVersion: '1.0.0', startedAt: now, finishedAt: now },
+      { resultStatus: 'failed', error: 'Malformed image structure', workflowRunId: 'forensic-run', preprocessingManifest: { profile: 'ocr-default-v1', middlewareVersion: '0.1.0', operations: [] } },
+      { resultStatus: 'success', result: { indicators: [] }, imageName: 'evidence.jpg', toolVersion: '1.0.0', startedAt: now, finishedAt: now, preprocessingManifest: { profile: 'ocr-default-v1', operations: [] } },
     ]);
     await expect(store.listWorkflowIdentifierResults('forensic-flow', 'identifiers-1')).resolves.toMatchObject([
-      { resultStatus: 'success', result: { text: '', words: [], candidates: [] }, imageId: image.id, nodeId: 'identifiers-1' },
+      { resultStatus: 'success', result: { text: '', words: [], candidates: [] }, imageId: image.id, nodeId: 'identifiers-1', preprocessingManifest: { profile: 'ocr-default-v1', operations: [] } },
     ]);
   });
 
@@ -274,12 +278,41 @@ describe('image write-through', () => {
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/ForensicMigration');
 
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(5);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(7);
     expect(await reopened.getOcrResult(image.id)).toMatchObject({ text: 'preserve OCR' });
     const engine = await dbProvider.open(await fs.readFile('/projects/ForensicMigration/data/data.db'));
     const tables = await engine.exec("SELECT name FROM sqlite_master WHERE type='table'", [], 'all');
     engine.close();
     expect(tables.rows.flat()).toEqual(expect.arrayContaining(['image_provenance_results', 'visual_identifier_results']));
+  });
+
+  it('adds OCR attribution columns to schema v6 tables and preserves existing result history', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'ManifestMigration', '2.7.0');
+    const image = await store.addImage('legacy.png', pngBytes, {});
+    const now = new Date();
+    await store.saveWorkflow({ id: 'manifest-flow', name: 'Analyze', graphJson: '{}', updatedAt: now });
+    await store.createWorkflowRun({ id: 'manifest-run', workflowId: 'manifest-flow', status: 'completed', startedAt: now, finishedAt: now, currentNodeId: null, completedNodes: 1, totalNodes: 1, error: null });
+    await store.appendWorkflowOcrResult({ imageId: image.id, imageName: image.fileName, text: 'legacy result', confidence: 90, processedAt: now, workflowId: 'manifest-flow', workflowRunId: 'manifest-run', nodeId: 'ocr' });
+    const toolRecord = { imageId: image.id, imageName: image.fileName, result: { ok: true }, resultStatus: 'success' as const, workflowId: 'manifest-flow', workflowRunId: 'manifest-run', nodeId: 'prov', toolVersion: '1', startedAt: now, finishedAt: now };
+    await store.appendWorkflowProvenanceResult(toolRecord);
+    await store.appendWorkflowIdentifierResult({ ...toolRecord, nodeId: 'ids' });
+
+    const engine = await dbProvider.open(await fs.readFile('/projects/ManifestMigration/data/data.db'));
+    await engine.exec('UPDATE investigation_meta SET schema_format_version = 6', [], 'run');
+    for (const column of ['preprocessing_manifest_json', 'words_json', 'provider', 'engine_version']) {
+      await engine.exec(`ALTER TABLE ocr_results DROP COLUMN ${column}`, [], 'run');
+    }
+    for (const table of ['image_provenance_results', 'visual_identifier_results']) {
+      await engine.exec(`ALTER TABLE ${table} DROP COLUMN preprocessing_manifest_json`, [], 'run');
+    }
+    await fs.writeFile('/projects/ManifestMigration/data/data.db', await engine.serialize());
+    engine.close();
+
+    const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/ManifestMigration');
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(7);
+    expect(await reopened.listWorkflowOcrResults('manifest-flow', 'ocr')).toMatchObject([{ text: 'legacy result', provider: 'tesseract', engineVersion: 'Tesseract.js', preprocessingManifest: undefined, words: [] }]);
+    expect(await reopened.listWorkflowProvenanceResults('manifest-flow', 'prov')).toMatchObject([{ result: { ok: true }, preprocessingManifest: undefined }]);
+    expect(await reopened.listWorkflowIdentifierResults('manifest-flow', 'ids')).toMatchObject([{ result: { ok: true }, preprocessingManifest: undefined }]);
   });
 
   it('migrates and preserves existing v3 OCR results', async () => {

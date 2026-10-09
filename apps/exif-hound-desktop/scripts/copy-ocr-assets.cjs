@@ -3,24 +3,23 @@ const path = require('node:path');
 
 const appRoot = path.resolve(__dirname, '..');
 const output = path.join(appRoot, 'public', 'ocr');
-const worker = require.resolve('tesseract.js/dist/worker.min.js');
-const coreRoot = path.dirname(require.resolve('tesseract.js-core/package.json'));
-const languageRoot = path.dirname(require.resolve('@tesseract.js-data/eng/package.json'));
+const onnxRuntimeRoot = path.dirname(require.resolve('onnxruntime-web'));
+const paddleAssets = path.join(appRoot, 'assets', 'ocr', 'paddle');
 
 fs.rmSync(output, { recursive: true, force: true });
-fs.mkdirSync(path.join(output, 'core'), { recursive: true });
-fs.mkdirSync(path.join(output, 'lang'), { recursive: true });
-fs.copyFileSync(worker, path.join(output, 'worker.min.js'));
-
-for (const file of fs.readdirSync(coreRoot)) {
-  if (/^tesseract-core.*\.(?:js|wasm)$/.test(file)) {
-    fs.copyFileSync(path.join(coreRoot, file), path.join(output, 'core', file));
-  }
+const paddleOutput = path.join(output, 'paddle');
+const ortOutput = path.join(paddleOutput, 'ort');
+fs.mkdirSync(ortOutput, { recursive: true });
+for (const file of [
+  'PP-OCRv6_small_det_onnx_infer.tar',
+  'PP-OCRv6_small_rec_onnx_infer.tar',
+]) {
+  fs.copyFileSync(path.join(paddleAssets, file), path.join(paddleOutput, file));
+}
+// PaddleOCR.js loads ONNX Runtime's jsep WebAssembly build from its default
+// browser entry, even when inference is explicitly configured for WASM.
+for (const file of ['ort-wasm-simd-threaded.jsep.mjs', 'ort-wasm-simd-threaded.jsep.wasm']) {
+  fs.copyFileSync(path.join(onnxRuntimeRoot, file), path.join(ortOutput, file));
 }
 
-fs.copyFileSync(
-  path.join(languageRoot, '4.0.0_best_int', 'eng.traineddata.gz'),
-  path.join(output, 'lang', 'eng.traineddata.gz'),
-);
-
-console.log('Copied local Tesseract worker, core, and English language data.');
+console.log('Copied local PaddleOCR models and ONNX Runtime WebAssembly assets.');

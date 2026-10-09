@@ -130,20 +130,20 @@ function App() {
   };
 
   const handleRecognizeImage = async (
-    image: ImageData,
+    image: Blob,
     language: string,
     onProgress: (progress: number, status?: string) => void,
   ): Promise<OcrResult> => {
-    if (!projectStoreRef.current || image.projectImageId === undefined) throw new Error('Save this image to the project before running OCR.');
-    const file = image.file as unknown as Blob;
-    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware }) => new Middleware({
-      workerOptions: {
-        workerPath: new URL('ocr/worker.min.js', window.location.href).toString(),
-        corePath: new URL('ocr/core/', window.location.href).toString(),
-        langPath: new URL('ocr/lang/', window.location.href).toString(),
-        workerBlobURL: false,
-        gzip: true,
-      },
+    if (!projectStoreRef.current) throw new Error('Save this image to the project before running OCR.');
+    const file = image;
+    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware, PaddleOcrWorkerFactory }) => new Middleware({
+      workerFactory: new PaddleOcrWorkerFactory({
+        // These are app-root assets. Resolving against href would append them to
+        // any nested pathname and could fetch the SPA fallback HTML as a model TAR.
+        detectionModelUrl: new URL('/ocr/paddle/PP-OCRv6_small_det_onnx_infer.tar', window.location.origin).toString(),
+        recognitionModelUrl: new URL('/ocr/paddle/PP-OCRv6_small_rec_onnx_infer.tar', window.location.origin).toString(),
+        wasmPaths: new URL('/ocr/paddle/ort/', window.location.origin).toString(),
+      }),
     }));
     return (await ocrMiddlewareRef.current).recognize(file, {
       languages: language,

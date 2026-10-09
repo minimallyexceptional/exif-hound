@@ -63,7 +63,8 @@ export const MIGRATIONS: readonly string[] = [
     tool_version TEXT NOT NULL,
     started_at TEXT NOT NULL,
     finished_at TEXT NOT NULL,
-    error TEXT
+    error TEXT,
+    preprocessing_manifest_json TEXT
   )`,
   `CREATE TABLE IF NOT EXISTS visual_identifier_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +78,8 @@ export const MIGRATIONS: readonly string[] = [
     tool_version TEXT NOT NULL,
     started_at TEXT NOT NULL,
     finished_at TEXT NOT NULL,
-    error TEXT
+    error TEXT,
+    preprocessing_manifest_json TEXT
   )`,
 ];
 
@@ -106,9 +108,12 @@ export async function runMigrations(engine: DatabaseEngine): Promise<void> {
         confidence REAL,
         result_status TEXT NOT NULL,
         workflow_id TEXT,
-        workflow_run_id TEXT,
-        node_id TEXT,
-        processed_at TEXT NOT NULL
+    workflow_run_id TEXT,
+    node_id TEXT,
+    processed_at TEXT NOT NULL,
+    preprocessing_manifest_json TEXT,
+    provider TEXT NOT NULL DEFAULT 'paddle',
+    engine_version TEXT NOT NULL DEFAULT 'PaddleOCR.js@0.4.2 / PP-OCRv6_small'
       )`, [], 'run');
       await engine.exec(`INSERT INTO ocr_results
         (image_id, image_name, text, confidence, result_status, processed_at)
@@ -122,6 +127,22 @@ export async function runMigrations(engine: DatabaseEngine): Promise<void> {
       throw error;
     }
   }
-  await engine.exec('UPDATE investigation_meta SET schema_format_version = 5 WHERE schema_format_version < 5', [], 'run');
+  for (const table of ['ocr_results', 'image_provenance_results', 'visual_identifier_results']) {
+    const tableColumns = await engine.exec(`PRAGMA table_info(${table})`, [], 'all');
+    if (!tableColumns.rows.some((row) => row[1] === 'preprocessing_manifest_json')) {
+      await engine.exec(`ALTER TABLE ${table} ADD COLUMN preprocessing_manifest_json TEXT`, [], 'run');
+    }
+  }
+  const ocrColumns = await engine.exec('PRAGMA table_info(ocr_results)', [], 'all');
+  if (!ocrColumns.rows.some((row) => row[1] === 'words_json')) {
+    await engine.exec('ALTER TABLE ocr_results ADD COLUMN words_json TEXT', [], 'run');
+  }
+  if (!ocrColumns.rows.some((row) => row[1] === 'provider')) {
+    await engine.exec("ALTER TABLE ocr_results ADD COLUMN provider TEXT NOT NULL DEFAULT 'tesseract'", [], 'run');
+  }
+  if (!ocrColumns.rows.some((row) => row[1] === 'engine_version')) {
+    await engine.exec("ALTER TABLE ocr_results ADD COLUMN engine_version TEXT NOT NULL DEFAULT 'Tesseract.js'", [], 'run');
+  }
+  await engine.exec('UPDATE investigation_meta SET schema_format_version = 7 WHERE schema_format_version < 7', [], 'run');
 }
 import type { DatabaseEngine } from './ports';

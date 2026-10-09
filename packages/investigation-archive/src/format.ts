@@ -12,7 +12,7 @@ export const IMAGES_DIR = 'images';
 export const DATABASE_FILE = 'data.db';
 export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const SCHEMA_FORMAT_VERSION = 5;
+export const SCHEMA_FORMAT_VERSION = 7;
 
 export type ImportType = 'kml' | 'csv';
 
@@ -56,6 +56,10 @@ export interface OcrResultRecord {
   workflowId?: string | null;
   workflowRunId?: string | null;
   nodeId?: string | null;
+  provider?: 'tesseract' | 'paddle';
+  engineVersion?: string;
+  preprocessingManifest?: unknown;
+  words?: Array<{ text: string; confidence: number; boundingBox: { x: number; y: number; width: number; height: number } }>;
 }
 
 export interface WorkflowToolResultRecord {
@@ -71,6 +75,7 @@ export interface WorkflowToolResultRecord {
   startedAt: Date;
   finishedAt: Date;
   error?: string | null;
+  preprocessingManifest?: unknown;
 }
 
 export interface ProjectWorkflowRecord {
