@@ -206,7 +206,8 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
     const container = containerRef.current;
     if (container) {
       const updateWidth = () => {
-        setContainerWidth(container.getBoundingClientRect().width);
+        const reserved = parseFloat(getComputedStyle(container).paddingRight) || 0;
+        setContainerWidth(container.clientWidth - reserved);
       };
 
       updateWidth();
@@ -271,8 +272,8 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
       <StatsSidebar isOpen={showStatsPanel} onToggle={() => setShowStatsPanel(!showStatsPanel)}>
         <div className="p-4">
           <h3 className="text-lg font-medium text-app-white mb-4">Device Stats</h3>
-          <div className="space-y-4">
-            <div className="stat-card p-3 rounded-lg">
+          <div>
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2">
                 <CircuitBoard className="w-4 h-4 text-app-accent" />
                 <div className="text-xs text-app-accent-dim">Unique Devices</div>
@@ -281,7 +282,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                 {deviceStats.uniqueDeviceCount}
               </div>
             </div>
-            <div className="stat-card p-3 rounded-lg">
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-app-accent" />
                 <div className="text-xs text-app-accent-dim">Most Common</div>
@@ -290,7 +291,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
                 {deviceStats.mostCommonDevice || 'None'}
               </div>
             </div>
-            <div className="stat-card p-3 rounded-lg">
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2">
                 <Image className="w-4 h-4 text-app-accent" />
                 <div className="text-xs text-app-accent-dim">Total Images</div>
@@ -300,7 +301,7 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
               </div>
             </div>
             {hasActiveFilters && (
-              <div className="stat-card p-3 rounded-lg">
+              <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-app-accent" />
                   <div className="text-xs text-app-accent-dim">Active Filters</div>
@@ -475,4 +476,4 @@ const DeviceDendrogram: React.FC<Props> = ({ images, width, height, showStats = 
   );
 };
 
-export default DeviceDendrogram; 
+export default DeviceDendrogram;

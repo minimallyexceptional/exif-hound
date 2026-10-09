@@ -38,7 +38,7 @@ export const InsightList: React.FC<InsightListProps> = ({ entries, max = 8, empt
       {visible.map(entry => (
         <div
           key={entry.key}
-          className="flex items-start justify-between gap-3 py-1.5 border-b border-app-gray-light/30 last:border-b-0"
+          className="flex items-start justify-between gap-3 py-2.5 border-b border-app-gray-light/30 last:border-b-0"
         >
           <div className="min-w-0 flex flex-col gap-0.5">
             <span className="text-sm text-app-white truncate selectable-value">{entry.label}</span>

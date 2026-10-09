@@ -69,8 +69,10 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
     bottom: 60, 
     left: 40 
   };
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+  const canvasWidth = Math.max(0, width - (showStatsPanel || showFilterPanel ? 256 : 0) - 32);
+  const canvasHeight = Math.max(0, height - 80);
+  const innerWidth = Math.max(0, canvasWidth - margin.left - margin.right);
+  const innerHeight = Math.max(0, canvasHeight - margin.top - margin.bottom);
 
   // Use our custom hook to get the timeline data with filtered images
   const timelineResult = useTimelineNodes(filteredImages);
@@ -86,7 +88,10 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
 
   const timeScale = timelineResult.nodes.length > 0 && timelineResult.startDate && timelineResult.endDate 
     ? scaleTime({
-        domain: [timelineResult.startDate, timelineResult.endDate],
+        domain: [
+          new Date(timelineResult.startDate.getTime() - 12 * 60 * 60 * 1000),
+          new Date(timelineResult.endDate.getTime() + 12 * 60 * 60 * 1000)
+        ],
         range: [0, innerWidth],
         nice: true
       })
@@ -130,8 +135,8 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
           </div>
 
           <Zoom<SVGSVGElement>
-            width={width}
-            height={height - 80} // Adjust for padding and controls
+            width={canvasWidth}
+            height={canvasHeight}
             scaleXMin={0.5}
             scaleXMax={4}
             scaleYMin={1}
@@ -140,16 +145,16 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
             {(zoom) => (
               <div className="relative w-full h-full overflow-hidden">
                 <svg
-                  width={width}
-                  height={height - 80}
+                  width={canvasWidth}
+                  height={canvasHeight}
                   style={{ cursor: zoom.isDragging ? 'grabbing' : 'grab' }}
                   ref={zoom.containerRef}
                 >
                   <rect
                     x={0}
                     y={0}
-                    width={width}
-                    height={height - 80}
+                    width={canvasWidth}
+                    height={canvasHeight}
                     fill="transparent"
                     onTouchStart={zoom.dragStart}
                     onTouchMove={zoom.dragMove}
@@ -232,8 +237,8 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
                     <foreignObject 
                       x={0} 
                       y={0} 
-                      width={width} 
-                      height={height - 80}
+                      width={canvasWidth}
+                      height={canvasHeight}
                     >
                       <div className="h-full w-full flex items-center justify-center">
                         <div className="glass-panel rounded-lg p-8 max-w-md text-center">
@@ -296,8 +301,8 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
       <StatsSidebar isOpen={showStatsPanel} onToggle={() => setShowStatsPanel(!showStatsPanel)}>
         <div className="p-4 overflow-hidden">
           <h3 className="text-lg font-medium text-app-white mb-4">Timeline Stats</h3>
-          <div className="space-y-4">
-            <div className="stat-card p-3 rounded-lg">
+          <div>
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2 mb-2">
                 <Camera className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Images with Dates</h3>
@@ -305,7 +310,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
               <p className="text-2xl font-semibold text-app-white">{timeStats.total}</p>
             </div>
             {timeStats.earliestDate && (
-              <div className="stat-card p-3 rounded-lg">
+              <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
                 <h3 className="text-sm font-medium text-app-white mb-2">Earliest Date</h3>
                 <p className="text-sm font-medium text-app-white">
                   {formatDateTime(timeStats.earliestDate.toISOString())}
@@ -313,7 +318,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
               </div>
             )}
             {timeStats.latestDate && (
-              <div className="stat-card p-3 rounded-lg">
+              <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
                 <h3 className="text-sm font-medium text-app-white mb-2">Latest Date</h3>
                 <p className="text-sm font-medium text-app-white">
                   {formatDateTime(timeStats.latestDate.toISOString())}
@@ -321,7 +326,7 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
               </div>
             )}
             {timeStats.timeSpan && (
-              <div className="stat-card p-3 rounded-lg">
+              <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
                 <h3 className="text-sm font-medium text-app-white mb-2">Time Span</h3>
                 <p className="text-sm font-medium text-app-white">{timeStats.timeSpan}</p>
               </div>
@@ -367,4 +372,4 @@ const TimelineAnalysis: React.FC<Props> = ({ images, width, height, showStats = 
   );
 };
 
-export default TimelineAnalysis; 
+export default TimelineAnalysis;

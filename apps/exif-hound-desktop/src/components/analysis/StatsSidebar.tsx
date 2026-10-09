@@ -20,7 +20,7 @@ const StatsSidebar: React.FC<StatsSidebarProps> = ({ isOpen, onToggle, children 
         onClick={onToggle}
         aria-label={isOpen ? 'Hide stats sidebar' : 'Show stats sidebar'}
         aria-expanded={isOpen}
-        className="absolute left-0 top-20 -translate-x-full p-2.5 bg-app-dark border-l border-y border-app-gray-light rounded-l-lg text-app-white hover:bg-app-gray-light/20 transition-colors"
+        className="absolute left-0 top-20 -translate-x-full flex h-10 w-10 items-center justify-center bg-app-dark border-l border-y border-app-gray-light rounded-l-lg text-app-white hover:bg-app-gray-light/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
       >
         {isOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </button>
@@ -35,4 +35,4 @@ const StatsSidebar: React.FC<StatsSidebarProps> = ({ isOpen, onToggle, children 
   );
 };
 
-export default StatsSidebar; 
+export default StatsSidebar;

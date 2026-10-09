@@ -14,9 +14,9 @@ interface InsightStatProps {
  * (repo convention) and use tabular numerals.
  */
 export const InsightStat: React.FC<InsightStatProps> = ({ label, value, detail, testId }) => (
-  <div className="flex flex-col gap-0.5">
-    <span className="text-xs text-app-accent-dim">{label}</span>
-    <span className="text-xl font-semibold text-app-white tabular-nums leading-none selectable-value" data-testid={testId}>
+  <div className="flex flex-col gap-1">
+    <span className="text-xs font-medium text-app-accent-dim">{label}</span>
+    <span className="text-2xl font-semibold text-app-white tabular-nums leading-none selectable-value" data-testid={testId}>
       {value}
     </span>
     {detail && (

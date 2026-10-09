@@ -14,15 +14,15 @@ export const CoverageMeter: React.FC<CoverageMeterProps> = ({ label, count, tota
   const percent = total === 0 ? 0 : Math.round((count / total) * 100);
 
   return (
-    <div className="flex flex-col gap-1" data-testid={`coverage-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+    <div className="flex flex-col gap-2" data-testid={`coverage-${label.toLowerCase().replace(/\s+/g, '-')}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs text-app-accent-dim">{label}</span>
+        <span className="text-sm text-app-accent-dim">{label}</span>
         <span className="text-xs text-app-white tabular-nums selectable-value">
           {count}/{total} · {percent}%
         </span>
       </div>
       <div
-        className="h-1 rounded-full bg-app-gray-light overflow-hidden"
+        className="h-1.5 rounded-full bg-app-gray-light overflow-hidden"
         role="meter"
         aria-valuemin={0}
         aria-valuemax={100}
