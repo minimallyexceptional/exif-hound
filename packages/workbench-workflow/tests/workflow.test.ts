@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   clearProjectImageSelections,
   parseWorkflow,
@@ -24,6 +26,18 @@ const graph: WorkflowGraph = {
 describe('workflow graph', () => {
   it('round trips portable JSON without runtime state', () => {
     expect(parseWorkflow(serializeWorkflow(graph))).toEqual(graph);
+  });
+
+  it('opens the checked-in portable workflow fixture', () => {
+    const fixture = readFileSync(join(__dirname, 'fixtures', 'portable-workflow.json'), 'utf8');
+    const opened = parseWorkflow(fixture);
+    expect(opened.name).toBe('Portable OCR review');
+    expect(validateRunnableWorkflow({
+      ...opened,
+      nodes: opened.nodes.map((node) => node.id === 'image-source'
+        ? { ...node, settings: { ...node.settings, imageId: 42 } }
+        : node),
+    })).toEqual([]);
   });
 
   it('rejects unsupported versions and malformed node records', () => {

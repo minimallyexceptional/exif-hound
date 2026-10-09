@@ -10,6 +10,9 @@
   --color-app-white: var(--app-white);
   --color-app-accent: var(--app-accent);
   --color-app-accent-dim: var(--app-accent-dim);
+  --color-app-danger: var(--app-danger);
+  --color-app-danger-bg: var(--app-danger-bg);
+  --color-app-modal-scrim: var(--app-modal-scrim);
   --shadow-inner-light: inset 0 0 20px rgba(128, 128, 128, 0.1);
   --shadow-inner-white: inset 0 0 30px rgba(128, 128, 128, 0.05);
 }
@@ -26,6 +29,9 @@
     --app-accent-dim: #858585;
     --app-overlay: rgba(0, 0, 0, 0.5);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --app-danger: #fca5a5;
+    --app-danger-bg: #450a0a;
+    --app-modal-scrim: rgba(0, 0, 0, 0.55);
   }
 
   :root[data-theme="light"] {
@@ -39,6 +45,9 @@
     --app-accent-dim: #6c757d;
     --app-overlay: rgba(0, 0, 0, 0.1);
     --glass-border: rgba(0, 0, 0, 0.1);
+    --app-danger: #b91c1c;
+    --app-danger-bg: #fee2e2;
+    --app-modal-scrim: rgba(0, 0, 0, 0.55);
   }
 
   body {

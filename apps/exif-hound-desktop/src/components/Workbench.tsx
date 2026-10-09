@@ -3,7 +3,7 @@ import {
   addEdge, Background, BackgroundVariant, Controls, ReactFlow, ReactFlowProvider,
   useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type Node,
 } from '@xyflow/react';
-import { Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon } from 'lucide-react';
+import { Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord } from 'investigation-archive';
 import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, getTextOutputSource, parseWorkflow, serializeWorkflow, validateConnection, validateRunnableWorkflow, WorkflowRunner, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
@@ -73,6 +73,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [workflowName, setWorkflowName] = useState('');
   const [tab, setTab] = useState<'editor' | 'library'>('editor');
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [openingTemplate, setOpeningTemplate] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [resultEntries, setResultEntries] = useState<OcrResultRecord[]>([]);
   const [runHistory, setRunHistory] = useState<WorkflowRunRecord[]>([]);
@@ -85,6 +87,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [runProgress, setRunProgress] = useState({ completed: 0, total: 0, current: 0, nodeId: '' });
   const [runStates, setRunStates] = useState<Record<string, WorkbenchFlowData['state']>>({});
   const runner = useRef(new WorkflowRunner());
+  const dialogRef = useRef<HTMLDivElement>(null);
   const runProgressRef = useRef({ completed: 0, total: 0, current: 0, nodeId: '' });
   const initialized = useRef(false);
 
@@ -118,6 +121,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       const canvas = toCanvas(graph, images);
       setNodes(canvas.nodes);
       setEdges(canvas.edges);
+      if (canvas.nodes.length) window.requestAnimationFrame(() => { void reactFlow.fitView({ padding: 0.22, maxZoom: 1 }); });
       initialized.current = true;
       setLoading(false);
     }).catch((cause: unknown) => {
@@ -163,6 +167,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
   const currentGraph = useMemo(() => activeWorkflowId ? toGraph(activeWorkflowId, workflowName, nodes, edges) : null,
     [activeWorkflowId, workflowName, nodes, edges]);
+  const runnableIssues = useMemo(() => currentGraph ? validateRunnableWorkflow(currentGraph) : [], [currentGraph]);
 
   const flushCurrentWorkflow = useCallback(async () => {
     if (!store || !activeWorkflowId || !currentGraph) return;
@@ -178,22 +183,25 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       const canvas = toCanvas(graph, images);
       setNodes(canvas.nodes);
       setEdges(canvas.edges);
+      if (canvas.nodes.length) window.requestAnimationFrame(() => { void reactFlow.fitView({ padding: 0.22, maxZoom: 1 }); });
       setRunStates({});
       setRunHistory([]);
       setResultEntries([]);
       setSelectedNodeId(null);
       setError(null);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'The project workflow is invalid.'); }
-  }, [flushCurrentWorkflow, images, setEdges, setNodes]);
+  }, [flushCurrentWorkflow, images, reactFlow, setEdges, setNodes]);
 
   const addNode = useCallback((type: NodeKind, position?: { x: number; y: number }) => {
+    const rightmostNode = nodes.reduce((rightmost, node) => Math.max(rightmost, node.position.x + 330), 80);
     const node: CanvasNode = {
-      id: makeId(), type, position: position ?? { x: 100 + nodes.length * 28, y: 80 + nodes.length * 28 },
+      id: makeId(), type, position: position ?? { x: rightmostNode, y: nodes[0]?.position.y ?? 100 },
       data: { settings: { ...portDefaults[type].settings }, state: 'idle' },
     };
     setNodes((current) => [...current, node]);
     setSelectedNodeId(node.id);
-  }, [nodes.length, setNodes]);
+    if (!position) window.requestAnimationFrame(() => { void reactFlow.fitView({ padding: 0.22, maxZoom: 1 }); });
+  }, [nodes, reactFlow, setNodes]);
 
   const handleConnect = useCallback((connection: Connection) => {
     if (!currentGraph || !connection.source || !connection.target) return;
@@ -216,8 +224,10 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const openLibrary = async () => {
     setTab('library');
     setError(null);
+    setTemplatesLoading(true);
     try { setTemplates(await invoke<Template[]>('list_workflow_templates')); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setTemplatesLoading(false); }
   };
 
   const saveTemplate = async () => {
@@ -234,7 +244,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   };
 
   const openTemplate = async (template: Template) => {
-    if (!store) return;
+    if (!store || openingTemplate) return;
+    setOpeningTemplate(template.name);
     try {
       const graph = clearProjectImageSelections(parseWorkflow(template.content));
       await flushCurrentWorkflow();
@@ -245,6 +256,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setTab('editor');
       await selectWorkflow(record);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not open this workflow.'); }
+    finally { setOpeningTemplate(null); }
   };
 
   const runWorkflow = async () => {
@@ -310,6 +322,9 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               : node));
           } else if (event.type === 'failed') {
             setRunStates((current) => ({ ...current, [event.nodeId]: 'failed' }));
+            setNodes((current) => current.map((node) => node.id === event.nodeId
+              ? { ...node, data: { ...node.data, state: 'failed', status: event.error } }
+              : node));
             runProgressRef.current = { completed: event.completed, total: event.total, current: 0, nodeId: event.nodeId };
             setRunProgress(runProgressRef.current);
           }
@@ -346,7 +361,9 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const type = event.dataTransfer.getData('application/workbench-node') as NodeKind;
-    if (type in portDefaults) addNode(type, reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+    if (type in portDefaults) {
+      addNode(type, reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+    }
   };
 
   const overallProgress = runProgress.total ? Math.min(1, (runProgress.completed + runProgress.current) / runProgress.total) : 0;
@@ -359,40 +376,41 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
           <WorkflowIcon className="h-5 w-5 text-app-accent" aria-hidden="true" />
           <div className="min-w-0">
             <h1 className="text-base font-semibold text-app-white">Workbench</h1>
-            <select aria-label="Project workflow" className="mt-1 max-w-56 border-0 bg-transparent p-0 text-xs text-app-accent-dim focus:ring-0" value={activeWorkflowId ?? ''} onChange={(event) => {
+            <select aria-label="Project workflow" disabled={loading} className="mt-1 max-w-56 border-0 bg-transparent p-0 text-xs text-app-accent-dim focus:ring-0 disabled:opacity-60" value={activeWorkflowId ?? ''} onChange={(event) => {
               const next = projectWorkflows.find((item) => item.id === event.target.value);
               if (next) void selectWorkflow(next);
             }}>
               {projectWorkflows.map((workflow) => <option key={workflow.id} value={workflow.id}>{workflow.name}</option>)}
             </select>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => { setNameInput(''); setDialog('new'); }} icon={<FilePlus2 className="h-4 w-4" />}>New</Button>
+          <Button variant="ghost" size="sm" disabled={loading} onClick={() => { setNameInput(''); setDialog('new'); }} icon={<FilePlus2 className="h-4 w-4" />}>New</Button>
         </div>
         <div className="flex items-center gap-2">
+          {!isRunning && runnableIssues.length > 0 && <span className="max-w-48 text-right text-xs text-app-accent-dim" aria-live="polite">{runnableIssues[0].message}</span>}
           {isRunning && <div className="flex w-40 items-center gap-2" aria-live="polite">
             <div role="progressbar" aria-label="Workflow progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(overallProgress * 100)} className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-gray-light"><div className="h-full bg-app-accent transition-[width]" style={{ width: `${Math.round(overallProgress * 100)}%` }} /></div>
             <span className="w-9 text-right text-xs tabular-nums text-app-accent-dim">{Math.round(overallProgress * 100)}%</span>
           </div>}
-          <Button onClick={runWorkflow} disabled={isRunning || loading || tab !== 'editor'} icon={<Play className="h-4 w-4" />}>{isRunning ? 'Running' : 'Run Workflow'}</Button>
+          <Button onClick={runWorkflow} disabled={isRunning || loading || tab !== 'editor' || runnableIssues.length > 0} tooltip={runnableIssues[0]?.message ?? 'Process each connected node in order and save its output to this project.'} icon={<Play className="h-4 w-4" />}>{isRunning ? 'Running' : 'Run Workflow'}</Button>
         </div>
       </header>
 
       <nav className="flex flex-none gap-1 border-b border-app-gray-light/30 px-4" role="tablist" aria-label="Workbench views">
-        <button role="tab" aria-selected={tab === 'editor'} className={`border-b-2 px-3 py-2 text-sm ${tab === 'editor' ? 'border-app-accent text-app-white' : 'border-transparent text-app-accent-dim'}`} onClick={() => setTab('editor')}>Editor</button>
-        <button role="tab" aria-selected={tab === 'library'} className={`border-b-2 px-3 py-2 text-sm ${tab === 'library' ? 'border-app-accent text-app-white' : 'border-transparent text-app-accent-dim'}`} onClick={() => void openLibrary()}>Saved workflows</button>
+        <button id="workbench-editor-tab" type="button" role="tab" aria-controls="workbench-editor-panel" aria-selected={tab === 'editor'} tabIndex={tab === 'editor' ? 0 : -1} className={`border-b-2 px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${tab === 'editor' ? 'border-app-accent text-app-white' : 'border-transparent text-app-accent-dim'}`} onKeyDown={handleTabKeyDown} onClick={() => setTab('editor')}>Editor</button>
+        <button id="workbench-library-tab" type="button" role="tab" aria-controls="workbench-library-panel" aria-selected={tab === 'library'} tabIndex={tab === 'library' ? 0 : -1} className={`border-b-2 px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${tab === 'library' ? 'border-app-accent text-app-white' : 'border-transparent text-app-accent-dim'}`} onKeyDown={handleTabKeyDown} onClick={() => void openLibrary()}>Saved workflows</button>
       </nav>
 
-      {error && <div role="alert" className="flex flex-none items-center justify-between gap-3 border-b border-red-500/30 bg-red-950/30 px-4 py-2 text-sm text-red-300"><span>{error}</span><button type="button" aria-label="Dismiss error" className="text-red-200" onClick={() => setError(null)}>×</button></div>}
+      {error && <div role="alert" className="flex flex-none items-center justify-between gap-3 border-b border-app-danger/30 bg-app-danger-bg px-4 py-2 text-sm text-app-danger"><span>{error}</span><button type="button" aria-label="Dismiss error" title="Dismiss error" className="rounded p-1 text-app-danger hover:bg-app-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-danger" onClick={() => setError(null)}><X className="h-4 w-4" aria-hidden="true" /></button></div>}
 
       {tab === 'editor' ? (
-        <div className="flex min-h-0 flex-1">
+        <div id="workbench-editor-panel" role="tabpanel" aria-labelledby="workbench-editor-tab" tabIndex={0} className="flex min-h-0 flex-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent">
           <aside className="flex w-52 flex-none flex-col border-r border-app-gray-light/40 bg-app-dark p-3" aria-label="Workflow nodes">
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2><button type="button" className="text-xs text-app-accent-dim hover:text-app-white" onClick={() => setDialog('save')} title="Save reusable workflow"><Save className="h-4 w-4" /></button></div>
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2><Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setDialog('save')} title="Save reusable workflow" aria-label="Save reusable workflow" tooltip="Save a reusable copy of this workflow on this machine" icon={<Save className="h-4 w-4" />} /></div>
             {(['Inputs', 'Transforms', 'Outputs'] as const).map((category) => {
               const types: NodeKind[] = category === 'Inputs' ? ['image'] : category === 'Transforms' ? ['ocr'] : ['text'];
               return <div key={category} className="mb-4">
-                <h3 className="mb-2 px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-app-accent-dim">{category}</h3>
-                {types.map((type) => <button key={type} draggable onDragStart={(event) => dragStart(event, type)} onClick={() => addNode(type)} className="mb-1 flex w-full items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-sm text-app-white hover:border-app-gray-light hover:bg-app-gray" aria-label={`Add ${portDefaults[type].title} node`}>
+                <h3 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-[0.12em] text-app-accent-dim">{category}</h3>
+                {types.map((type) => <button key={type} type="button" draggable={!loading} disabled={loading} onDragStart={(event) => dragStart(event, type)} onClick={() => addNode(type)} className="mb-1 flex min-h-10 w-full cursor-grab items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-sm text-app-white hover:border-app-gray-light hover:bg-app-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent active:cursor-grabbing disabled:cursor-wait disabled:opacity-60" aria-label={`Add ${portDefaults[type].title} node`} title={loading ? 'Loading project workflow' : `Drag ${portDefaults[type].title} onto the canvas, or click to add it`}>
                   <span className="h-2 w-2 rounded-full bg-app-accent-dim" />{portDefaults[type].title}<span className="ml-auto text-xs text-app-accent-dim">+</span>
                 </button>)}
               </div>;
@@ -402,8 +420,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
 
           <div className="relative min-w-0 flex-1" onDrop={onDrop} onDragOver={(event) => event.preventDefault()}>
             {loading ? <div className="flex h-full items-center justify-center text-sm text-app-accent-dim">Loading project workflow…</div> : (
-              <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={handleConnect}
-                onNodeClick={(_, node) => { setSelectedNodeId(node.id); if (node.type !== 'text') setResultEntries([]); }} onPaneClick={() => { setSelectedNodeId(null); setResultEntries([]); }} fitView minZoom={0.15} maxZoom={2} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }}>
+              <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} defaultViewport={{ x: 0, y: 0, zoom: 1 }} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={handleConnect}
+                onNodeClick={(_, node) => { setSelectedNodeId(node.id); if (node.type !== 'text') setResultEntries([]); }} onPaneClick={() => { setSelectedNodeId(null); setResultEntries([]); }} minZoom={0.15} maxZoom={2} deleteKeyCode={['Backspace', 'Delete']} proOptions={{ hideAttribution: true }}>
                 <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="var(--app-gray-light)" />
                 <Controls showInteractive={false} />
               </ReactFlow>
@@ -429,7 +447,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 <div className="mb-3 flex items-center justify-between"><p className="text-xs text-app-accent-dim">Saved output history</p><span className="text-[10px] text-app-accent-dim">{resultEntries.length} entries</span></div>
                 {resultEntries.length === 0 ? <p className="rounded-lg border border-dashed border-app-gray-light p-3 text-xs text-app-accent-dim">Run the connected workflow to create an output.</p> : <ul className="space-y-3">{resultEntries.map((result) => <li key={result.id ?? `${result.workflowRunId}-${result.processedAt.toISOString()}`} className="rounded-lg border border-app-gray-light/60 bg-app-gray/60 p-3">
-                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`}</p></div><button type="button" className="rounded p-1 text-app-accent-dim hover:text-app-white" aria-label="Copy extracted text" onClick={() => void navigator.clipboard.writeText(result.text).then(() => setNotice('Text copied to clipboard.')).catch(() => setError('Clipboard access is unavailable.'))}><Copy className="h-3.5 w-3.5" /></button></div>
+                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`}</p></div><button type="button" className="rounded p-2 text-app-accent-dim hover:bg-app-gray hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" aria-label={`Copy extracted text from ${result.imageName}`} title="Copy extracted text" onClick={() => void navigator.clipboard.writeText(result.text).then(() => setNotice('Text copied to clipboard.')).catch(() => setError('Clipboard access is unavailable.'))}><Copy className="h-4 w-4" /></button></div>
                   <pre className="selectable-value mt-3 whitespace-pre-wrap break-words font-sans text-xs text-app-white">{result.text || 'No text could be extracted.'}</pre>
                 </li>)}</ul>}
                 {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
@@ -438,14 +456,14 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
           </aside>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <div id="workbench-library-panel" role="tabpanel" aria-labelledby="workbench-library-tab" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent">
           <div className="mx-auto max-w-5xl"><div className="mb-5 flex items-end justify-between gap-4"><div><h2 className="text-lg font-semibold text-app-white">Saved workflows</h2><p className="mt-1 text-sm text-app-accent-dim">Reusable graphs stored on this machine.</p></div><button className={iconButton} onClick={() => void openLibrary()}><FolderOpen className="h-4 w-4" />Refresh</button></div>
-            {templates.length === 0 ? <div className="rounded-xl border border-dashed border-app-gray-light px-6 py-12 text-center"><p className="text-sm text-app-white">No saved workflows yet</p><p className="mt-1 text-xs text-app-accent-dim">Use Save workflow in the editor to add one here.</p></div> : <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{templates.map((template) => <li key={template.name}><button type="button" onDoubleClick={() => void openTemplate(template)} onKeyDown={(event) => { if (event.key === 'Enter') void openTemplate(template); }} className="group w-full rounded-xl border border-app-gray-light/50 bg-app-gray/50 p-4 text-left hover:border-app-accent/60 hover:bg-app-gray"><div className="flex items-center gap-3"><WorkflowIcon className="h-5 w-5 text-app-accent-dim group-hover:text-app-accent" /><span className="min-w-0 flex-1 truncate text-sm font-medium text-app-white">{template.name}</span></div><p className="mt-3 text-xs text-app-accent-dim">Double-click to open in this project</p></button></li>)}</ul>}
+            {templatesLoading ? <div role="status" className="rounded-xl border border-app-gray-light/50 px-6 py-12 text-center text-sm text-app-accent-dim">Loading saved workflows…</div> : templates.length === 0 ? <div className="rounded-xl border border-dashed border-app-gray-light px-6 py-12 text-center"><p className="text-sm text-app-white">No saved workflows yet</p><p className="mt-1 text-xs text-app-accent-dim">Use Save reusable workflow in the editor to add one here.</p></div> : <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{templates.map((template) => <li key={template.name}><button type="button" disabled={openingTemplate !== null} aria-busy={openingTemplate === template.name} onClick={() => void openTemplate(template)} className="group w-full rounded-xl border border-app-gray-light/50 bg-app-gray/50 p-4 text-left hover:border-app-accent/60 hover:bg-app-gray focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent disabled:cursor-wait disabled:opacity-60"><div className="flex items-center gap-3"><WorkflowIcon className="h-5 w-5 text-app-accent-dim group-hover:text-app-accent" /><span className="min-w-0 flex-1 truncate text-sm font-medium text-app-white">{template.name}</span></div><p className="mt-3 text-xs text-app-accent-dim">{openingTemplate === template.name ? 'Opening workflow…' : 'Select to open in this project'}</p></button></li>)}</ul>}
           </div>
         </div>
       )}
 
-      {dialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="presentation"><div role="dialog" aria-modal="true" aria-labelledby="workflow-name-title" className="w-full max-w-md rounded-xl border border-app-gray-light bg-app-gray p-5 shadow-2xl"><h2 id="workflow-name-title" className="text-base font-semibold text-app-white">{dialog === 'save' ? 'Save reusable workflow' : 'Create project workflow'}</h2><p className="mt-1 text-sm text-app-accent-dim">{dialog === 'save' ? 'This saves a portable copy in your machine-wide workflow library.' : 'Create a separate workflow in this project.'}</p><label className="mt-4 block text-xs font-medium text-app-accent-dim">Workflow name<input autoFocus value={nameInput} onChange={(event) => setNameInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void (dialog === 'save' ? saveTemplate() : createProjectWorkflow()); }} className="mt-2 w-full rounded-lg px-3 py-2 text-sm" maxLength={80} /></label><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button><Button onClick={() => void (dialog === 'save' ? saveTemplate() : createProjectWorkflow())} disabled={!nameInput.trim()}>{dialog === 'save' ? 'Save workflow' : 'Create workflow'}</Button></div></div></div>}
+      {dialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-app-modal-scrim p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDialog(null); }} onKeyDown={handleDialogKeyDown}><div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="workflow-name-title" className="w-full max-w-md rounded-xl border border-app-gray-light bg-app-gray p-5 shadow-2xl"><h2 id="workflow-name-title" className="text-base font-semibold text-app-white">{dialog === 'save' ? 'Save reusable workflow' : 'Create project workflow'}</h2><p className="mt-1 text-sm text-app-accent-dim">{dialog === 'save' ? 'This saves a portable copy in your machine-wide workflow library.' : 'Create a separate workflow in this project.'}</p><label className="mt-4 block text-xs font-medium text-app-accent-dim">Workflow name<input autoFocus value={nameInput} onChange={(event) => setNameInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void (dialog === 'save' ? saveTemplate() : createProjectWorkflow()); }} className="mt-2 w-full rounded-lg px-3 py-2 text-sm" maxLength={80} /></label><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button><Button onClick={() => void (dialog === 'save' ? saveTemplate() : createProjectWorkflow())} disabled={!nameInput.trim()}>{dialog === 'save' ? 'Save workflow' : 'Create workflow'}</Button></div></div></div>}
     </section>
   );
 
@@ -462,6 +480,27 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setNameInput('');
       await selectWorkflow(record);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not create workflow.'); }
+  }
+
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 'editor' : event.key === 'End' ? 'library'
+      : event.key === 'ArrowLeft' ? 'editor' : 'library';
+    document.getElementById(next === 'editor' ? 'workbench-editor-tab' : 'workbench-library-tab')?.focus();
+    if (next === 'editor') setTab('editor');
+    else void openLibrary();
+  }
+
+  function handleDialogKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') { setDialog(null); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)');
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 };
 

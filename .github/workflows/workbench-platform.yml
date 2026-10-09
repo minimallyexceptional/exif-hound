@@ -50,6 +50,9 @@ jobs:
           npm run build:packages
           npm run build --workspace=exif-hound-desktop
 
+      - name: Verify portable workflow fixture
+        run: npm test --workspace=workbench-workflow -- --runInBand
+
       - name: Install Linux Tauri dependencies
         if: runner.os == 'Linux'
         run: |

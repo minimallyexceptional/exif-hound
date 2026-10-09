@@ -30,7 +30,20 @@ describe('Workbench workflow editor', () => {
     expect(screen.getByRole('heading', { name: 'Transforms' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Outputs' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Project workflow' })).toHaveValue('workflow-1');
+    expect(screen.getByRole('button', { name: 'Run Workflow' })).toBeDisabled();
+    expect(screen.getByText('Add an OCR node to the workflow.')).toBeInTheDocument();
     expect(screen.getByText('Start with an image')).toBeInTheDocument();
+  });
+
+  it('exposes keyboard help and arrow-key navigation for the workflow tabs', async () => {
+    render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
+    const saveButton = await screen.findByRole('button', { name: 'Save reusable workflow' });
+    fireEvent.focus(saveButton);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Save a reusable copy of this workflow on this machine');
+    const editorTab = screen.getByRole('tab', { name: 'Editor' });
+    fireEvent.keyDown(editorTab, { key: 'ArrowRight' });
+    expect(await screen.findByRole('tab', { name: 'Saved workflows' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'workbench-library-panel');
   });
 
   it('adds an image node and exposes project image settings in the inspector', async () => {
@@ -65,7 +78,7 @@ describe('Workbench workflow editor', () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     fireEvent.click(await screen.findByRole('tab', { name: 'Saved workflows' }));
     const card = await screen.findByText('Reusable');
-    fireEvent.doubleClick(card.closest('button')!);
+    fireEvent.click(card.closest('button')!);
     await waitFor(() => expect(storeMocks.saveWorkflow).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Reusable', graphJson: expect.stringContaining('"imageId": null'),
     })));
@@ -124,7 +137,7 @@ describe('Workbench workflow editor', () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     fireEvent.click(await screen.findByTestId('flow-node-text'));
     expect(await screen.findByText('OSINT evidence')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Copy extracted text' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy extracted text from poster.png' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('OSINT evidence'));
     expect(await screen.findByRole('status')).toHaveTextContent('Text copied to clipboard.');
   });
