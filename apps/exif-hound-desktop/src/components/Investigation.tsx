@@ -110,20 +110,20 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null, onToolChan
       if (containerRef.current) {
         setDimensions({
           width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight - (selectedTool ? 40 : 150) // Less chrome when tool active
+          height: containerRef.current.clientHeight
         });
       }
     };
 
-    updateDimensions();
-
-    // Coalesce resize bursts into a single measurement per animation frame
     let rafId = 0;
     const handleResize = () => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(updateDimensions);
     };
 
+    updateDimensions();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(handleResize);
+    if (containerRef.current) observer?.observe(containerRef.current);
     window.addEventListener('resize', handleResize);
 
     const handleEsc = (e: KeyboardEvent) => {
@@ -136,6 +136,7 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null, onToolChan
 
     return () => {
       cancelAnimationFrame(rafId);
+      observer?.disconnect();
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('keydown', handleEsc);
     };
@@ -173,7 +174,6 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null, onToolChan
 
   return (
     <div
-      ref={containerRef}
       className={`flex flex-col h-full overflow-hidden ${
         fullscreen ? 'fixed inset-0 z-50 bg-app-black' : ''
       }`}
@@ -186,22 +186,21 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null, onToolChan
           onOpenTool={setSelectedTool}
         />
       ) : (
-        // Tool view with minimal chrome
-        <div className="flex flex-col h-full">
-          {/* Compact header */}
-          <div className="flex items-center justify-between gap-3 border-b border-app-gray-light/20 py-2 px-4 bg-app-dark/60">
+        <div className="flex flex-col h-full min-h-0">
+          <div className="flex items-center gap-4 border-b border-app-gray-light/30 px-4 py-3 bg-app-dark/60">
             <button
-              className="flex items-center gap-2 text-app-accent hover:text-app-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent rounded px-1"
+              className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-2 text-sm font-medium text-app-accent hover:text-app-white hover:bg-app-gray-light/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
               onClick={() => setSelectedTool(null)}
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span>Back</span>
             </button>
-            <h2 className="text-base font-medium text-app-white truncate">
-              {activeTool?.name}
-            </h2>
+            <div className="min-w-0 flex-1 border-l border-app-gray-light/40 pl-4">
+              <h2 className="text-lg font-semibold text-app-white truncate">{activeTool?.name}</h2>
+              <p className="hidden sm:block text-xs text-app-accent-dim truncate">{activeTool?.description}</p>
+            </div>
             <button
-              className="p-1.5 rounded text-app-accent hover:text-app-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-app-accent hover:text-app-white hover:bg-app-gray-light/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
               onClick={toggleFullscreen}
               aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               aria-pressed={fullscreen}
@@ -210,8 +209,7 @@ const Investigation: React.FC<Props> = ({ images, initialTool = null, onToolChan
             </button>
           </div>
 
-          {/* Tool container - full remaining height without padding */}
-          <div className="flex-1 overflow-auto">
+          <div ref={containerRef} className="min-h-0 flex-1 overflow-hidden">
             {renderAnalysis()}
           </div>
         </div>

@@ -21,8 +21,8 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({ insights }) =>
       title="Dataset Overview"
       count={`${overview.total} image${overview.total === 1 ? '' : 's'}`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
-        <div className="flex gap-6 shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6 lg:gap-8">
+        <div className="grid grid-cols-3 gap-4 min-w-0 lg:border-r lg:border-app-gray-light/40 lg:pr-8">
           <InsightStat
             label="Total images"
             value={overview.total}
@@ -40,7 +40,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({ insights }) =>
             testId="overview-devices"
           />
         </div>
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 min-w-0">
           <CoverageMeter label="GPS location" count={overview.withGps} total={overview.total} />
           <CoverageMeter label="Capture time" count={overview.withDateTime} total={overview.total} />
           <CoverageMeter label="Device info" count={overview.withDevice} total={overview.total} />

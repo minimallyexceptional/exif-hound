@@ -39,14 +39,14 @@ export const InsightCard: React.FC<InsightCardProps> = ({
   return (
     <section
       aria-label={title}
-      className={`glass-panel rounded-lg p-4 flex flex-col ${className}`}
+      className={`glass-panel rounded-lg p-5 flex flex-col ${className}`}
     >
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0 pt-1">
           <span className="text-app-accent shrink-0">{icon}</span>
-          <h3 className="text-sm font-semibold text-app-white truncate">{title}</h3>
+          <h3 className="text-base font-semibold text-app-white min-w-0 truncate">{title}</h3>
           {count !== undefined && (
-            <span className="shrink-0 text-xs font-medium text-app-accent-dim bg-app-gray-light/50 rounded-full px-2 py-0.5 tabular-nums">
+            <span className="shrink-0 text-xs font-medium text-app-accent-dim bg-app-gray-light/50 rounded-full px-2 py-0.5 tabular-nums selectable-value">
               {count}
             </span>
           )}
@@ -54,16 +54,16 @@ export const InsightCard: React.FC<InsightCardProps> = ({
         {drillInLabel && onDrillIn && (
           <button
             onClick={onDrillIn}
-            className="shrink-0 flex items-center gap-1 text-xs text-app-accent hover:text-app-white transition-colors duration-200 rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+            className="shrink-0 flex min-h-10 items-center gap-1 text-sm font-medium text-app-accent hover:text-app-white transition-colors duration-200 rounded px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
             aria-label={drillInLabel}
           >
             {drillInLabel}
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         )}
       </div>
       {subtitle && (
-        <p className="text-xs text-app-accent-dim tabular-nums selectable-value mb-3 -mt-2">{subtitle}</p>
+        <p className="text-xs text-app-accent-dim tabular-nums selectable-value -mt-3 mb-4 ml-[26px]">{subtitle}</p>
       )}
 
       {isEmpty ? (

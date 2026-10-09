@@ -242,22 +242,22 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
       <StatsSidebar isOpen={showStatsPanel} onToggle={() => setShowStatsPanel(!showStatsPanel)}>
         <div className="p-4">
           <h3 className="text-lg font-medium text-app-white mb-4">Location Stats</h3>
-          <div className="space-y-4">
-            <div className="stat-card p-3 rounded-lg">
+          <div>
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Images with Location</h3>
               </div>
               <p className="text-2xl font-semibold text-app-white">{locationStats.totalWithLocation}</p>
             </div>
-            <div className="stat-card p-3 rounded-lg">
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2 mb-2">
                 <Info className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Unique Locations</h3>
               </div>
               <p className="text-2xl font-semibold text-app-white">{locationStats.uniqueLocations}</p>
             </div>
-            <div className="stat-card p-3 rounded-lg">
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Time Span</h3>
@@ -276,7 +276,7 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
                 )}
               </p>
             </div>
-            <div className="stat-card p-3 rounded-lg">
+            <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-5 h-5 text-app-accent" />
                 <h3 className="text-sm font-medium text-app-white">Missing Location</h3>
@@ -286,7 +286,7 @@ const GeographicalAnalysis: React.FC<Props> = ({ images, showStats = true }) => 
               </p>
             </div>
             {hasActiveFilters && (
-              <div className="stat-card p-3 rounded-lg">
+              <div className="border-b border-app-gray-light/30 py-3 last:border-b-0">
                 <div className="flex items-center gap-2 mb-2">
                   <Filter className="w-5 h-5 text-app-accent" />
                   <h3 className="text-sm font-medium text-app-white">Time Filter</h3>
