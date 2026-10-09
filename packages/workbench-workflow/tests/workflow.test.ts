@@ -1,0 +1,53 @@
+import {
+  clearProjectImageSelections,
+  parseWorkflow,
+  serializeWorkflow,
+  validateConnection,
+  validateRunnableWorkflow,
+  WorkflowGraph,
+} from '../src/workflow';
+
+const graph: WorkflowGraph = {
+  formatVersion: 1,
+  name: 'Evidence review',
+  nodes: [
+    { id: 'image', type: 'image', position: { x: 1, y: 2 }, settings: { imageId: 9 } },
+    { id: 'ocr', type: 'ocr', position: { x: 3, y: 4 }, settings: { language: 'eng' } },
+    { id: 'text', type: 'text', position: { x: 5, y: 6 }, settings: {} },
+  ],
+  edges: [
+    { id: 'e1', source: 'image', sourcePort: 'image', target: 'ocr', targetPort: 'image' },
+    { id: 'e2', source: 'ocr', sourcePort: 'text', target: 'text', targetPort: 'text' },
+  ],
+};
+
+describe('workflow graph', () => {
+  it('round trips portable JSON without runtime state', () => {
+    expect(parseWorkflow(serializeWorkflow(graph))).toEqual(graph);
+  });
+
+  it('rejects unsupported versions and malformed node records', () => {
+    expect(() => parseWorkflow('{"formatVersion":2,"name":"x","nodes":[],"edges":[]}'))
+      .toThrow('unsupported format');
+    const invalid = JSON.stringify({ ...graph, nodes: [{ id: 'x', type: 'unknown' }] });
+    expect(() => parseWorkflow(invalid)).toThrow('invalid node');
+  });
+
+  it('rejects incompatible connections', () => {
+    expect(validateConnection(graph, {
+      id: 'bad', source: 'image', sourcePort: 'image', target: 'text', targetPort: 'text',
+    })).toEqual(expect.objectContaining({ message: expect.stringContaining('matching data types') }));
+  });
+
+  it('clears project image selections without changing template graph structure', () => {
+    const imported = clearProjectImageSelections(graph);
+    expect(imported.nodes[0].settings.imageId).toBeNull();
+    expect(imported.edges).toEqual(graph.edges);
+    expect(graph.nodes[0].settings.imageId).toBe(9);
+  });
+
+  it('requires each OCR transform to have a selected image and text output', () => {
+    const invalid = { ...graph, nodes: graph.nodes.map((node) => node.id === 'image' ? { ...node, settings: { imageId: null } } : node) };
+    expect(validateRunnableWorkflow(invalid).map((issue) => issue.message)).toContain('Choose a project image for every connected Image node.');
+  });
+});

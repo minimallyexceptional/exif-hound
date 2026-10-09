@@ -114,7 +114,7 @@ describe('project creation and validation', () => {
     legacyEngine.close();
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Legacy');
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(3);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(4);
     expect((await reopened.listImages())[0].exif).toEqual({ make: 'kept' });
   });
 
@@ -186,7 +186,7 @@ describe('image write-through', () => {
     expect(images[0].sourceUrl).toBe('https://example.com/1.jpg');
   });
 
-  it('persists one OCR result against its stable image ID and replaces the latest result', async () => {
+  it('appends OCR results against their stable image ID and returns the latest result', async () => {
     const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'OcrResults', '2.7.0');
     const image = await store.addImage('text.png', pngBytes, {});
     expect(image.id).toBeGreaterThan(0);
@@ -198,9 +198,55 @@ describe('image write-through', () => {
       text: 'updated text',
       confidence: 96.25,
     });
+    expect((await store.listWorkflowOcrResults('legacy', 'legacy')).length).toBe(0);
     expect(await store.getOcrResult(image.id + 999)).toBeNull();
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/OcrResults');
     expect(await reopened.getOcrResult(image.id)).toMatchObject({ text: 'updated text' });
+  });
+
+  it('persists project workflows, run history, and empty OCR output rows', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'WorkflowRows', '2.7.0');
+    const image = await store.addImage('empty.png', pngBytes, {});
+    const now = new Date();
+    await store.saveWorkflow({ id: 'flow-1', name: 'Inspect', graphJson: '{"nodes":[]}', updatedAt: now });
+    await store.createWorkflowRun({
+      id: 'run-1', workflowId: 'flow-1', status: 'running', startedAt: now, finishedAt: null,
+      currentNodeId: 'ocr-1', completedNodes: 0, totalNodes: 1, error: null,
+    });
+    const result = await store.appendWorkflowOcrResult({
+      imageId: image.id, imageName: image.fileName, text: '', confidence: null,
+      processedAt: now, resultStatus: 'no-text', workflowId: 'flow-1', workflowRunId: 'run-1', nodeId: 'ocr-1',
+    });
+    await store.updateWorkflowRun({
+      id: 'run-1', workflowId: 'flow-1', status: 'completed', startedAt: now, finishedAt: now,
+      currentNodeId: null, completedNodes: 1, totalNodes: 1, error: null,
+    });
+    expect(await store.listWorkflows()).toMatchObject([{ id: 'flow-1', name: 'Inspect' }]);
+    expect(await store.listWorkflowRuns('flow-1')).toMatchObject([{ status: 'completed', completedNodes: 1 }]);
+    expect(result).toMatchObject({ imageName: 'empty.png', text: '', resultStatus: 'no-text', nodeId: 'ocr-1' });
+    expect(await store.listWorkflowOcrResults('flow-1', 'ocr-1')).toHaveLength(1);
+  });
+
+  it('migrates and preserves existing v3 OCR results', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'LegacyOcr', '2.7.0');
+    const image = await store.addImage('old.png', pngBytes, {});
+    await store.saveOcrResult(image.id, 'legacy text', 91);
+    const legacyEngine = await dbProvider.open(await fs.readFile('/projects/LegacyOcr/data/data.db'));
+    await legacyEngine.exec('UPDATE investigation_meta SET schema_format_version = 3', [], 'run');
+    await legacyEngine.exec('ALTER TABLE ocr_results RENAME TO upgraded_results', [], 'run');
+    await legacyEngine.exec(`CREATE TABLE ocr_results (
+      image_id INTEGER PRIMARY KEY REFERENCES images(id) ON DELETE CASCADE,
+      text TEXT NOT NULL, confidence REAL NOT NULL, processed_at TEXT NOT NULL
+    )`, [], 'run');
+    await legacyEngine.exec(`INSERT INTO ocr_results (image_id, text, confidence, processed_at)
+      SELECT image_id, text, confidence, processed_at FROM upgraded_results`, [], 'run');
+    await legacyEngine.exec('DROP TABLE upgraded_results', [], 'run');
+    await fs.writeFile('/projects/LegacyOcr/data/data.db', await legacyEngine.serialize());
+    legacyEngine.close();
+    const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/LegacyOcr');
+    expect(await reopened.getOcrResult(image.id)).toMatchObject({
+      imageId: image.id, imageName: 'old.png', text: 'legacy text', confidence: 91,
+    });
   });
 });
 

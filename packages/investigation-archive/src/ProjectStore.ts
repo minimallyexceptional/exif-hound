@@ -2,6 +2,8 @@ import {
   ImageRecord,
   ImportRecord,
   OcrResultRecord,
+  ProjectWorkflowRecord,
+  WorkflowRunRecord,
   ImportType,
   ProjectMeta,
   SessionState,
@@ -29,6 +31,21 @@ import { eq } from 'drizzle-orm';
 export interface ProjectStoreDeps {
   dbProvider: DatabaseEngineProvider;
   fs: FsPort;
+}
+
+function mapOcrResult(row: typeof schema.ocrResults.$inferSelect): OcrResultRecord {
+  return {
+    id: row.id,
+    imageId: row.imageId,
+    imageName: row.imageName,
+    text: row.text,
+    confidence: row.confidence,
+    resultStatus: row.resultStatus as OcrResultRecord['resultStatus'],
+    workflowId: row.workflowId,
+    workflowRunId: row.workflowRunId,
+    nodeId: row.nodeId,
+    processedAt: new Date(row.processedAt),
+  };
 }
 
 /** Raw text of an import file, for re-parsing on open. */
@@ -161,7 +178,7 @@ export class ProjectStore {
         'all',
       );
       const version = versionRows.rows[0]?.[0];
-      if (typeof version === 'number' && version !== 2 && version !== SCHEMA_FORMAT_VERSION) {
+      if (typeof version === 'number' && ![2, 3, SCHEMA_FORMAT_VERSION].includes(version)) {
         throw new UnsupportedSchemaError(
           `Project database schema version ${version} is not supported (this app supports ${SCHEMA_FORMAT_VERSION}).`
         );
@@ -273,29 +290,90 @@ export class ProjectStore {
       throw new InvalidProjectError('OCR results can only be saved for a project image.');
     }
     const processedAt = new Date();
+    return this.appendWorkflowOcrResult({ imageId, imageName: image[0].fileName, text, confidence, processedAt });
+  }
+
+  async appendWorkflowOcrResult(result: OcrResultRecord): Promise<OcrResultRecord> {
+    await this.assertHealthy();
+    const images = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
+    if (!images[0] || !images[0].hasImage) {
+      throw new InvalidProjectError('OCR results can only be saved for a project image.');
+    }
+    const processedAt = result.processedAt ?? new Date();
     await this.db.insert(schema.ocrResults).values({
-      imageId,
-      text,
-      confidence,
+      imageId: result.imageId,
+      imageName: result.imageName ?? images[0].fileName,
+      text: result.text,
+      confidence: result.confidence,
+      resultStatus: result.resultStatus ?? (result.text.trim() ? 'success' : 'no-text'),
+      workflowId: result.workflowId ?? null,
+      workflowRunId: result.workflowRunId ?? null,
+      nodeId: result.nodeId ?? null,
       processedAt: processedAt.toISOString(),
-    }).onConflictDoUpdate({
-      target: schema.ocrResults.imageId,
-      set: { text, confidence, processedAt: processedAt.toISOString() },
     });
     await this.flush();
-    return { imageId, text, confidence, processedAt };
+    const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, result.imageId));
+    const saved = rows.sort((a, b) => b.id - a.id)[0];
+    return mapOcrResult(saved);
   }
 
   async getOcrResult(imageId: number): Promise<OcrResultRecord | null> {
     await this.assertHealthy();
     const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, imageId));
-    const row = rows[0];
-    return row ? {
-      imageId: row.imageId,
-      text: row.text,
-      confidence: row.confidence,
-      processedAt: new Date(row.processedAt),
-    } : null;
+    const row = rows.sort((a, b) => b.id - a.id)[0];
+    return row ? mapOcrResult(row) : null;
+  }
+
+  async listWorkflowOcrResults(workflowId: string, nodeId: string): Promise<OcrResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.ocrResults);
+    return rows
+      .filter((row) => row.workflowId === workflowId && row.nodeId === nodeId)
+      .sort((a, b) => b.id - a.id)
+      .map(mapOcrResult);
+  }
+
+  async saveWorkflow(record: ProjectWorkflowRecord): Promise<void> {
+    await this.assertHealthy();
+    await this.db.insert(schema.workbenchWorkflows).values({
+      id: record.id, name: record.name, graphJson: record.graphJson, updatedAt: record.updatedAt.toISOString(),
+    }).onConflictDoUpdate({
+      target: schema.workbenchWorkflows.id,
+      set: { name: record.name, graphJson: record.graphJson, updatedAt: record.updatedAt.toISOString() },
+    });
+    await this.flush();
+  }
+
+  async listWorkflows(): Promise<ProjectWorkflowRecord[]> {
+    const rows = await this.db.select().from(schema.workbenchWorkflows);
+    return rows.map((row) => ({ ...row, updatedAt: new Date(row.updatedAt) }));
+  }
+
+  async createWorkflowRun(record: WorkflowRunRecord): Promise<void> {
+    await this.db.insert(schema.workflowRuns).values({
+      id: record.id, workflowId: record.workflowId, status: record.status,
+      startedAt: record.startedAt.toISOString(), finishedAt: record.finishedAt?.toISOString() ?? null,
+      currentNodeId: record.currentNodeId, completedNodes: record.completedNodes,
+      totalNodes: record.totalNodes, error: record.error,
+    });
+    await this.flush();
+  }
+
+  async updateWorkflowRun(record: WorkflowRunRecord): Promise<void> {
+    await this.db.update(schema.workflowRuns).set({
+      status: record.status, startedAt: record.startedAt.toISOString(),
+      finishedAt: record.finishedAt?.toISOString() ?? null, currentNodeId: record.currentNodeId,
+      completedNodes: record.completedNodes, totalNodes: record.totalNodes, error: record.error,
+    }).where(eq(schema.workflowRuns.id, record.id));
+    await this.flush();
+  }
+
+  async listWorkflowRuns(workflowId: string): Promise<WorkflowRunRecord[]> {
+    const rows = await this.db.select().from(schema.workflowRuns).where(eq(schema.workflowRuns.workflowId, workflowId));
+    return rows.map((row) => ({
+      ...row, status: row.status as WorkflowRunRecord['status'],
+      startedAt: new Date(row.startedAt), finishedAt: row.finishedAt ? new Date(row.finishedAt) : null,
+    })).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
   }
 
   /** Write the raw import file to data/ and upsert the registry row. */

@@ -8,7 +8,6 @@ interface Props {
   images: (ImageData | ImportedPoint)[];
   selectedImage: ImageData | null;
   onSelect: (image: ImageData) => void;
-  orientation?: 'vertical' | 'horizontal';
 }
 
 // Memoized gallery item component to prevent unnecessary re-renders
@@ -16,8 +15,7 @@ const GalleryItem = React.memo<{
   image: ImageData;
   isSelected: boolean;
   onSelect: (image: ImageData) => void;
-  orientation: 'vertical' | 'horizontal';
-}>(({ image, isSelected, onSelect, orientation }) => (
+}>(({ image, isSelected, onSelect }) => (
   <button
     type="button"
     className="block w-full flex-none text-left"
@@ -34,7 +32,7 @@ const GalleryItem = React.memo<{
       }
     }}
   >
-    <div className={`relative cursor-pointer transition-transform duration-200 ${orientation === 'vertical' ? 'w-full' : 'w-[148px]'} ${
+    <div className={`relative cursor-pointer transition-transform duration-200 w-full ${
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
     }`}>
       <div className="aspect-[3/2] w-full rounded-lg overflow-hidden shadow-lg">
@@ -65,7 +63,7 @@ const GalleryItem = React.memo<{
 
 GalleryItem.displayName = 'GalleryItem';
 
-const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect, orientation = 'vertical' }) => {
+const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -77,13 +75,10 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect, orient
     });
   }, [images]);
 
-  const isHorizontal = orientation === 'horizontal';
-
   const virtualizer = useVirtualizer({
     count: imagesWithImages.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => isHorizontal ? 164 : 200,
-    horizontal: isHorizontal,
+    estimateSize: () => 200,
     overscan: 3,
   });
 
@@ -97,12 +92,12 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect, orient
     if (!container) return;
 
     const handleScroll = () => {
-      setIsScrolled(isHorizontal ? container.scrollLeft > 0 : container.scrollTop > 0);
+      setIsScrolled(container.scrollTop > 0);
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isHorizontal]);
+  }, []);
 
   const scrollToImage = useCallback((imageId: string) => {
     const imageIndex = imagesWithImages.findIndex(img => img.id === imageId);
@@ -132,15 +127,13 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect, orient
     <div className="relative group h-full">
       <div 
         ref={containerRef}
-        className={`h-full scroll-smooth ${isHorizontal
-          ? 'overflow-x-auto overflow-y-hidden px-3 py-2'
-          : 'overflow-y-auto overflow-x-hidden px-4 pt-12 pb-12'}`}
+        className="h-full scroll-smooth overflow-y-auto overflow-x-hidden px-4 pt-12 pb-12"
       >
         {/* Virtualized list container */}
         <div
           style={{
-            height: isHorizontal ? '100%' : `${virtualizer.getTotalSize()}px`,
-            width: isHorizontal ? `${virtualizer.getTotalSize()}px` : '100%',
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
             position: 'relative',
           }}
         >
@@ -154,20 +147,16 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect, orient
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: isHorizontal ? `${virtualItem.size}px` : '100%',
-                  height: isHorizontal ? '100%' : `${virtualItem.size}px`,
-                  transform: isHorizontal
-                    ? `translateX(${virtualItem.start}px)`
-                    : `translateY(${virtualItem.start}px)`,
-                  paddingRight: isHorizontal ? '16px' : undefined,
-                  paddingBottom: isHorizontal ? undefined : '16px',
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                  paddingBottom: '16px',
                 }}
               >
                 <GalleryItem
                   image={image}
                   isSelected={selectedImage?.id === image.id}
                   onSelect={handleSelect}
-                  orientation={orientation}
                 />
               </div>
             );
@@ -176,13 +165,10 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect, orient
       </div>
 
       {/* Scroll indicators (non-obstructive) */}
-      {!isHorizontal && <div className={`pointer-events-none absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-app-black to-transparent transition-opacity duration-200 ${
+      <div className={`pointer-events-none absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-app-black to-transparent transition-opacity duration-200 ${
         isScrolled ? 'opacity-100' : 'opacity-0'
-      }`} aria-hidden="true" />}
-      {isHorizontal && isScrolled && <div className="pointer-events-none absolute top-0 bottom-0 left-0 w-6 bg-gradient-to-r from-app-gray to-transparent" aria-hidden="true" />}
-      {isHorizontal
-        ? <div className="pointer-events-none absolute top-0 bottom-0 right-0 w-6 bg-gradient-to-l from-app-gray to-transparent" aria-hidden="true" />
-        : <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-app-black to-transparent" aria-hidden="true" />}
+      }`} aria-hidden="true" />
+      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-app-black to-transparent" aria-hidden="true" />
     </div>
   );
 };

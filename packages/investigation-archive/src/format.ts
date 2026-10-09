@@ -12,7 +12,7 @@ export const IMAGES_DIR = 'images';
 export const DATABASE_FILE = 'data.db';
 export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const SCHEMA_FORMAT_VERSION = 3;
+export const SCHEMA_FORMAT_VERSION = 4;
 
 export type ImportType = 'kml' | 'csv';
 
@@ -47,9 +47,34 @@ export interface ImageRecord {
 
 export interface OcrResultRecord {
   imageId: number;
+  imageName?: string;
   text: string;
-  confidence: number;
+  confidence: number | null;
   processedAt: Date;
+  id?: number;
+  resultStatus?: 'success' | 'no-text';
+  workflowId?: string | null;
+  workflowRunId?: string | null;
+  nodeId?: string | null;
+}
+
+export interface ProjectWorkflowRecord {
+  id: string;
+  name: string;
+  graphJson: string;
+  updatedAt: Date;
+}
+
+export interface WorkflowRunRecord {
+  id: string;
+  workflowId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: Date;
+  finishedAt: Date | null;
+  currentNodeId: string | null;
+  completedNodes: number;
+  totalNodes: number;
+  error: string | null;
 }
 
 export interface ImportRecord {

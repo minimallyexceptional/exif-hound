@@ -19,7 +19,6 @@ import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
-import type { OcrResultRecord } from 'investigation-archive';
 import type { OcrMiddleware } from 'ocr-middleware';
 import type { OcrProgress } from 'ocr-middleware';
 import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
@@ -43,7 +42,6 @@ import {
 const Map = lazy(() => import('./components/Map'));
 const Investigation = lazy(() => import('./components/Investigation'));
 const Workbench = lazy(() => import('./components/Workbench'));
-const OcrResultsView = lazy(() => import('./components/OcrResultsView'));
 
 type ViewMode = 'map' | 'list' | 'investigation' | 'workbench';
 
@@ -66,11 +64,11 @@ function App() {
   // Entrypoint gate: the splash screen owns the window until a project is
   // created or opened. Everything downstream is unchanged.
   const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
+  const [activeProjectStore, setActiveProjectStore] = useState<ProjectStore | null>(null);
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>(() => getRecentProjects());
   const [splashError, setSplashError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [investigationTool, setInvestigationTool] = useState<string | null>(null);
-  const [ocrResultsView, setOcrResultsView] = useState<{ imageId: number; result: OcrResultRecord } | null>(null);
   const ocrMiddlewareRef = useRef<Promise<OcrMiddleware> | null>(null);
   useEffect(() => () => {
     void ocrMiddlewareRef.current?.then(middleware => middleware.dispose());
@@ -132,31 +130,18 @@ function App() {
     setGallerySelectionRequest(request => request + 1);
   };
 
-  const handleRunOcr = async (
+  const handleRecognizeImage = async (
     image: ImageData,
-    onProgress: (progress: OcrProgress) => void,
-  ): Promise<OcrResultRecord> => {
-    const store = projectStoreRef.current;
-    if (!store || image.projectImageId === undefined) throw new Error('Save this image to the project before running OCR.');
+    language: string,
+    onProgress: (progress: number, status?: string) => void,
+  ): Promise<{ text: string; confidence: number }> => {
+    if (!projectStoreRef.current || image.projectImageId === undefined) throw new Error('Save this image to the project before running OCR.');
     const file = image.file as unknown as Blob;
     ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware }) => new Middleware());
-    const recognized = await (await ocrMiddlewareRef.current).recognize(file, { onProgress });
-    if (!recognized.text.trim()) {
-      return { imageId: image.projectImageId, text: '', confidence: recognized.confidence, processedAt: new Date() };
-    }
-    return store.saveOcrResult(image.projectImageId, recognized.text, recognized.confidence);
-  };
-
-  const handleGetOcrResult = async (imageId: number) => {
-    const store = projectStoreRef.current;
-    if (!store) return null;
-    return store.getOcrResult(imageId);
-  };
-
-  const handleOpenOcrResults = (image: ImageData, result: OcrResultRecord) => {
-    if (image.projectImageId === undefined) return;
-    setSelectedImageId(image.id);
-    setOcrResultsView({ imageId: image.projectImageId, result });
+    return (await ocrMiddlewareRef.current).recognize(file, {
+      languages: language,
+      onProgress: (progress: OcrProgress) => onProgress(progress.progress, progress.status),
+    });
   };
 
   const handleUploadClick = () => {
@@ -268,14 +253,6 @@ function App() {
   );
 
   const renderView = () => {
-    if (ocrResultsView) {
-      const sourceImage = images.find(image => image.projectImageId === ocrResultsView.imageId);
-      if (sourceImage) {
-        return <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading OCR results...</div>}>
-          <OcrResultsView image={sourceImage} result={ocrResultsView.result} onBack={() => setOcrResultsView(null)} />
-        </Suspense>;
-      }
-    }
     switch (viewMode) {
       case 'map':
         return renderMap();
@@ -309,12 +286,10 @@ function App() {
         return (
           <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading Workbench...</div>}>
             <Workbench
+              key={activeProjectStore?.rootPath ?? 'no-project'}
               images={images}
-              selectedImage={selectedImage}
-              onSelectImage={handleGalleryImageSelect}
-              onRunOcr={handleRunOcr}
-              onGetOcrResult={handleGetOcrResult}
-              onOpenResults={handleOpenOcrResults}
+              store={activeProjectStore}
+              recognizeImage={handleRecognizeImage}
             />
           </Suspense>
         );
@@ -353,6 +328,7 @@ function App() {
     const importTexts = await Promise.all(imports.map((i) => store.readImport(i.type)));
 
     projectStoreRef.current = store;
+    setActiveProjectStore(store);
     recordRecentProject(store.rootPath, meta.name);
     setRecentProjects(getRecentProjects());
     setImages(records.map(toImageData));
@@ -432,7 +408,7 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">
-      {!ocrResultsView && <AppHeader
+      <AppHeader
         imagesCount={images.length}
         viewMode={viewMode}
         onUpload={handleUploadClick}
@@ -448,7 +424,7 @@ function App() {
           setShowSettings(true);
           void getUpdateService().check({ silent: false });
         }}
-      />}
+      />
 
       <ImageUploader 
         onImageUpload={handleImageUpload} 

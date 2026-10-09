@@ -1,7 +1,7 @@
 import { sqliteTable, integer, real, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * Drizzle schema for the project database (schema format version 3).
+ * Drizzle schema for the project database (schema format version 4).
  * Mirrors migrations.ts DDL — the test suite asserts both stay in sync
  * via round-trips through a real sql.js engine.
  */
@@ -40,8 +40,33 @@ export const projectImports = sqliteTable('project_imports', {
 });
 
 export const ocrResults = sqliteTable('ocr_results', {
-  imageId: integer('image_id').primaryKey().references(() => images.id, { onDelete: 'cascade' }),
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+  imageName: text('image_name').notNull(),
   text: text('text').notNull(),
-  confidence: real('confidence').notNull(),
+  confidence: real('confidence'),
+  resultStatus: text('result_status').notNull(),
+  workflowId: text('workflow_id'),
+  workflowRunId: text('workflow_run_id'),
+  nodeId: text('node_id'),
   processedAt: text('processed_at').notNull(),
+});
+
+export const workbenchWorkflows = sqliteTable('workbench_workflows', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  graphJson: text('graph_json').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const workflowRuns = sqliteTable('workflow_runs', {
+  id: text('id').primaryKey(),
+  workflowId: text('workflow_id').notNull().references(() => workbenchWorkflows.id, { onDelete: 'cascade' }),
+  status: text('status').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at'),
+  currentNodeId: text('current_node_id'),
+  completedNodes: integer('completed_nodes').notNull(),
+  totalNodes: integer('total_nodes').notNull(),
+  error: text('error'),
 });

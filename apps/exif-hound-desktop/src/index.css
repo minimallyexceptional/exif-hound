@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 @theme {
   --color-app-black: var(--app-black);
@@ -251,4 +252,19 @@ input:focus {
 
 .text-muted {
   color: var(--app-accent-dim);
+}
+
+.react-flow {
+  --xy-background-color: var(--app-black);
+  --xy-background-pattern-color: var(--app-gray-light);
+  --xy-edge-stroke: var(--app-accent-dim);
+  --xy-edge-stroke-selected: var(--app-accent);
+  --xy-node-border: var(--app-gray-light);
+  --xy-node-color: var(--app-white);
+  --xy-handle-background-color: var(--app-accent);
+  --xy-handle-border-color: var(--app-gray);
+  --xy-controls-button-background-color: var(--app-gray);
+  --xy-controls-button-color: var(--app-white);
+  --xy-controls-button-border-color: var(--app-gray-light);
+  --xy-minimap-background-color: var(--app-gray);
 }
