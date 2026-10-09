@@ -17,7 +17,7 @@
 
 - [x] 3.1 Add failing tests for cross-platform workflow names, Unicode, reserved names, case-insensitive collisions, malformed JSON, and version handling; implement the portable workflow-file format and validation until tests pass.
 - [x] 3.2 Add a desktop filesystem adapter using Tauri home-directory resolution and native path APIs; write failing adapter tests for create/list/save/open/error behavior, then implement atomic writes and duplicate-name handling until tests pass.
-- [ ] 3.3 Verify Linux x86_64/ARM64, macOS Apple Silicon, and Windows x86_64 target compilation and workflow-library path behavior where runners are available; document any unavailable local targets and the CI verification.
+- [x] 3.3 Verify Linux x86_64/ARM64, macOS Apple Silicon, and Windows x86_64 target compilation and workflow-library path behavior on CI runners; document the CI verification.
 
 ## 4. Workbench node editor UI
 
@@ -38,7 +38,7 @@
 
 - [x] 6.1 Run focused package and desktop tests, lint, typecheck, and production build; resolve failures and verify OpenSpec change validation passes.
 - [x] 6.2 Exercise new-project, migrated-project, workflow save/open across projects, OCR run/history, and output copy flows in the desktop E2E suite; verify all scenarios pass on supported desktop targets where available.
-- [ ] 6.3 Verify release builds for the supported matrix (Linux x86_64/ARM64, macOS Apple Silicon, Windows x86_64) and confirm one saved JSON fixture opens across architecture variants.
+- [x] 6.3 Verify release-mode builds for the supported matrix (Linux x86_64/ARM64, macOS Apple Silicon, Windows x86_64) and confirm one saved JSON fixture opens across architecture variants.
 
 ## Workflow follow-up
 
@@ -47,4 +47,4 @@
 
 ## Verification notes
 
-- The current workspace has only `x86_64-unknown-linux-gnu` installed. Rust workflow-library tests passed on that target. Cross-target builds and native path behavior still need CI runner coverage for Linux ARM64, macOS Apple Silicon, and Windows x86_64; the existing release matrix defines those targets in `.github/workflows/release.yml`.
+- Cross-platform verification passed in [Workbench platform verification run 37887814407](https://github.com/minimallyexceptional/exif-hound/actions/runs/37887814407): Linux x86_64, Linux ARM64, macOS Apple Silicon, and Windows x86_64 each built the frontend, opened the shared portable workflow JSON fixture, passed Rust formatting and workflow-library tests, and completed a Tauri `cargo build --release --target ...` without installer bundling or signing. The fixture exercises the same platform-neutral format on every runner; filesystem adapter behavior is covered by the Rust workflow-library tests.

@@ -13,63 +13,61 @@ The desktop app SHALL provide a Workbench view reachable from the primary view n
 - **THEN** the app displays the Workbench view for the current project images
 
 ### Requirement: Selected image workspace
-The Workbench SHALL display the selected image prominently in a main image stage beside a tools sidebar, with the image fitted inside the available stage without cropping.
+The Workbench SHALL provide a full-width node workflow canvas between a node catalog and a contextual inspector.
 
 #### Scenario: Display selected image
-- **WHEN** an image is selected in the Workbench gallery
-- **THEN** the main stage displays that image at the largest size that fits while preserving its aspect ratio
+- **WHEN** the user opens Workbench
+- **THEN** the app displays a left node catalog, an open central canvas, and a right-side inspector
 
 #### Scenario: No image selected
-- **WHEN** the project contains images but no image is selected
-- **THEN** the main stage prompts the user to select an image from the gallery
+- **WHEN** the user selects a project image in an Image node's settings
+- **THEN** that image is previewed above the Image node on the canvas
 
 #### Scenario: Empty project
 - **WHEN** the project contains no images
-- **THEN** the Workbench shows an empty state explaining that imported images will appear there
+- **THEN** the Workbench explains that imported project images can be selected in an Image node
 
 ### Requirement: Future tool placeholders
-The Workbench SHALL show a sidebar of image tools, including an actionable OCR tool and clearly labeled unavailable future tools such as reverse image search.
+The Workbench SHALL present workflow nodes in categorized Inputs, Transforms, and Outputs groups.
 
 #### Scenario: OCR tool shown
 - **WHEN** the Workbench is displayed
-- **THEN** the sidebar identifies OCR as an available tool with a Run action when a local project image is selected
-- **AND** reverse image search remains identified as an unavailable future tool
+- **THEN** the catalog offers Image in Inputs, OCR in Transforms, and Text in Outputs
 
 #### Scenario: OCR tool unavailable without image
-- **WHEN** no local project image is selected
-- **THEN** the OCR Run action is unavailable
+- **WHEN** the initial Workbench node catalog is displayed
+- **THEN** reverse image search and similarity matching are not listed as available nodes
 
 #### Scenario: Future tools shown
-- **WHEN** the Workbench is displayed
-- **THEN** the sidebar identifies OCR as an available tool and reverse image search as an unavailable future tool
-- **AND** activating a tool marked as an unavailable future tool does not launch processing or external navigation
+- **WHEN** the user selects a node
+- **THEN** its settings or output appears in the right-side inspector
 
 #### Scenario: OCR progress and results
-- **WHEN** OCR is running or has saved results for the selected image
-- **THEN** the OCR row shows the request progress or offers an action to open the saved results
+- **WHEN** an OCR node is running or has saved results for a connected Text node
+- **THEN** the OCR node shows its execution state and the Text node can display those results
 
 ### Requirement: Reusable gallery orientation
-The image gallery SHALL support vertical and horizontal orientations. Existing Map View usage SHALL remain vertical, and Workbench SHALL use a horizontally scrolling gallery along the bottom of the view.
-
-#### Scenario: Select image in horizontal gallery
-- **WHEN** the user selects a thumbnail in the Workbench gallery
-- **THEN** the thumbnail becomes selected and the main image stage updates to that image
-
-#### Scenario: Keep selected thumbnail visible
-- **WHEN** the selected image changes to an item outside the visible horizontal gallery area
-- **THEN** the gallery scrolls that item into view
+The shared image gallery SHALL use a vertical orientation in Map View, and Workbench SHALL select project images through Image node settings without displaying a gallery.
 
 #### Scenario: Preserve map gallery
 - **WHEN** the user opens Map View
-- **THEN** its gallery remains vertically oriented and selection behavior continues to work
+- **THEN** its image gallery remains vertically oriented and selection behavior continues to work
+
+#### Scenario: Select image in horizontal gallery
+- **WHEN** the user selects an image in an Image node's project-image selector
+- **THEN** that Image node updates to show the selected image preview
+
+#### Scenario: Keep selected thumbnail visible
+- **WHEN** the user opens Workbench
+- **THEN** the page uses the canvas for the full work area and does not show a horizontal bottom gallery
 
 ### Requirement: Responsive and accessible Workbench
-The Workbench SHALL remain usable at supported desktop window sizes, in both app themes, and with keyboard navigation.
+The workflow editor SHALL remain usable at supported desktop window sizes, in both app themes, and with keyboard navigation.
 
 #### Scenario: Keyboard gallery selection
-- **WHEN** a user navigates gallery items by keyboard and activates one
-- **THEN** the selected image updates and focus remains visibly indicated
+- **WHEN** a user navigates the node catalog and canvas by keyboard
+- **THEN** node focus and selection remain visibly indicated and the selected node's inspector can be reached
 
 #### Scenario: Light theme
 - **WHEN** the app uses the light theme
-- **THEN** the Workbench surfaces, text, borders, and placeholders remain legible using the app theme tokens
+- **THEN** the Workbench catalog, canvas, nodes, connections, and inspector remain legible using the app theme tokens
