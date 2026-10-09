@@ -57,4 +57,11 @@ describe('TauriFsPort', () => {
     await port.deleteFile('/tmp/Proj/data/old.kml');
     expect(remove).toHaveBeenCalledWith('/tmp/Proj/data/old.kml');
   });
+
+  it('removeDir maps to plugin-fs recursive remove', async () => {
+    (remove as jest.Mock).mockResolvedValue(undefined);
+    const port = new TauriFsPort();
+    await port.removeDir('/tmp/Proj');
+    expect(remove).toHaveBeenCalledWith('/tmp/Proj', { recursive: true });
+  });
 });

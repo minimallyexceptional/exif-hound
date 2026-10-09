@@ -39,6 +39,17 @@ export class InMemoryFs {
     this.files.delete(path);
   }
 
+  async removeDir(path: string): Promise<void> {
+    this.operationOrder.push(`removeDir:${path}`);
+    this.dirs.delete(path);
+    for (const file of this.files.keys()) {
+      if (file.startsWith(`${path}/`)) this.files.delete(file);
+    }
+    for (const dir of this.dirs) {
+      if (dir.startsWith(`${path}/`)) this.dirs.delete(dir);
+    }
+  }
+
   /** Snapshot of stored files (path → bytes) for assertions. */
   snapshot(): Record<string, Uint8Array> {
     const out: Record<string, Uint8Array> = {};

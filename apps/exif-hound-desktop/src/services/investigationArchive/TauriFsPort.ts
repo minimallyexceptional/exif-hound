@@ -31,4 +31,9 @@ export class TauriFsPort implements FsPort {
     const { remove } = await import('@tauri-apps/plugin-fs');
     await remove(path);
   }
+
+  async removeDir(path: string): Promise<void> {
+    const { remove } = await import('@tauri-apps/plugin-fs');
+    await remove(path, { recursive: true });
+  }
 }

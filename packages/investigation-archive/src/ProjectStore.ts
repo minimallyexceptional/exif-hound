@@ -77,6 +77,23 @@ export class ProjectStore {
     if (await deps.fs.exists(rootPath)) {
       throw new ProjectExistsError(rootPath);
     }
+    // Roll back the half-created folder on any failure (e.g. the real fs
+    // rejecting a deep path), so a retry doesn't die on a stale empty
+    // folder with ProjectExistsError. Best-effort: surface the original error.
+    try {
+      return await this.createWithin(deps, rootPath, projectName, appVersion);
+    } catch (error) {
+      await deps.fs.removeDir(rootPath).catch(() => {});
+      throw error;
+    }
+  }
+
+  private static async createWithin(
+    deps: ProjectStoreDeps,
+    rootPath: string,
+    projectName: string,
+    appVersion: string,
+  ): Promise<ProjectStore> {
     await deps.fs.mkdir(rootPath);
     await deps.fs.mkdir(joinPath(rootPath, DATA_DIR));
 

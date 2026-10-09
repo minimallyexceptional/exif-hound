@@ -27,7 +27,13 @@ export const ProjectCreateModal: React.FC<Props> = ({ onClose, onCreate }) => {
       const picked = await pickParentFolder();
       if (picked) setParent(picked);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not open the folder picker.');
+      setError(
+        typeof e === 'string' && e.trim()
+          ? e
+          : e instanceof Error
+            ? e.message
+            : 'Could not open the folder picker.'
+      );
     }
   };
 
@@ -47,10 +53,15 @@ export const ProjectCreateModal: React.FC<Props> = ({ onClose, onCreate }) => {
       // On success the app enters the project and this modal unmounts.
     } catch (e) {
       setBusy(false);
+      // Tauri IPC rejects with plain strings (e.g. plugin-fs "forbidden
+      // path: …" scope errors), not Error instances — surface their text
+      // instead of swallowing it behind the generic fallback.
       setError(
-        e instanceof Error && e.message
-          ? e.message
-          : 'Failed to create the project folder.'
+        typeof e === 'string' && e.trim()
+          ? e
+          : e instanceof Error && e.message
+            ? e.message
+            : 'Failed to create the project folder.'
       );
     }
   };

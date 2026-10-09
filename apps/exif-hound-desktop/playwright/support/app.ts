@@ -65,6 +65,7 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     'plugin:updater|check': null,
     // Default parent folder for bootApp's implicit project creation.
     'plugin:dialog|open': '/tmp/e2e-projects',
+    resolve_project_folder: '__selected_folder__',
     ...options.commands,
   };
   // The active app requires a bound project, so the implicit boot creates one
@@ -84,6 +85,9 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
       }
       const handler = handlers.get(cmd);
       if (handler === undefined) return Promise.reject(new Error(`[tauri-mock] no canned response registered for command "${cmd}"`));
+      if (cmd === 'resolve_project_folder' && handler === '__selected_folder__') {
+        return Promise.resolve((args as { path: string }).path);
+      }
       if (handler instanceof Error) return Promise.reject(handler);
       if (handler && typeof handler === 'object' && '__reject' in handler) {
         return Promise.reject(new Error(String((handler as { __reject: unknown }).__reject)));
