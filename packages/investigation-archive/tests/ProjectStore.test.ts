@@ -51,7 +51,6 @@ describe('project creation and validation', () => {
     expect(meta.state).toEqual({
       viewMode: 'map',
       showRoute: false,
-      investigationTool: null,
     });
   });
 
@@ -398,7 +397,6 @@ describe('state persistence and flush round-trip', () => {
     const state: SessionState = {
       viewMode: 'investigation',
       showRoute: true,
-      investigationTool: 'timeline',
     };
     await store.setState(state);
     expect(await store.getState()).toEqual(state);
@@ -409,15 +407,14 @@ describe('state persistence and flush round-trip', () => {
     await store.addImage('beach.jpg', jpegBytes, { latitude: 51.5 });
     await store.addImage('point', null, { latitude: 2 }, 'https://x/1.jpg');
     await store.addImport('kml', 'points.kml', '<kml></kml>');
-    await store.setState({ viewMode: 'investigation', showRoute: true, investigationTool: 'software' });
+    await store.setState({ viewMode: 'workbench', showRoute: true });
     await store.flush();
     await store.close();
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Flush');
     expect(await reopened.getState()).toEqual({
-      viewMode: 'investigation',
+      viewMode: 'workbench',
       showRoute: true,
-      investigationTool: 'software',
     });
     const images = await reopened.listImages();
     expect(images).toHaveLength(2);

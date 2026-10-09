@@ -15,7 +15,6 @@ import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
-import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
@@ -26,6 +25,7 @@ import {
   toImageData,
   toStoreImage,
   toStoreState,
+  fromStoreState,
   serializeExif,
   ProjectViewMode,
 } from './services/investigationArchive/ProjectSessionService';
@@ -39,10 +39,9 @@ import {
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
-const Investigation = lazy(() => import('./components/Investigation'));
 const Workbench = lazy(() => import('./components/Workbench'));
 
-type ViewMode = 'map' | 'list' | 'investigation' | 'workbench';
+type ViewMode = ProjectViewMode;
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -67,7 +66,6 @@ function App() {
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>(() => getRecentProjects());
   const [splashError, setSplashError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [investigationTool, setInvestigationTool] = useState<string | null>(null);
   const ocrMiddlewareRef = useRef<Promise<OcrMiddleware> | null>(null);
   useEffect(() => () => {
     void ocrMiddlewareRef.current?.then(middleware => middleware.dispose());
@@ -156,7 +154,7 @@ function App() {
   };
 
   const persistSessionState = (
-    overrides: Partial<{ viewMode: ViewMode; showRoute: boolean; investigationTool: string | null }> = {}
+    overrides: Partial<{ viewMode: ViewMode; showRoute: boolean }> = {}
   ) => {
     const store = projectStoreRef.current;
     if (!store) return;
@@ -165,7 +163,6 @@ function App() {
         toStoreState({
           viewMode: (overrides.viewMode ?? viewMode) as ProjectViewMode,
           showRoute: overrides.showRoute ?? showRoute,
-          investigationTool: overrides.investigationTool ?? investigationTool,
         })
       )
       .catch((error: unknown) => {
@@ -233,8 +230,6 @@ function App() {
         return 'Location Map';
       case 'list':
         return 'Image Details';
-      case 'investigation':
-        return isFeatureEnabled('investigation') ? 'Investigation' : 'Location Map';
       case 'workbench':
         return 'Workbench';
       default:
@@ -270,24 +265,6 @@ function App() {
             selectedImage={selectedImage}
             onSelect={handleSelectImage}
           />
-        );
-      case 'investigation':
-        // Defensive: the flag gates all entry points, so this only triggers if
-        // a gated view is requested in a build without the flag.
-        if (!isFeatureEnabled('investigation')) return renderMap();
-        return (
-          <Suspense fallback={<div className="flex items-center justify-center h-full">
-            <div className="text-app-white">Loading investigation tools...</div>
-          </div>}>
-            <Investigation
-              images={images}
-              initialTool={investigationTool}
-              onToolChange={(tool) => {
-                setInvestigationTool(tool);
-                persistSessionState({ investigationTool: tool });
-              }}
-            />
-          </Suspense>
         );
       case 'workbench':
         return (
@@ -342,9 +319,9 @@ function App() {
     setSelectedImageId(null);
     setImportedData(undefined);
     setImportError(null);
-    setShowRoute(state.showRoute);
-    setViewMode(state.viewMode as ViewMode);
-    setInvestigationTool(state.investigationTool);
+    const restoredState = fromStoreState(state);
+    setShowRoute(restoredState.showRoute);
+    setViewMode(restoredState.viewMode);
     setSessionState('active');
 
     // Re-parse stored KML/CSV overlays from the data folder.
@@ -478,7 +455,7 @@ function App() {
         </AppLayout>
 
         {/* EXIF Panel - Only show for map and list views */}
-        {selectedImage && viewMode !== 'investigation' && viewMode !== 'workbench' && (
+        {selectedImage && viewMode !== 'workbench' && (
           <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
           }`}>

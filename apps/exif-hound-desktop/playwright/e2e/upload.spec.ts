@@ -16,8 +16,10 @@ test('handles multiple files at once', async ({ page }) => {
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.fullExif.name}"]`)).toBeAttached();
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.noGps.name}"]`)).toBeAttached();
   await expect(page.getByText('Model', { exact: true }).locator('..').locator('div').last()).toHaveText('Hound-2');
-  await switchView(page, 'Investigation');
-  await expect(page.getByText('2 images', { exact: true }).first()).toBeVisible();
+  await switchView(page, 'List View');
+  const grid = page.getByRole('grid', { name: 'Image metadata spreadsheet' });
+  await expect(grid.getByText(FIXTURE_IMAGES.fullExif.name, { exact: true })).toBeVisible();
+  await expect(grid.getByText(FIXTURE_IMAGES.noGps.name, { exact: true })).toBeVisible();
 });
 
 test('rejects non-image files', async ({ page }) => {

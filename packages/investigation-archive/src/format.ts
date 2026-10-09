@@ -20,7 +20,6 @@ export type ImportType = 'kml' | 'csv';
 export interface SessionState {
   viewMode: string;
   showRoute: boolean;
-  investigationTool: string | null;
 }
 
 export interface ProjectMeta {
