@@ -1,0 +1,13 @@
+{
+  "formatVersion": 1,
+  "name": "Portable OCR review",
+  "nodes": [
+    { "id": "image-source", "type": "image", "position": { "x": 80, "y": 120 }, "settings": { "imageId": null } },
+    { "id": "ocr-transform", "type": "ocr", "position": { "x": 420, "y": 120 }, "settings": { "language": "eng" } },
+    { "id": "text-output", "type": "text", "position": { "x": 760, "y": 120 }, "settings": {} }
+  ],
+  "edges": [
+    { "id": "image-to-ocr", "source": "image-source", "sourcePort": "image", "target": "ocr-transform", "targetPort": "image" },
+    { "id": "ocr-to-text", "source": "ocr-transform", "sourcePort": "text", "target": "text-output", "targetPort": "text" }
+  ]
+}

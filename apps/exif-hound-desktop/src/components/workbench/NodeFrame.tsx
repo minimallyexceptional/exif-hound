@@ -38,7 +38,7 @@ export const NodeFrame: React.FC<Props> = ({
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-app-white">{config.title}</span>
         {data.state === 'running' && <span className="ml-auto rounded-full bg-app-accent/15 px-2 py-0.5 text-[10px] text-app-accent">Working</span>}
         {data.state === 'completed' && <span className="ml-auto text-[10px] text-app-accent-dim">Done</span>}
-        {data.state === 'failed' && <span className="ml-auto text-[10px] text-red-400">Failed</span>}
+        {data.state === 'failed' && <span className="ml-auto text-[10px] text-app-danger">Failed</span>}
       </header>
       {children}
       {data.state === 'running' && (
@@ -49,7 +49,7 @@ export const NodeFrame: React.FC<Props> = ({
           </div>
         </div>
       )}
-      {data.state === 'failed' && data.status && <p className="border-t border-app-gray-light/50 px-3 py-2 text-xs text-red-400">{data.status}</p>}
+      {data.state === 'failed' && data.status && <p className="border-t border-app-gray-light/50 px-3 py-2 text-xs text-app-danger">{data.status}</p>}
       {output && <Handle type="source" position={Position.Right} id={output} className="!h-3 !w-3 !border-2 !border-app-gray !bg-app-accent" />}
     </article>
   );
