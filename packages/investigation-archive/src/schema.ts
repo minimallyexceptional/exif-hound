@@ -1,7 +1,7 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, real, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * Drizzle schema for the project database (schema format version 2).
+ * Drizzle schema for the project database (schema format version 3).
  * Mirrors migrations.ts DDL — the test suite asserts both stay in sync
  * via round-trips through a real sql.js engine.
  */
@@ -37,4 +37,11 @@ export const projectImports = sqliteTable('project_imports', {
   type: text('type').notNull().unique(),
   fileName: text('file_name').notNull(),
   addedAt: text('added_at').notNull(), // ISO string
+});
+
+export const ocrResults = sqliteTable('ocr_results', {
+  imageId: integer('image_id').primaryKey().references(() => images.id, { onDelete: 'cascade' }),
+  text: text('text').notNull(),
+  confidence: real('confidence').notNull(),
+  processedAt: text('processed_at').notNull(),
 });

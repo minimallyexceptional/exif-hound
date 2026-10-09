@@ -1,4 +1,4 @@
-import { useState, useRef, Suspense, lazy } from 'react';
+import { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
@@ -19,6 +19,9 @@ import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
+import type { OcrResultRecord } from 'investigation-archive';
+import type { OcrMiddleware } from 'ocr-middleware';
+import type { OcrProgress } from 'ocr-middleware';
 import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
 import { TauriFsPort } from './services/investigationArchive/TauriFsPort';
 import {
@@ -39,8 +42,10 @@ import {
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
 const Investigation = lazy(() => import('./components/Investigation'));
+const Workbench = lazy(() => import('./components/Workbench'));
+const OcrResultsView = lazy(() => import('./components/OcrResultsView'));
 
-type ViewMode = 'map' | 'list' | 'investigation';
+type ViewMode = 'map' | 'list' | 'investigation' | 'workbench';
 
 function App() {
   const [images, setImages] = useState<ImageData[]>([]);
@@ -65,6 +70,11 @@ function App() {
   const [splashError, setSplashError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [investigationTool, setInvestigationTool] = useState<string | null>(null);
+  const [ocrResultsView, setOcrResultsView] = useState<{ imageId: number; result: OcrResultRecord } | null>(null);
+  const ocrMiddlewareRef = useRef<Promise<OcrMiddleware> | null>(null);
+  useEffect(() => () => {
+    void ocrMiddlewareRef.current?.then(middleware => middleware.dispose());
+  }, []);
 
   // The bound project: every upload, import, and state change writes through
   // to this store's folder (images/ + data/data.db). Null on the splash.
@@ -76,13 +86,15 @@ function App() {
     if (!store) return;
     try {
       const args = toStoreImage(imageData);
+      let savedImage;
       if (args.bytes === null && !('hasImage' in imageData)) {
         const file = imageData.file as unknown as File;
         const bytes = new Uint8Array(await file.arrayBuffer());
-        await store.addImage(imageData.file.name, bytes, serializeExif(imageData.exif));
+        savedImage = await store.addImage(imageData.file.name, bytes, serializeExif(imageData.exif));
       } else {
-        await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
+        savedImage = await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
       }
+      setImages(current => current.map(image => image.id === imageData.id ? { ...image, projectImageId: savedImage.id } : image));
     } catch (error) {
       if (__DEV__) console.error('Failed to persist image to project:', error);
       setImportError(
@@ -118,6 +130,33 @@ function App() {
   const handleGalleryImageSelect = (imageData: ImageData) => {
     handleSelectImage(imageData);
     setGallerySelectionRequest(request => request + 1);
+  };
+
+  const handleRunOcr = async (
+    image: ImageData,
+    onProgress: (progress: OcrProgress) => void,
+  ): Promise<OcrResultRecord> => {
+    const store = projectStoreRef.current;
+    if (!store || image.projectImageId === undefined) throw new Error('Save this image to the project before running OCR.');
+    const file = image.file as unknown as Blob;
+    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware }) => new Middleware());
+    const recognized = await (await ocrMiddlewareRef.current).recognize(file, { onProgress });
+    if (!recognized.text.trim()) {
+      return { imageId: image.projectImageId, text: '', confidence: recognized.confidence, processedAt: new Date() };
+    }
+    return store.saveOcrResult(image.projectImageId, recognized.text, recognized.confidence);
+  };
+
+  const handleGetOcrResult = async (imageId: number) => {
+    const store = projectStoreRef.current;
+    if (!store) return null;
+    return store.getOcrResult(imageId);
+  };
+
+  const handleOpenOcrResults = (image: ImageData, result: OcrResultRecord) => {
+    if (image.projectImageId === undefined) return;
+    setSelectedImageId(image.id);
+    setOcrResultsView({ imageId: image.projectImageId, result });
   };
 
   const handleUploadClick = () => {
@@ -204,6 +243,8 @@ function App() {
         return 'Image Details';
       case 'investigation':
         return isFeatureEnabled('investigation') ? 'Investigation' : 'Location Map';
+      case 'workbench':
+        return 'Workbench';
       default:
         return '';
     }
@@ -227,6 +268,14 @@ function App() {
   );
 
   const renderView = () => {
+    if (ocrResultsView) {
+      const sourceImage = images.find(image => image.projectImageId === ocrResultsView.imageId);
+      if (sourceImage) {
+        return <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading OCR results...</div>}>
+          <OcrResultsView image={sourceImage} result={ocrResultsView.result} onBack={() => setOcrResultsView(null)} />
+        </Suspense>;
+      }
+    }
     switch (viewMode) {
       case 'map':
         return renderMap();
@@ -253,6 +302,19 @@ function App() {
                 setInvestigationTool(tool);
                 persistSessionState({ investigationTool: tool });
               }}
+            />
+          </Suspense>
+        );
+      case 'workbench':
+        return (
+          <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading Workbench...</div>}>
+            <Workbench
+              images={images}
+              selectedImage={selectedImage}
+              onSelectImage={handleGalleryImageSelect}
+              onRunOcr={handleRunOcr}
+              onGetOcrResult={handleGetOcrResult}
+              onOpenResults={handleOpenOcrResults}
             />
           </Suspense>
         );
@@ -370,7 +432,7 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">
-      <AppHeader
+      {!ocrResultsView && <AppHeader
         imagesCount={images.length}
         viewMode={viewMode}
         onUpload={handleUploadClick}
@@ -386,7 +448,7 @@ function App() {
           setShowSettings(true);
           void getUpdateService().check({ silent: false });
         }}
-      />
+      />}
 
       <ImageUploader 
         onImageUpload={handleImageUpload} 
@@ -399,7 +461,7 @@ function App() {
           showSidebar={images.length > 0 && viewMode === 'map'}
           isGalleryCollapsed={isGalleryCollapsed}
           onToggleGallery={toggleGallery}
-          isEmpty={images.length === 0}
+          isEmpty={images.length === 0 && viewMode !== 'workbench'}
           sidebar={
             <ImageGallery 
               images={images}
@@ -408,7 +470,7 @@ function App() {
             />
           }
         >
-          <div className="flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30">
+          <div className={`flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30 ${viewMode === 'workbench' ? 'hidden' : ''}`}>
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
@@ -433,7 +495,7 @@ function App() {
         </AppLayout>
 
         {/* EXIF Panel - Only show for map and list views */}
-        {selectedImage && viewMode !== 'investigation' && (
+        {selectedImage && viewMode !== 'investigation' && viewMode !== 'workbench' && (
           <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
           }`}>

@@ -104,6 +104,20 @@ describe('project creation and validation', () => {
     expect(store.rootPath).toBe('/projects/Case 042');
   });
 
+  it('migrates schema v2 projects without losing images', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'Legacy', '2.7.0');
+    await store.addImage('legacy.jpg', jpegBytes, { make: 'kept' });
+    const legacyEngine = await dbProvider.open(await fs.readFile('/projects/Legacy/data/data.db'));
+    await legacyEngine.exec('DROP TABLE ocr_results', [], 'run');
+    await legacyEngine.exec('UPDATE investigation_meta SET schema_format_version = 2', [], 'run');
+    await fs.writeFile('/projects/Legacy/data/data.db', await legacyEngine.serialize());
+    legacyEngine.close();
+
+    const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Legacy');
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(3);
+    expect((await reopened.listImages())[0].exif).toEqual({ make: 'kept' });
+  });
+
   it('rolls back the half-created folder when creation fails mid-way', async () => {
     const failingFs = new InMemoryFs();
     let failNextDataMkdir = false;
@@ -170,6 +184,23 @@ describe('image write-through', () => {
     expect(images[0].hasImage).toBe(false);
     expect(images[0].bytes).toBeNull();
     expect(images[0].sourceUrl).toBe('https://example.com/1.jpg');
+  });
+
+  it('persists one OCR result against its stable image ID and replaces the latest result', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'OcrResults', '2.7.0');
+    const image = await store.addImage('text.png', pngBytes, {});
+    expect(image.id).toBeGreaterThan(0);
+    await store.saveOcrResult(image.id, 'first text', 92.5);
+    await store.saveOcrResult(image.id, 'updated text', 96.25);
+
+    expect(await store.getOcrResult(image.id)).toMatchObject({
+      imageId: image.id,
+      text: 'updated text',
+      confidence: 96.25,
+    });
+    expect(await store.getOcrResult(image.id + 999)).toBeNull();
+    const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/OcrResults');
+    expect(await reopened.getOcrResult(image.id)).toMatchObject({ text: 'updated text' });
   });
 });
 

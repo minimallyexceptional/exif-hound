@@ -16,6 +16,7 @@ test('shows the empty state before any images are uploaded', async ({ page }) =>
   for (const name of ['Map View', 'List View', 'Investigation', 'Export']) {
     await expect(page.locator('header').getByRole('button', { name, exact: true })).toHaveCount(0);
   }
+  await expect(page.locator('header').getByRole('button', { name: 'Workbench', exact: true })).toBeVisible();
 });
 
 test('boots on the light theme when seeded', async ({ page }) => {

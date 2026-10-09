@@ -1,6 +1,7 @@
 import {
   ImageRecord,
   ImportRecord,
+  OcrResultRecord,
   ImportType,
   ProjectMeta,
   SessionState,
@@ -160,7 +161,7 @@ export class ProjectStore {
         'all',
       );
       const version = versionRows.rows[0]?.[0];
-      if (typeof version === 'number' && version !== SCHEMA_FORMAT_VERSION) {
+      if (typeof version === 'number' && version !== 2 && version !== SCHEMA_FORMAT_VERSION) {
         throw new UnsupportedSchemaError(
           `Project database schema version ${version} is not supported (this app supports ${SCHEMA_FORMAT_VERSION}).`
         );
@@ -176,7 +177,9 @@ export class ProjectStore {
     const bytes = await deps.fs.readFile(joinPath(rootPath, DB_PATH));
     const engine = await deps.dbProvider.open(bytes);
     await runMigrations(engine); // defensive: forward-migrate old projects
-    return new ProjectStore({ ...deps, rootPath }, engine, createDb(engine));
+    const store = new ProjectStore({ ...deps, rootPath }, engine, createDb(engine));
+    await store.flush();
+    return store;
   }
 
   private async assertHealthy(): Promise<void> {
@@ -219,9 +222,11 @@ export class ProjectStore {
       sourceUrl,
       addedAt: addedAt.toISOString(),
     });
+    const rows = await this.db.select().from(schema.images).where(eq(schema.images.diskPath, diskPath));
     await this.flush();
 
     return {
+      id: rows[0].id,
       fileName,
       diskPath,
       hasImage,
@@ -247,6 +252,7 @@ export class ProjectStore {
         throw new InvalidProjectError(`Corrupt metadata for image "${row.fileName}".`);
       }
       records.push({
+        id: row.id,
         fileName: row.fileName,
         diskPath: row.diskPath,
         hasImage: row.hasImage,
@@ -257,6 +263,39 @@ export class ProjectStore {
       });
     }
     return records;
+  }
+
+  async saveOcrResult(imageId: number, text: string, confidence: number): Promise<OcrResultRecord> {
+    await this.assertHealthy();
+    if (!text.trim()) throw new InvalidProjectError('OCR result text must not be empty.');
+    const image = await this.db.select().from(schema.images).where(eq(schema.images.id, imageId));
+    if (!image[0] || !image[0].hasImage) {
+      throw new InvalidProjectError('OCR results can only be saved for a project image.');
+    }
+    const processedAt = new Date();
+    await this.db.insert(schema.ocrResults).values({
+      imageId,
+      text,
+      confidence,
+      processedAt: processedAt.toISOString(),
+    }).onConflictDoUpdate({
+      target: schema.ocrResults.imageId,
+      set: { text, confidence, processedAt: processedAt.toISOString() },
+    });
+    await this.flush();
+    return { imageId, text, confidence, processedAt };
+  }
+
+  async getOcrResult(imageId: number): Promise<OcrResultRecord | null> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, imageId));
+    const row = rows[0];
+    return row ? {
+      imageId: row.imageId,
+      text: row.text,
+      confidence: row.confidence,
+      processedAt: new Date(row.processedAt),
+    } : null;
   }
 
   /** Write the raw import file to data/ and upsert the registry row. */

@@ -28,6 +28,12 @@ export const MIGRATIONS: readonly string[] = [
     file_name TEXT NOT NULL,
     added_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS ocr_results (
+    image_id INTEGER PRIMARY KEY REFERENCES images(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    processed_at TEXT NOT NULL
+  )`,
 ];
 
 /** Tables every valid project database must have. */
@@ -43,4 +49,5 @@ export async function runMigrations(engine: {
   for (const ddl of MIGRATIONS) {
     await engine.exec(ddl, [], 'run');
   }
+  await engine.exec('UPDATE investigation_meta SET schema_format_version = 3 WHERE schema_format_version < 3', [], 'run');
 }

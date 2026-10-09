@@ -19,6 +19,7 @@ export type {
   ProjectMeta,
   ImageRecord,
   ImportRecord,
+  OcrResultRecord,
 } from './format';
 export type {
   DatabaseEngine,
