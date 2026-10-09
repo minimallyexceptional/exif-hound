@@ -1,4 +1,4 @@
-import { validateRunnableWorkflow, WorkflowGraph, WorkflowNode } from './workflow';
+import { transformNodeTypes, validateRunnableWorkflow, WorkflowGraph, WorkflowNode } from './workflow';
 
 export interface NodeResult { data: unknown; status?: 'success' | 'no-text' }
 export interface NodeContext {
@@ -17,6 +17,7 @@ export type RunEvent =
 export interface RunOptions {
   handlers: Partial<Record<WorkflowNode['type'], NodeHandler>>;
   persistResult: (node: WorkflowNode, result: NodeResult) => Promise<void>;
+  persistFailure?: (node: WorkflowNode, error: string) => Promise<void>;
   onEvent?: (event: RunEvent) => void | Promise<void>;
 }
 
@@ -29,7 +30,8 @@ export class WorkflowRunner {
     if (issues.length) throw new Error(issues[0].message);
     const order = topologicalOrder(graph);
     const paths = new Set<string>();
-    for (const transform of graph.nodes.filter((node) => node.type === 'ocr')) {
+    const transforms = graph.nodes.filter((node) => transformNodeTypes.includes(node.type));
+    for (const transform of transforms) {
       paths.add(transform.id);
       const input = graph.edges.find((edge) => edge.target === transform.id && edge.targetPort === 'image');
       if (input) paths.add(input.source);
@@ -38,7 +40,7 @@ export class WorkflowRunner {
     for (const node of executable) {
       if (!options.handlers[node.type]) throw new Error(`No handler registered for ${node.type}.`);
     }
-    if (!executable.length) throw new Error('Connect an Image, OCR, and Text node before running.');
+    if (!executable.length) throw new Error('Connect an Image, transform, and output node before running.');
 
     this.running = true;
     let completed = 0;
@@ -55,15 +57,22 @@ export class WorkflowRunner {
           if (value === undefined) throw new Error(`No input is available for node ${node.id}.`);
           inputs.set(edge.targetPort, value);
         }
-        const result = await options.handlers[node.type]!(node, {
-          inputs,
-          reportProgress: (progress, status) => {
-            void options.onEvent?.({
-              type: 'node-progress', nodeId: node.id, progress: Math.max(0, Math.min(1, progress)), status,
-            });
-          },
-        });
-        if (node.type !== 'image') await options.persistResult(node, result);
+        let result: NodeResult;
+        try {
+          result = await options.handlers[node.type]!(node, {
+            inputs,
+            reportProgress: (progress, status) => {
+              void options.onEvent?.({
+                type: 'node-progress', nodeId: node.id, progress: Math.max(0, Math.min(1, progress)), status,
+              });
+            },
+          });
+          if (node.type !== 'image') await options.persistResult(node, result);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          await options.persistFailure?.(node, message).catch(() => {});
+          throw error;
+        }
         outputs.set(node.id, result);
         completed += 1;
         await options.onEvent?.({ type: 'node-completed', nodeId: node.id, completed, total: executable.length, result });
@@ -96,7 +105,7 @@ function topologicalOrder(graph: WorkflowGraph): WorkflowNode[] {
   };
   // Start from each processing transform so independent paths execute in
   // sequence (image → transform), while shared inputs are evaluated once.
-  graph.nodes.filter((node) => node.type === 'ocr').forEach((node) => visit(node.id));
+  graph.nodes.filter((node) => transformNodeTypes.includes(node.type)).forEach((node) => visit(node.id));
   graph.nodes.forEach((node) => visit(node.id));
   return ordered;
 }

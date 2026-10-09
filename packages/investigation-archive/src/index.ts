@@ -20,6 +20,7 @@ export type {
   ImageRecord,
   ImportRecord,
   OcrResultRecord,
+  WorkflowToolResultRecord,
   ProjectWorkflowRecord,
   WorkflowRunRecord,
 } from './format';

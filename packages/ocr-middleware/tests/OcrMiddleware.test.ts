@@ -1,8 +1,8 @@
-import { OcrMiddleware, OcrProgress } from '../src';
+import { OcrMiddleware, OcrProgress, OcrResult } from '../src';
 
-const recognized = { text: 'visible words', confidence: 93.4 };
+const recognized: OcrResult = { text: 'visible words', confidence: 93.4, words: [] };
 
-const makeHarness = (result = recognized) => {
+const makeHarness = (result: OcrResult = recognized) => {
   const worker = {
     recognize: jest.fn().mockResolvedValue(result),
     reinitialize: jest.fn().mockResolvedValue(undefined),
@@ -26,7 +26,7 @@ describe('OcrMiddleware recognition', () => {
   });
 
   it('accepts a Blob and treats an empty OCR result as success', async () => {
-    const emptyResult = { text: '', confidence: 0 };
+    const emptyResult: OcrResult = { text: '', confidence: 0, words: [] };
     const { worker, workerFactory } = makeHarness(emptyResult);
     const middleware = new OcrMiddleware({ workerFactory });
     const image = new Blob([new Uint8Array([4, 5])], { type: 'image/png' });
@@ -36,10 +36,22 @@ describe('OcrMiddleware recognition', () => {
   });
 
   it('keeps confidence within the documented 0 to 100 range', async () => {
-    const { workerFactory } = makeHarness({ text: 'text', confidence: 121 });
+    const { workerFactory } = makeHarness({ text: 'text', confidence: 121, words: [] });
     const middleware = new OcrMiddleware({ workerFactory });
 
-    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toEqual({ text: 'text', confidence: 100 });
+    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toEqual({ text: 'text', confidence: 100, words: [] });
+  });
+
+  it('preserves word evidence returned by the local OCR worker', async () => {
+    const words = [{
+      text: 'evidence', confidence: 81, boundingBox: { x: 0.1, y: 0.2, width: 0.3, height: 0.1 },
+    }];
+    const { workerFactory } = makeHarness({ text: 'evidence', confidence: 81, words });
+    const middleware = new OcrMiddleware({ workerFactory });
+
+    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toEqual({
+      text: 'evidence', confidence: 81, words,
+    });
   });
 
   it('uses configured language codes', async () => {

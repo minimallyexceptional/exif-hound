@@ -114,7 +114,7 @@ describe('project creation and validation', () => {
     legacyEngine.close();
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Legacy');
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(4);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(5);
     expect((await reopened.listImages())[0].exif).toEqual({ make: 'kept' });
   });
 
@@ -225,6 +225,61 @@ describe('image write-through', () => {
     expect(await store.listWorkflowRuns('flow-1')).toMatchObject([{ status: 'completed', completedNodes: 1 }]);
     expect(result).toMatchObject({ imageName: 'empty.png', text: '', resultStatus: 'no-text', nodeId: 'ocr-1' });
     expect(await store.listWorkflowOcrResults('flow-1', 'ocr-1')).toHaveLength(1);
+  });
+
+  it('persists append-only provenance and identifier results in separate tool histories', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'ForensicRows', '2.7.0');
+    const image = await store.addImage('evidence.jpg', jpegBytes, {});
+    const now = new Date();
+    await store.saveWorkflow({ id: 'forensic-flow', name: 'Forensic review', graphJson: '{}', updatedAt: now });
+    await store.createWorkflowRun({
+      id: 'forensic-run', workflowId: 'forensic-flow', status: 'running', startedAt: now,
+      finishedAt: null, currentNodeId: 'provenance-1', completedNodes: 0, totalNodes: 2, error: null,
+    });
+    const provenance = {
+      imageId: image.id, imageName: image.fileName, result: { indicators: [] }, resultStatus: 'success' as const,
+      workflowId: 'forensic-flow', workflowRunId: 'forensic-run', nodeId: 'provenance-1',
+      toolVersion: '1.0.0', startedAt: now, finishedAt: now,
+    };
+    const identifier = {
+      ...provenance, result: { text: '', words: [], candidates: [] }, nodeId: 'identifiers-1',
+    };
+
+    await store.appendWorkflowProvenanceResult(provenance);
+    await store.appendWorkflowIdentifierResult(identifier);
+    await store.appendWorkflowProvenanceResult({
+      ...provenance, result: {}, resultStatus: 'failed', nodeId: 'provenance-1',
+      error: 'Malformed image structure', startedAt: new Date(now.getTime() + 1000), finishedAt: new Date(now.getTime() + 1000),
+    });
+
+    await expect(store.listWorkflowProvenanceResults('forensic-flow', 'provenance-1')).resolves.toMatchObject([
+      { resultStatus: 'failed', error: 'Malformed image structure', workflowRunId: 'forensic-run' },
+      { resultStatus: 'success', result: { indicators: [] }, imageName: 'evidence.jpg', toolVersion: '1.0.0', startedAt: now, finishedAt: now },
+    ]);
+    await expect(store.listWorkflowIdentifierResults('forensic-flow', 'identifiers-1')).resolves.toMatchObject([
+      { resultStatus: 'success', result: { text: '', words: [], candidates: [] }, imageId: image.id, nodeId: 'identifiers-1' },
+    ]);
+  });
+
+  it('migrates schema v4 projects to add forensic result tables without losing OCR rows', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'ForensicMigration', '2.7.0');
+    const image = await store.addImage('old.png', pngBytes, {});
+    await store.saveOcrResult(image.id, 'preserve OCR', 87);
+    const legacyEngine = await dbProvider.open(await fs.readFile('/projects/ForensicMigration/data/data.db'));
+    await legacyEngine.exec('UPDATE investigation_meta SET schema_format_version = 4', [], 'run');
+    await legacyEngine.exec('DROP TABLE image_provenance_results', [], 'run');
+    await legacyEngine.exec('DROP TABLE visual_identifier_results', [], 'run');
+    await fs.writeFile('/projects/ForensicMigration/data/data.db', await legacyEngine.serialize());
+    legacyEngine.close();
+
+    const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/ForensicMigration');
+
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(5);
+    expect(await reopened.getOcrResult(image.id)).toMatchObject({ text: 'preserve OCR' });
+    const engine = await dbProvider.open(await fs.readFile('/projects/ForensicMigration/data/data.db'));
+    const tables = await engine.exec("SELECT name FROM sqlite_master WHERE type='table'", [], 'all');
+    engine.close();
+    expect(tables.rows.flat()).toEqual(expect.arrayContaining(['image_provenance_results', 'visual_identifier_results']));
   });
 
   it('migrates and preserves existing v3 OCR results', async () => {

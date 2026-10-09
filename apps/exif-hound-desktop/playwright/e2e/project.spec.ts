@@ -125,6 +125,9 @@ test('Workbench opens the node editor and can save a machine-wide workflow templ
   await page.getByTestId('recent-investigation-entry').first().click();
   await page.getByRole('button', { name: 'Workbench' }).click();
   await expect(page.getByRole('heading', { name: 'Inputs' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Image Provenance node' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Text & Identifiers node' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add Evidence Report node' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Run Workflow' })).toBeVisible();
   await page.getByRole('tab', { name: 'Saved workflows' }).click();
   await expect(page.getByRole('heading', { name: 'Saved workflows' })).toBeVisible();

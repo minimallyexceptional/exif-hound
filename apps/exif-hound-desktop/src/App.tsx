@@ -19,8 +19,7 @@ import { isFeatureEnabled } from './config/featureFlags';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
-import type { OcrMiddleware } from 'ocr-middleware';
-import type { OcrProgress } from 'ocr-middleware';
+import type { OcrMiddleware, OcrProgress, OcrResult } from 'ocr-middleware';
 import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
 import { TauriFsPort } from './services/investigationArchive/TauriFsPort';
 import {
@@ -134,10 +133,18 @@ function App() {
     image: ImageData,
     language: string,
     onProgress: (progress: number, status?: string) => void,
-  ): Promise<{ text: string; confidence: number }> => {
+  ): Promise<OcrResult> => {
     if (!projectStoreRef.current || image.projectImageId === undefined) throw new Error('Save this image to the project before running OCR.');
     const file = image.file as unknown as Blob;
-    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware }) => new Middleware());
+    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware }) => new Middleware({
+      workerOptions: {
+        workerPath: new URL('ocr/worker.min.js', window.location.href).toString(),
+        corePath: new URL('ocr/core/', window.location.href).toString(),
+        langPath: new URL('ocr/lang/', window.location.href).toString(),
+        workerBlobURL: false,
+        gzip: true,
+      },
+    }));
     return (await ocrMiddlewareRef.current).recognize(file, {
       languages: language,
       onProgress: (progress: OcrProgress) => onProgress(progress.progress, progress.status),

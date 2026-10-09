@@ -23,7 +23,7 @@ try {
 }
 ```
 
-`languages` defaults to English (`eng`). A recognition request can override languages; requests submitted to one instance are processed in order, and the worker is reinitialized when the language set changes. The result contains recognized `text` and `confidence` from 0 to 100. An image with no recognized text resolves with an empty string.
+`languages` defaults to English (`eng`). A recognition request can override languages; requests submitted to one instance are processed in order, and the worker is reinitialized when the language set changes. The result contains recognized `text`, aggregate `confidence` from 0 to 100, and `words`. Each available word contains its text, confidence from 0 to 100, and a `boundingBox` with normalized `x`, `y`, `width`, and `height` values in image coordinates (0 to 1). Tesseract's pixel coordinates are divided by the source image dimensions. An image with no recognized text resolves with an empty string and an empty word list. Existing callers can continue to use `text` and `confidence` and ignore `words`.
 
 ## Worker resources
 
@@ -41,7 +41,7 @@ const ocr = new OcrMiddleware({
 });
 ```
 
-When paths are omitted, Tesseract.js uses its upstream defaults; browser deployments may fetch trained language data from a CDN. Image bytes are passed to the local OCR worker and are not sent to an OCR service.
+When paths are omitted, Tesseract.js uses its upstream defaults; browser deployments may fetch trained language data from a CDN. For workflows that must remain offline, configure packaged local worker, core, and language-data resources. Image bytes are passed to the local OCR worker and are not sent to an OCR service. Tesseract word boxes are normalized with `createImageBitmap`; environments without local image-dimension support can still use plain OCR text, but cannot produce word-location evidence.
 
 ## Testing
 

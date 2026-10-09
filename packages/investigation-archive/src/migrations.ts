@@ -51,6 +51,34 @@ export const MIGRATIONS: readonly string[] = [
     total_nodes INTEGER NOT NULL DEFAULT 0,
     error TEXT
   )`,
+  `CREATE TABLE IF NOT EXISTS image_provenance_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_id INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    image_name TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    workflow_id TEXT NOT NULL REFERENCES workbench_workflows(id) ON DELETE CASCADE,
+    workflow_run_id TEXT NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    tool_version TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    error TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS visual_identifier_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image_id INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+    image_name TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    result_status TEXT NOT NULL,
+    workflow_id TEXT NOT NULL REFERENCES workbench_workflows(id) ON DELETE CASCADE,
+    workflow_run_id TEXT NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    tool_version TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    error TEXT
+  )`,
 ];
 
 /** Tables every valid project database must have. */
@@ -94,6 +122,6 @@ export async function runMigrations(engine: DatabaseEngine): Promise<void> {
       throw error;
     }
   }
-  await engine.exec('UPDATE investigation_meta SET schema_format_version = 4 WHERE schema_format_version < 4', [], 'run');
+  await engine.exec('UPDATE investigation_meta SET schema_format_version = 5 WHERE schema_format_version < 5', [], 'run');
 }
 import type { DatabaseEngine } from './ports';

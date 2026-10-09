@@ -6,7 +6,17 @@ export interface OcrProgress {
 export interface OcrResult {
   text: string;
   confidence: number;
+  words: OcrWord[];
 }
+
+export interface OcrWord {
+  text: string;
+  confidence: number;
+  boundingBox: { x: number; y: number; width: number; height: number };
+}
+
+export interface ImageDimensions { width: number; height: number }
+export type ImageDimensionsResolver = (image: Blob | Uint8Array) => Promise<ImageDimensions>;
 
 export interface OcrWorker {
   recognize(image: Blob | Uint8Array): Promise<OcrResult>;
