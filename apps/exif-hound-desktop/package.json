@@ -45,6 +45,7 @@
     "exif-middleware": "*",
     "exifreader": "^4.46.0",
     "investigation-archive": "*",
+    "ocr-middleware": "*",
     "leaflet": "^1.9.4",
     "leaflet-fullscreen": "^1.0.2",
     "leaflet.heat": "^0.2.0",

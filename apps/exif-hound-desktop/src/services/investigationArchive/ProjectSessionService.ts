@@ -8,7 +8,7 @@ import { SessionState } from 'investigation-archive';
 import { ImageData, ExifData } from '../../types';
 import { ImportedPoint } from '../../utils/importData';
 
-export type ProjectViewMode = 'map' | 'list' | 'investigation';
+export type ProjectViewMode = 'map' | 'list' | 'investigation' | 'workbench';
 
 /** Union with the app's ImportedPoint marker field. */
 export type SessionEntry = ImageData | ImportedPoint;
@@ -78,6 +78,7 @@ export function toStoreImage(image: SessionEntry): {
 
 /** ProjectStore image record → session entry. */
 export function toImageData(record: {
+  id: number;
   fileName: string;
   hasImage: boolean;
   bytes: Uint8Array | null;
@@ -87,6 +88,7 @@ export function toImageData(record: {
   if (record.sourceUrl !== null || !record.hasImage) {
     const point: ImportedPoint = {
       id: newId(),
+      projectImageId: record.id,
       url: record.sourceUrl ?? '',
       hasImage: !!record.sourceUrl,
       file: {
@@ -105,6 +107,7 @@ export function toImageData(record: {
   });
   const image: ImageData = {
     id: newId(),
+    projectImageId: record.id,
     url: URL.createObjectURL(file),
     file,
     exif: (record.exif ?? {}) as ExifData,

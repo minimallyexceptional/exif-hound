@@ -12,7 +12,7 @@ export const IMAGES_DIR = 'images';
 export const DATABASE_FILE = 'data.db';
 export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const SCHEMA_FORMAT_VERSION = 2;
+export const SCHEMA_FORMAT_VERSION = 3;
 
 export type ImportType = 'kml' | 'csv';
 
@@ -32,6 +32,7 @@ export interface ProjectMeta {
 }
 
 export interface ImageRecord {
+  id: number;
   fileName: string;
   /** Path of the image file relative to the project root ('images/…'). */
   diskPath: string;
@@ -42,6 +43,13 @@ export interface ImageRecord {
   /** External image URL for imported point entries; null for real images. */
   sourceUrl: string | null;
   addedAt: Date;
+}
+
+export interface OcrResultRecord {
+  imageId: number;
+  text: string;
+  confidence: number;
+  processedAt: Date;
 }
 
 export interface ImportRecord {
