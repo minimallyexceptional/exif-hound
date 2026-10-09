@@ -91,9 +91,10 @@ export function validateRunnableWorkflow(graph: WorkflowGraph): ValidationIssue[
 }
 
 export function serializeWorkflow(graph: WorkflowGraph): string {
-  const issues = validateGraph(graph);
+  const normalized = normalizeOcrNodeSettings(graph);
+  const issues = validateGraph(normalized);
   if (issues.length) throw new Error(issues[0].message);
-  return JSON.stringify(graph, null, 2);
+  return JSON.stringify(normalized, null, 2);
 }
 
 export function parseWorkflow(json: string): WorkflowGraph {
@@ -116,9 +117,27 @@ export function parseWorkflow(json: string): WorkflowGraph {
       throw new Error('Workflow file contains an invalid connection.');
     }
   }
-  const issues = validateGraph(graph);
+  const normalized = normalizeOcrNodeSettings(graph);
+  const issues = validateGraph(normalized);
   if (issues.length) throw new Error(issues[0].message);
-  return graph;
+  return normalized;
+}
+
+function normalizeOcrNodeSettings(graph: WorkflowGraph): WorkflowGraph {
+  return {
+    ...graph,
+    nodes: graph.nodes.map(node => {
+      if (node.type !== 'ocr') return node;
+      const provider = node.settings.provider;
+      if (provider !== undefined && provider !== 'paddle' && provider !== 'tesseract') {
+        throw new Error(`OCR node "${node.id}" has an unsupported provider setting.`);
+      }
+      const settings = { ...node.settings };
+      delete settings.provider;
+      return { ...node, settings };
+    }),
+    edges: graph.edges.map(edge => ({ ...edge })),
+  };
 }
 
 export function clearProjectImageSelections(graph: WorkflowGraph): WorkflowGraph {

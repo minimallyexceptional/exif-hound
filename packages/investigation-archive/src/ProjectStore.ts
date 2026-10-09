@@ -35,6 +35,21 @@ export interface ProjectStoreDeps {
 }
 
 function mapOcrResult(row: typeof schema.ocrResults.$inferSelect): OcrResultRecord {
+  let preprocessingManifest: unknown;
+  if (row.preprocessingManifestJson) {
+    try { preprocessingManifest = JSON.parse(row.preprocessingManifestJson); }
+    catch { throw new InvalidProjectError('Corrupt OCR preprocessing manifest.'); }
+  }
+  let words: OcrResultRecord['words'] = [];
+  if (row.wordsJson) {
+    try {
+      const parsed: unknown = JSON.parse(row.wordsJson);
+      // Older or partially written records may contain words without usable
+      // coordinates. Keep the OCR text available and ignore only those boxes.
+      words = Array.isArray(parsed) ? parsed.filter(isOcrWordWithBoundingBox) : [];
+    }
+    catch { throw new InvalidProjectError('Corrupt OCR word coordinates.'); }
+  }
   return {
     id: row.id,
     imageId: row.imageId,
@@ -46,7 +61,19 @@ function mapOcrResult(row: typeof schema.ocrResults.$inferSelect): OcrResultReco
     workflowRunId: row.workflowRunId,
     nodeId: row.nodeId,
     processedAt: new Date(row.processedAt),
+    provider: row.provider as OcrResultRecord['provider'],
+    engineVersion: row.engineVersion,
+    preprocessingManifest,
+    words,
   };
+}
+
+function isOcrWordWithBoundingBox(value: unknown): value is NonNullable<OcrResultRecord['words']>[number] {
+  if (!value || typeof value !== 'object') return false;
+  const word = value as { text?: unknown; confidence?: unknown; boundingBox?: unknown };
+  if (typeof word.text !== 'string' || typeof word.confidence !== 'number' || !word.boundingBox || typeof word.boundingBox !== 'object') return false;
+  const box = word.boundingBox as Record<string, unknown>;
+  return ['x', 'y', 'width', 'height'].every(key => typeof box[key] === 'number' && Number.isFinite(box[key]));
 }
 
 type WorkflowToolRow = typeof schema.imageProvenanceResults.$inferSelect | typeof schema.visualIdentifierResults.$inferSelect;
@@ -57,6 +84,11 @@ function mapWorkflowToolResult(row: WorkflowToolRow): WorkflowToolResultRecord {
     result = JSON.parse(row.resultJson);
   } catch {
     throw new InvalidProjectError(`Corrupt ${row.nodeId} workflow result.`);
+  }
+  let preprocessingManifest: unknown;
+  if (row.preprocessingManifestJson) {
+    try { preprocessingManifest = JSON.parse(row.preprocessingManifestJson); }
+    catch { throw new InvalidProjectError(`Corrupt ${row.nodeId} preprocessing manifest.`); }
   }
   return {
     id: row.id,
@@ -71,6 +103,7 @@ function mapWorkflowToolResult(row: WorkflowToolRow): WorkflowToolResultRecord {
     startedAt: new Date(row.startedAt),
     finishedAt: new Date(row.finishedAt),
     error: row.error,
+    preprocessingManifest,
   };
 }
 
@@ -204,7 +237,7 @@ export class ProjectStore {
         'all',
       );
       const version = versionRows.rows[0]?.[0];
-      if (typeof version === 'number' && ![2, 3, 4, SCHEMA_FORMAT_VERSION].includes(version)) {
+      if (typeof version === 'number' && ![2, 3, 4, 5, 6, SCHEMA_FORMAT_VERSION].includes(version)) {
         throw new UnsupportedSchemaError(
           `Project database schema version ${version} is not supported (this app supports ${SCHEMA_FORMAT_VERSION}).`
         );
@@ -336,6 +369,10 @@ export class ProjectStore {
       workflowRunId: result.workflowRunId ?? null,
       nodeId: result.nodeId ?? null,
       processedAt: processedAt.toISOString(),
+      provider: result.provider ?? 'paddle',
+      engineVersion: result.engineVersion ?? 'PaddleOCR.js@0.4.2 / PP-OCRv6_small',
+      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
+      wordsJson: JSON.stringify(result.words ?? []),
     });
     await this.flush();
     const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, result.imageId));
@@ -368,6 +405,7 @@ export class ProjectStore {
       resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
       nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
       finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
+      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
     });
     await this.flush();
     const rows = await this.db.select().from(schema.imageProvenanceResults);
@@ -390,6 +428,7 @@ export class ProjectStore {
       resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
       nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
       finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
+      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
     });
     await this.flush();
     const rows = await this.db.select().from(schema.visualIdentifierResults);

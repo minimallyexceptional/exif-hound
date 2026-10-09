@@ -1,7 +1,7 @@
 import { sqliteTable, integer, real, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * Drizzle schema for the project database (schema format version 5).
+ * Drizzle schema for the project database (schema format version 7).
  * Mirrors migrations.ts DDL — the test suite asserts both stay in sync
  * via round-trips through a real sql.js engine.
  */
@@ -50,6 +50,10 @@ export const ocrResults = sqliteTable('ocr_results', {
   workflowRunId: text('workflow_run_id'),
   nodeId: text('node_id'),
   processedAt: text('processed_at').notNull(),
+  provider: text('provider').notNull().default('paddle'),
+  engineVersion: text('engine_version').notNull().default('PaddleOCR.js@0.4.2 / PP-OCRv6_small'),
+  preprocessingManifestJson: text('preprocessing_manifest_json'),
+  wordsJson: text('words_json'),
 });
 
 export const workbenchWorkflows = sqliteTable('workbench_workflows', {
@@ -84,6 +88,7 @@ export const imageProvenanceResults = sqliteTable('image_provenance_results', {
   startedAt: text('started_at').notNull(),
   finishedAt: text('finished_at').notNull(),
   error: text('error'),
+  preprocessingManifestJson: text('preprocessing_manifest_json'),
 });
 
 export const visualIdentifierResults = sqliteTable('visual_identifier_results', {
@@ -99,4 +104,5 @@ export const visualIdentifierResults = sqliteTable('visual_identifier_results', 
   startedAt: text('started_at').notNull(),
   finishedAt: text('finished_at').notNull(),
   error: text('error'),
+  preprocessingManifestJson: text('preprocessing_manifest_json'),
 });

@@ -1,0 +1,29 @@
+{
+  "name": "image-processing-middleware",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": ["dist/**"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --clean --dts",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test": "jest --config jest.config.cjs",
+    "test:runtime": "npm run test:e2e --workspace=exif-hound-desktop -- --grep \"OpenCV image preprocessing runtime\""
+  },
+  "dependencies": {
+    "@opencvjs/web": "5.0.0-release.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "eslint": "^9.39.5",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.14",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1"
+  }
+}

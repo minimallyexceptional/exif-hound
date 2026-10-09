@@ -5,7 +5,17 @@ import { invoke } from '@tauri-apps/api/core';
 import type { ProjectStore } from 'investigation-archive';
 import { serializeWorkflow, type WorkflowGraph } from 'workbench-workflow';
 import type { ImageData } from '../../types';
-import { ImageProvenanceAnalyzer, VisualIdentifierDetector, type ImageProvenanceResult, type VisualIdentifierResult } from 'image-forensics-middleware';
+import { preprocessImage } from '../../utils/preprocessImage';
+import { NodeFrame, type WorkbenchFlowData } from '../workbench/NodeFrame';
+import { ReactFlowProvider } from '@xyflow/react';
+
+jest.mock('../../utils/preprocessImage', () => ({
+  preprocessImage: jest.fn(async (imageId: number, imageName: string, sourceBytes: Uint8Array) => ({
+    imageId, imageName, sourceBytes, processedBytes: new Uint8Array([4, 5, 6]),
+    manifest: { profile: 'ocr-default-v1', sourceWidth: 64, sourceHeight: 48, processedWidth: 128, processedHeight: 96, processedToSource: { a: 0.5, b: 0, c: 0, d: 0.5, e: 4, f: 2 } },
+  })),
+}));
+import { ImageProvenanceAnalyzer, type ImageProvenanceResult, type VisualIdentifierResult } from 'image-forensics-middleware';
 
 jest.mock('@tauri-apps/api/core', () => ({ invoke: jest.fn().mockResolvedValue([]) }));
 
@@ -55,6 +65,21 @@ describe('Workbench workflow editor', () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Add Image node' }));
     expect(await screen.findByLabelText('Project image')).toBeInTheDocument();
+  });
+
+  it('normalizes legacy Tesseract workflows and does not expose a provider selector', async () => {
+    const legacyGraph = {
+      ...graph,
+      nodes: [{ id: 'legacy-ocr', type: 'ocr' as const, position: { x: 50, y: 60 }, settings: { language: 'eng', provider: 'tesseract' } }],
+    };
+    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: graph.name, graphJson: JSON.stringify(legacyGraph), updatedAt: new Date() }]);
+    render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
+    fireEvent.click(await screen.findByTestId('flow-node-ocr'));
+    expect(screen.queryByRole('combobox', { name: 'OCR provider' })).not.toBeInTheDocument();
+    await waitFor(() => expect(storeMocks.saveWorkflow).toHaveBeenCalled());
+    const saveCalls = storeMocks.saveWorkflow.mock.calls;
+    const savedGraph = JSON.parse(saveCalls[saveCalls.length - 1]?.[0].graphJson ?? '{}');
+    expect(savedGraph.nodes[0].settings).toEqual({ language: 'eng' });
   });
 
   it('adds forensic transforms and exposes explicit local detection settings', async () => {
@@ -114,21 +139,37 @@ describe('Workbench workflow editor', () => {
     };
     const image = {
       id: 'image-a', projectImageId: 12, url: 'blob:image',
-      file: { name: 'poster.png', type: 'image/png', size: 10, lastModified: 0 }, exif: {},
+      file: { name: 'poster.png', type: 'image/png', size: 10, lastModified: 0, arrayBuffer: async () => new ArrayBuffer(10) }, exif: {},
     } as ImageData;
     storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
-    const recognize = jest.fn(async (_image: ImageData, _language: string, onProgress: (progress: number, status?: string) => void) => {
+    const recognize = jest.fn(async (_image: Blob, _language: string, onProgress: (progress: number, status?: string) => void) => {
       onProgress(0.5, 'Recognizing text');
-      return { text: 'OSINT evidence', confidence: 96, words: [] };
+      return { text: 'OSINT evidence', confidence: 96, words: [{ text: 'OSINT', confidence: 98, boundingBox: { x: 0.25, y: 0.25, width: 0.25, height: 0.25 } }], provider: 'paddle' as const, engineVersion: 'PP-OCRv6_small' };
     });
     render(<Workbench images={[image]} store={store} recognizeImage={recognize} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Run Workflow' }));
     await waitFor(() => expect(storeMocks.appendWorkflowOcrResult).toHaveBeenCalledWith(expect.objectContaining({
       imageId: 12, imageName: 'poster.png', text: 'OSINT evidence', workflowId: 'workflow-1', nodeId: 'ocr-node',
+      words: [expect.objectContaining({ text: 'OSINT', boundingBox: expect.objectContaining({ x: 0.3125, y: 0.2916666666666667 }) })], provider: 'paddle', engineVersion: 'PP-OCRv6_small',
     })));
-    expect(recognize).toHaveBeenCalledWith(image, 'eng', expect.any(Function));
+    expect(storeMocks.appendWorkflowOcrResult).toHaveBeenCalledWith(expect.objectContaining({ preprocessingManifest: expect.objectContaining({ profile: 'ocr-default-v1' }), provider: 'paddle', engineVersion: 'PP-OCRv6_small' }));
+    expect(recognize).toHaveBeenCalledWith(expect.objectContaining({ type: 'image/png' }), 'eng', expect.any(Function));
+    await expect(recognize.mock.calls[0][0].arrayBuffer()).resolves.toEqual(new Uint8Array([4, 5, 6]).buffer);
     expect(storeMocks.createWorkflowRun).toHaveBeenCalled();
     expect(storeMocks.updateWorkflowRun).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+  });
+
+  it('announces Image-node preprocessing progress with an accessible progress bar', () => {
+    const data: WorkbenchFlowData = { settings: {}, state: 'running', progress: 0.52, status: 'Measuring image quality' };
+    const props = {
+      id: 'image-node', data, selected: false, type: 'image', isConnectable: true,
+      positionAbsoluteX: 0, positionAbsoluteY: 0, dragging: false, zIndex: 1,
+      width: 250, height: 200, dragHandle: null, sourcePosition: null, targetPosition: null,
+    } as unknown as React.ComponentProps<typeof NodeFrame>;
+    render(<ReactFlowProvider><NodeFrame {...props} input="image" output="image" /></ReactFlowProvider>);
+    const progress = screen.getByRole('progressbar', { name: 'Image progress' });
+    expect(progress).toHaveAttribute('aria-valuenow', '52');
+    expect(screen.getByText('Measuring image quality').parentElement?.parentElement).toHaveAttribute('aria-live', 'polite');
   });
 
   it('runs forensic transforms through middleware adapters and persists separate tool results', async () => {
@@ -154,11 +195,22 @@ describe('Workbench workflow editor', () => {
       file: { name: 'poster.png', type: 'image/png', size: 3, lastModified: 0, arrayBuffer: async () => bytes.buffer }, exif: {},
     } as unknown as ImageData;
     const provenanceResult: ImageProvenanceResult = { schemaVersion: 1, toolVersion: '1.0.0', imageId: 12, imageName: 'poster.png', facts: { format: 'unknown', quantizationTableFingerprints: [], timestamps: {}, metadataFieldCount: 0 }, indicators: [] };
-    const identifierResult: VisualIdentifierResult = { schemaVersion: 1, toolVersion: '1.0.0', imageId: 12, imageName: 'poster.png', text: '', confidence: 0, words: [], candidates: [] };
-    jest.spyOn(ImageProvenanceAnalyzer.prototype, 'analyze').mockResolvedValue(provenanceResult);
-    jest.spyOn(VisualIdentifierDetector.prototype, 'detect').mockResolvedValue(identifierResult);
+    const identifierResult: VisualIdentifierResult = {
+      schemaVersion: 1, toolVersion: '1.0.0', imageId: 12, imageName: 'poster.png', text: 'evidence', confidence: 90,
+      words: [{ text: 'evidence', confidence: 90, boundingBox: { x: 0.25, y: 0.25, width: 0.25, height: 0.25 } }],
+      candidates: [{ family: 'email', value: 'x@example.org', confidence: 90, sourceWords: [0], boundingBox: { x: 0.25, y: 0.25, width: 0.25, height: 0.25 } }],
+    };
+    const analyze = jest.spyOn(ImageProvenanceAnalyzer.prototype, 'analyze').mockResolvedValue(provenanceResult);
+    const recognize = jest.fn(async (_image: Blob, _language: string, onProgress: (progress: number, status?: string) => void) => {
+      onProgress(1, 'PaddleOCR recognition complete');
+      return {
+        text: 'x@example.org', confidence: 90,
+        words: [{ text: 'x@example.org', confidence: 90, boundingBox: { x: 0.25, y: 0.25, width: 0.25, height: 0.25 } }],
+        provider: 'paddle' as const, engineVersion: 'PP-OCRv6_small',
+      };
+    });
     storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
-    render(<Workbench images={[image]} store={store} recognizeImage={jest.fn()} />);
+    render(<Workbench images={[image]} store={store} recognizeImage={recognize} />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Run Workflow' }));
 
@@ -167,9 +219,20 @@ describe('Workbench workflow editor', () => {
         imageId: 12, result: provenanceResult, resultStatus: 'success', nodeId: 'provenance',
       }));
       expect(storeMocks.appendWorkflowIdentifierResult).toHaveBeenCalledWith(expect.objectContaining({
-        imageId: 12, result: identifierResult, resultStatus: 'success', nodeId: 'identifiers',
+        imageId: 12, resultStatus: 'success', nodeId: 'identifiers',
       }));
     });
+    expect(preprocessImage).toHaveBeenCalledTimes(1);
+    expect(analyze).toHaveBeenCalledWith(expect.objectContaining({ bytes: new Uint8Array([1, 2, 3]) }));
+    expect(recognize).toHaveBeenCalledWith(expect.objectContaining({ type: 'image/png' }), 'eng', expect.any(Function));
+    expect(storeMocks.appendWorkflowProvenanceResult).toHaveBeenCalledWith(expect.objectContaining({ preprocessingManifest: expect.objectContaining({ profile: 'ocr-default-v1' }) }));
+    expect(storeMocks.appendWorkflowIdentifierResult).toHaveBeenCalledWith(expect.objectContaining({
+      preprocessingManifest: expect.objectContaining({ profile: 'ocr-default-v1' }),
+      result: expect.objectContaining({
+        words: [expect.objectContaining({ boundingBox: expect.objectContaining({ x: 0.3125, y: 0.2916666666666667, width: expect.closeTo(0.25, 6), height: expect.closeTo(0.25, 6) }) })],
+        candidates: expect.arrayContaining([expect.objectContaining({ family: 'email', boundingBox: expect.objectContaining({ x: 0.3125, y: 0.2916666666666667, width: expect.closeTo(0.25, 6), height: expect.closeTo(0.25, 6) }) })]),
+      }),
+    }));
     storeMocks.listWorkflowProvenanceResults.mockResolvedValueOnce([{
       id: 1, imageId: 12, imageName: 'poster.png', result: provenanceResult, resultStatus: 'success',
       workflowId: 'workflow-1', workflowRunId: 'run-1', nodeId: 'provenance', toolVersion: '1.0.0',
@@ -182,7 +245,7 @@ describe('Workbench workflow editor', () => {
     }]);
     fireEvent.click(await screen.findByTestId('flow-node-evidence'));
     expect(await screen.findByText('No provenance indicators were found in this run.')).toBeInTheDocument();
-    expect(screen.getByText('No identifier candidates matched the enabled patterns.')).toBeInTheDocument();
+    expect(screen.getByText('x@example.org')).toBeInTheDocument();
     expect(storeMocks.listWorkflowProvenanceResults).toHaveBeenCalledWith('workflow-1', 'provenance');
     expect(storeMocks.listWorkflowIdentifierResults).toHaveBeenCalledWith('workflow-1', 'identifiers');
   });

@@ -1,8 +1,8 @@
-import { OcrMiddleware, OcrProgress, OcrResult } from '../src';
+import { OcrMiddleware, OcrProgress, OcrWorkerResult } from '../src';
 
-const recognized: OcrResult = { text: 'visible words', confidence: 93.4, words: [] };
+const recognized: OcrWorkerResult = { text: 'visible words', confidence: 93.4, words: [] };
 
-const makeHarness = (result: OcrResult = recognized) => {
+const makeHarness = (result: OcrWorkerResult = recognized) => {
   const worker = {
     recognize: jest.fn().mockResolvedValue(result),
     reinitialize: jest.fn().mockResolvedValue(undefined),
@@ -20,18 +20,18 @@ describe('OcrMiddleware recognition', () => {
     const middleware = new OcrMiddleware({ workerFactory });
     const bytes = new Uint8Array([1, 2, 3]);
 
-    await expect(middleware.recognize(bytes)).resolves.toEqual(recognized);
-    expect(workerFactory.create).toHaveBeenCalledWith(['eng'], {}, expect.any(Function));
+    await expect(middleware.recognize(bytes)).resolves.toMatchObject({ ...recognized, provider: 'paddle', engineVersion: 'PP-OCRv6_small' });
+    expect(workerFactory.create).toHaveBeenCalledWith(['eng'], expect.any(Function));
     expect(worker.recognize).toHaveBeenCalledWith(bytes);
   });
 
   it('accepts a Blob and treats an empty OCR result as success', async () => {
-    const emptyResult: OcrResult = { text: '', confidence: 0, words: [] };
+    const emptyResult = { text: '', confidence: 0, words: [] };
     const { worker, workerFactory } = makeHarness(emptyResult);
     const middleware = new OcrMiddleware({ workerFactory });
     const image = new Blob([new Uint8Array([4, 5])], { type: 'image/png' });
 
-    await expect(middleware.recognize(image)).resolves.toEqual(emptyResult);
+    await expect(middleware.recognize(image)).resolves.toMatchObject({ ...emptyResult, provider: 'paddle', engineVersion: 'PP-OCRv6_small' });
     expect(worker.recognize).toHaveBeenCalledWith(image);
   });
 
@@ -39,7 +39,7 @@ describe('OcrMiddleware recognition', () => {
     const { workerFactory } = makeHarness({ text: 'text', confidence: 121, words: [] });
     const middleware = new OcrMiddleware({ workerFactory });
 
-    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toEqual({ text: 'text', confidence: 100, words: [] });
+    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toMatchObject({ text: 'text', confidence: 100, words: [], provider: 'paddle', engineVersion: 'PP-OCRv6_small' });
   });
 
   it('preserves word evidence returned by the local OCR worker', async () => {
@@ -49,8 +49,8 @@ describe('OcrMiddleware recognition', () => {
     const { workerFactory } = makeHarness({ text: 'evidence', confidence: 81, words });
     const middleware = new OcrMiddleware({ workerFactory });
 
-    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toEqual({
-      text: 'evidence', confidence: 81, words,
+    await expect(middleware.recognize(new Uint8Array([1]))).resolves.toMatchObject({
+      text: 'evidence', confidence: 81, words, provider: 'paddle', engineVersion: 'PP-OCRv6_small',
     });
   });
 
@@ -60,7 +60,7 @@ describe('OcrMiddleware recognition', () => {
 
     await middleware.recognize(new Uint8Array([1]));
 
-    expect(workerFactory.create).toHaveBeenCalledWith(['spa', 'eng'], {}, expect.any(Function));
+    expect(workerFactory.create).toHaveBeenCalledWith(['spa', 'eng'], expect.any(Function));
   });
 
   it('passes recognition failures to the caller', async () => {
@@ -69,7 +69,7 @@ describe('OcrMiddleware recognition', () => {
     worker.recognize.mockRejectedValue(failure);
     const middleware = new OcrMiddleware({ workerFactory });
 
-    await expect(middleware.recognize(new Uint8Array([0]))).rejects.toBe(failure);
+    await expect(middleware.recognize(new Uint8Array([0]))).rejects.toThrow('PaddleOCR failed: bad image');
   });
 
   it('reuses one worker for sequential recognition requests', async () => {
@@ -96,7 +96,7 @@ describe('OcrMiddleware recognition', () => {
   it('normalizes engine progress and forwards it to the request callback', async () => {
     const { worker, workerFactory } = makeHarness();
     let reportProgress: (progress: OcrProgress) => void = () => {};
-    workerFactory.create.mockImplementation(async (_languages, _options, onProgress) => {
+    workerFactory.create.mockImplementation(async (_languages, onProgress) => {
       reportProgress = onProgress;
       return worker;
     });
@@ -115,7 +115,7 @@ describe('OcrMiddleware recognition', () => {
   it('serializes concurrent requests and keeps their progress callbacks separate', async () => {
     const { worker, workerFactory } = makeHarness();
     let reportProgress: (progress: OcrProgress) => void = () => {};
-    workerFactory.create.mockImplementation(async (_languages, _options, onProgress) => {
+    workerFactory.create.mockImplementation(async (_languages, onProgress) => {
       reportProgress = onProgress;
       return worker;
     });
@@ -168,13 +168,4 @@ describe('OcrMiddleware recognition', () => {
     await expect(middleware.recognize(new Uint8Array([1]))).rejects.toThrow(/disposed/i);
   });
 
-  it('forwards configured Tesseract resource paths to worker creation', async () => {
-    const { workerFactory } = makeHarness();
-    const workerOptions = { workerPath: '/assets/worker.js', corePath: '/assets/core' };
-    const middleware = new OcrMiddleware({ workerFactory, workerOptions });
-
-    await middleware.recognize(new Uint8Array([1]));
-
-    expect(workerFactory.create).toHaveBeenCalledWith(['eng'], workerOptions, expect.any(Function));
-  });
 });

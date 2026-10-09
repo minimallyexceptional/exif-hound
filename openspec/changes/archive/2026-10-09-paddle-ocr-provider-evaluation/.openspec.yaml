@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-10-09
+goal: Let users compare PaddleOCR and Tesseract on the same project images
+  through the existing workflow OCR node while retaining offline, cross-platform
+  execution and existing result provenance.

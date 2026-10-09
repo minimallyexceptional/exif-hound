@@ -13,10 +13,14 @@ describe('node handlers', () => {
   };
 
   it('resolves image nodes through an injected project-image adapter', async () => {
-    const handler = createImageNodeHandler((id) => ({ imageId: id, imageName: 'poster.jpg', payload: 'blob' }));
-    await expect(handler(imageNode, { inputs: new Map(), reportProgress: jest.fn() })).resolves.toEqual({
-      data: { imageId: 14, imageName: 'poster.jpg', payload: 'blob' },
+    const preprocess = jest.fn(async (_image, report) => { report(0.5, 'Processing'); return { processedBytes: new Uint8Array([4]), manifest: { profile: 'ocr-default-v1' } }; });
+    const handler = createImageNodeHandler((id) => ({ imageId: id, imageName: 'poster.jpg', payload: 'blob', sourceBytes: new Uint8Array([1]) }), preprocess);
+    const reportProgress = jest.fn();
+    await expect(handler(imageNode, { inputs: new Map(), reportProgress })).resolves.toEqual({
+      data: { imageId: 14, imageName: 'poster.jpg', payload: 'blob', sourceBytes: new Uint8Array([1]), processedBytes: new Uint8Array([4]), preprocessing: { profile: 'ocr-default-v1' } },
     });
+    expect(preprocess).toHaveBeenCalledWith(expect.objectContaining({ imageId: 14 }), expect.any(Function));
+    expect(reportProgress).toHaveBeenCalledWith(0.5, 'Processing');
   });
 
   it('forwards OCR language and progress and represents an empty successful result', async () => {
@@ -24,12 +28,12 @@ describe('node handlers', () => {
     const recognize = jest.fn(async (_image, language, report) => {
       expect(language).toBe('eng');
       report(0.4, 'Recognizing');
-      return { text: '  ', confidence: null };
+      return { text: '  ', confidence: null, provider: 'paddle' as const, engineVersion: 'PP-OCRv6_small', words: [{ text: 'evidence', confidence: 91, boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }] };
     });
     const handler = createOcrNodeHandler(recognize);
     await expect(handler(ocrNode, {
       inputs: new Map([['image', { imageId: 14, imageName: 'poster.jpg', payload: 'blob' }]]), reportProgress: progress,
-    })).resolves.toMatchObject({ status: 'no-text', data: { imageId: 14, text: '  ', confidence: null } });
+    })).resolves.toMatchObject({ status: 'no-text', data: { imageId: 14, text: '  ', confidence: null, provider: 'paddle', engineVersion: 'PP-OCRv6_small', words: [{ text: 'evidence', boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }] } });
     expect(progress).toHaveBeenCalledWith(0.4, 'Recognizing');
   });
 

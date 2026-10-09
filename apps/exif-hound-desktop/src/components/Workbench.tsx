@@ -8,6 +8,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord, WorkflowToolResultRecord } from 'investigation-archive';
 import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, createImageProvenanceNodeHandler, createVisualIdentifierNodeHandler, getEvidenceOutputSources, getTextOutputSource, parseWorkflow, serializeWorkflow, transformNodeTypes, validateConnection, validateRunnableWorkflow, WorkflowRunner, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
 import { ImageProvenanceAnalyzer, VisualIdentifierDetector, type CandidateFamily } from 'image-forensics-middleware';
+import { mapProcessedBoxToSource, type ImageProcessingManifest } from 'image-processing-middleware';
 import type { OcrResult } from 'ocr-middleware';
 import type { ImageData } from '../types';
 import { Button } from './common/Button';
@@ -18,12 +19,13 @@ import VisualIdentifiersFlowNode from './workbench/VisualIdentifiersFlowNode';
 import TextFlowNode from './workbench/TextFlowNode';
 import EvidenceFlowNode from './workbench/EvidenceFlowNode';
 import type { WorkbenchFlowData } from './workbench/NodeFrame';
+import { preprocessImage } from '../utils/preprocessImage';
 
 interface Template { name: string; content: string }
 interface Props {
   images: ImageData[];
   store: ProjectStore | null;
-  recognizeImage: (image: ImageData, language: string, onProgress: (progress: number, status?: string) => void) => Promise<OcrResult>;
+  recognizeImage: (image: Blob, language: string, onProgress: (progress: number, status?: string) => void) => Promise<OcrResult>;
 }
 
 type CanvasNode = Node<WorkbenchFlowData, NodeKind>;
@@ -57,6 +59,23 @@ interface EvidencePayload {
 
 function makeId(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function hasOcrBoundingBox(value: unknown): value is OcrResult['words'][number] {
+  if (!value || typeof value !== 'object') return false;
+  const word = value as { text?: unknown; confidence?: unknown; boundingBox?: unknown };
+  if (typeof word.text !== 'string' || typeof word.confidence !== 'number' || !word.boundingBox || typeof word.boundingBox !== 'object') return false;
+  const box = word.boundingBox as Record<string, unknown>;
+  return ['x', 'y', 'width', 'height'].every(key => typeof box[key] === 'number' && Number.isFinite(box[key]));
+}
+
+function formatOcrCoordinates(value: unknown): string {
+  if (!value || typeof value !== 'object') return 'Coordinates unavailable';
+  const box = value as Record<string, unknown>;
+  const values = [box.x, box.y, box.width, box.height];
+  if (!values.every(item => typeof item === 'number' && Number.isFinite(item))) return 'Coordinates unavailable';
+  const [x, y, width, height] = values as number[];
+  return `${x.toFixed(3)}, ${y.toFixed(3)} · ${width.toFixed(3)}×${height.toFixed(3)}`;
 }
 
 async function readImageBytes(image: ImageData): Promise<Uint8Array> {
@@ -123,6 +142,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const dialogRef = useRef<HTMLDivElement>(null);
   const runProgressRef = useRef({ completed: 0, total: 0, current: 0, nodeId: '' });
   const stepStartedAt = useRef<Record<string, Date>>({});
+  const preparedPackets = useRef(new Map<number, Awaited<ReturnType<typeof preprocessImage>>>());
   const provenanceAnalyzer = useRef(new ImageProvenanceAnalyzer());
   const initialized = useRef(false);
 
@@ -311,6 +331,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     const total = pipelineNodeIds.size;
     const run: WorkflowRunRecord = { id, workflowId: activeWorkflowId, status: 'running', startedAt, finishedAt: null, currentNodeId: null, completedNodes: 0, totalNodes: total, error: null };
     setIsRunning(true);
+    preparedPackets.current.clear();
     setError(null);
     runProgressRef.current = { completed: 0, total, current: 0, nodeId: '' };
     setRunProgress(runProgressRef.current);
@@ -319,21 +340,38 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       await store.createWorkflowRun(run);
       await runner.current.run(currentGraph, {
         handlers: {
-          image: createImageNodeHandler((imageId) => {
+          image: createImageNodeHandler(async (imageId) => {
             const image = images.find((item) => item.projectImageId === imageId && !('hasImage' in item));
             if (!image || image.projectImageId === undefined) throw new Error('The selected project image is unavailable.');
-            return { imageId, imageName: image.file.name, payload: image };
+            return { imageId, imageName: image.file.name, payload: image, sourceBytes: await readImageBytes(image) };
+          }, async (image, reportProgress) => {
+            let packet = preparedPackets.current.get(image.imageId);
+            if (!packet) {
+              packet = await preprocessImage(image.imageId, image.imageName, image.sourceBytes, reportProgress);
+              preparedPackets.current.set(image.imageId, packet);
+            }
+            return { processedBytes: packet.processedBytes, manifest: packet.manifest };
           }),
           ocr: createOcrNodeHandler(async (imageInput, language, reportProgress) => {
-            const recognized = await recognizeImage(imageInput.payload as ImageData, language, (progress, status) => {
+            const recognized = await recognizeImage(new Blob([imageInput.processedBytes.slice().buffer as ArrayBuffer], { type: 'image/png' }), language, (progress, status) => {
               setRunProgress((current) => ({ ...current, current: progress }));
               reportProgress(progress, status);
             });
-            return recognized;
+            const manifest = imageInput.preprocessing as ImageProcessingManifest;
+            return {
+              ...recognized,
+              words: recognized.words.filter(hasOcrBoundingBox).map(word => ({
+                ...word,
+                boundingBox: mapProcessedBoxToSource(
+                  word.boundingBox, manifest.processedWidth, manifest.processedHeight,
+                  manifest.sourceWidth, manifest.sourceHeight, manifest.processedToSource,
+                ),
+              })),
+            };
           }),
           provenance: createImageProvenanceNodeHandler(async (imageInput, _settings, reportProgress) => {
             const image = imageInput.payload as ImageData;
-            const bytes = await readImageBytes(image);
+            const bytes = imageInput.sourceBytes;
             reportProgress(0.1, 'Reading local image metadata');
             const result = await provenanceAnalyzer.current.analyze({
               imageId: imageInput.imageId, imageName: imageInput.imageName, bytes, metadata: image.exif as Record<string, unknown>,
@@ -342,18 +380,17 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
             return result;
           }),
           'visual-identifiers': createVisualIdentifierNodeHandler(async (imageInput, settings, reportProgress) => {
-            const image = imageInput.payload as ImageData;
-            const bytes = await readImageBytes(image);
+            const bytes = imageInput.processedBytes;
             const detector = new VisualIdentifierDetector({
-              recognize: async (_localBytes, options) => {
-                const recognized = await recognizeImage(image, String(options?.languages ?? 'eng'), (progress, status) => {
+              recognize: async (localBytes, options) => {
+                const recognized = await recognizeImage(new Blob([localBytes.slice().buffer as ArrayBuffer], { type: 'image/png' }), String(options?.languages ?? 'eng'), (progress, status) => {
                   setRunProgress(current => ({ ...current, current: progress }));
                   options?.onProgress?.({ progress, status: status ?? '' });
                 });
                 return { ...recognized, words: recognized.words ?? [] };
               },
             });
-            return detector.detect({
+            const result = await detector.detect({
               imageId: imageInput.imageId, imageName: imageInput.imageName, bytes,
               settings: {
                 language: String(settings.language ?? 'eng'),
@@ -361,24 +398,37 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
                 licensePlateProfile: typeof settings.licensePlateProfile === 'string' ? settings.licensePlateProfile : null,
               },
             }, reportProgress);
+            const manifest = imageInput.preprocessing as ImageProcessingManifest;
+            const sourceBox = (box: { x: number; y: number; width: number; height: number }) => mapProcessedBoxToSource(
+              box, manifest.processedWidth, manifest.processedHeight, manifest.sourceWidth, manifest.sourceHeight, manifest.processedToSource,
+            );
+            return {
+              ...result,
+              words: result.words.map(word => ({ ...word, boundingBox: sourceBox(word.boundingBox) })),
+              candidates: result.candidates.map(candidate => ({ ...candidate, boundingBox: sourceBox(candidate.boundingBox) })),
+            };
           }),
         },
         persistResult: async (node, result) => {
           const finishedAt = new Date();
           if (node.type === 'ocr') {
-            const value = result.data as OcrNodeOutput;
-            await store.appendWorkflowOcrResult({
+          const value = result.data as OcrNodeOutput;
+          const packet = preparedPackets.current.get(value.imageId);
+          await store.appendWorkflowOcrResult({
               ...value, processedAt: finishedAt, resultStatus: value.text.trim() ? 'success' : 'no-text',
               workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id,
+              preprocessingManifest: packet?.manifest,
             });
             return;
           }
           if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
           const value = result.data as { imageId: number; imageName: string; toolVersion: string };
+          const packet = preparedPackets.current.get(value.imageId);
           const record: WorkflowToolResultRecord = {
             imageId: value.imageId, imageName: value.imageName, result: result.data, resultStatus: 'success',
             workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id, toolVersion: value.toolVersion,
             startedAt: stepStartedAt.current[node.id] ?? startedAt, finishedAt,
+            preprocessingManifest: packet?.manifest,
           };
           if (node.type === 'provenance') await store.appendWorkflowProvenanceResult(record);
           else await store.appendWorkflowIdentifierResult(record);
@@ -390,10 +440,12 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
           const imageId = imageNode?.settings.imageId;
           const image = typeof imageId === 'number' ? images.find(candidate => candidate.projectImageId === imageId) : undefined;
           if (!image || image.projectImageId === undefined) return;
+          const packet = preparedPackets.current.get(image.projectImageId);
           const record: WorkflowToolResultRecord = {
             imageId: image.projectImageId, imageName: image.file.name, result: {}, resultStatus: 'failed',
             workflowId: activeWorkflowId, workflowRunId: id, nodeId: node.id, toolVersion: '1.0.0',
             startedAt: stepStartedAt.current[node.id] ?? new Date(), finishedAt: new Date(), error: errorMessage,
+            preprocessingManifest: packet?.manifest,
           };
           if (node.type === 'provenance') await store.appendWorkflowProvenanceResult(record);
           else await store.appendWorkflowIdentifierResult(record);
@@ -436,7 +488,10 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       await store.updateWorkflowRun({ ...run, status: 'failed', finishedAt: new Date(), currentNodeId: runProgressRef.current.nodeId || null, completedNodes: runProgressRef.current.completed, error: message });
       setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
       if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
-    } finally { setIsRunning(false); }
+    } finally {
+      preparedPackets.current.clear();
+      setIsRunning(false);
+    }
   };
 
   const loadOutputResults = async (textNodeId: string, graph = currentGraph) => {
@@ -564,7 +619,10 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
                 {images.filter((image) => image.projectImageId !== undefined && !('hasImage' in image)).length === 0 && <p className="text-xs text-app-accent-dim">Import an image into this project to use it in a workflow.</p>}
               </div>
             ) : selectedNode.type === 'ocr' ? (
-              <div className="space-y-4 p-4"><label className="block text-xs font-medium text-app-accent-dim">OCR language<select className="mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white" value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label><p className="text-xs leading-relaxed text-app-accent-dim">OCR runs as one step in the connected workflow. Each run is saved to this project.</p></div>
+              <div className="space-y-4 p-4">
+                <label className="block text-xs font-medium text-app-accent-dim">OCR language<select className="mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white" value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label>
+                <p className="text-xs leading-relaxed text-app-accent-dim">PaddleOCR runs locally as one step in the connected workflow. Each run is saved with model attribution so you can compare results for the same image.</p>
+              </div>
             ) : selectedNode.type === 'provenance' ? (
               <div className="space-y-3 p-4"><p className="text-xs leading-relaxed text-app-accent-dim">Inspect embedded metadata, recorded timestamp relationships, and available JPEG/container structure facts.</p><p className="rounded-lg border border-app-gray-light/50 bg-app-gray/50 p-3 text-xs leading-relaxed text-app-accent-dim">Findings are observable indicators for review. They do not determine whether an image is authentic or manipulated.</p></div>
             ) : selectedNode.type === 'visual-identifiers' ? (
@@ -585,8 +643,9 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
                 <div className="mb-3 flex items-center justify-between"><p className="text-xs text-app-accent-dim">Saved output history</p><span className="text-[10px] text-app-accent-dim">{resultEntries.length} entries</span></div>
                 {resultEntries.length === 0 ? <p className="rounded-lg border border-dashed border-app-gray-light p-3 text-xs text-app-accent-dim">Run the connected workflow to create an output.</p> : <ul className="space-y-3">{resultEntries.map((result) => <li key={result.id ?? `${result.workflowRunId}-${result.processedAt.toISOString()}`} className="rounded-lg border border-app-gray-light/60 bg-app-gray/60 p-3">
-                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`}</p></div><button type="button" className="rounded p-2 text-app-accent-dim hover:bg-app-gray hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" aria-label={`Copy extracted text from ${result.imageName}`} title="Copy extracted text" onClick={() => void navigator.clipboard.writeText(result.text).then(() => setNotice('Text copied to clipboard.')).catch(() => setError('Clipboard access is unavailable.'))}><Copy className="h-4 w-4" /></button></div>
+                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`} · {result.provider === 'paddle' ? 'PaddleOCR' : 'Tesseract'}{result.engineVersion ? ` · ${result.engineVersion}` : ''}</p></div><button type="button" className="rounded p-2 text-app-accent-dim hover:bg-app-gray hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" aria-label={`Copy extracted text from ${result.imageName}`} title="Copy extracted text" onClick={() => void navigator.clipboard.writeText(result.text).then(() => setNotice('Text copied to clipboard.')).catch(() => setError('Clipboard access is unavailable.'))}><Copy className="h-4 w-4" /></button></div>
                   <pre className="selectable-value mt-3 whitespace-pre-wrap break-words font-sans text-xs text-app-white">{result.text || 'No text could be extracted.'}</pre>
+                  {result.words?.length ? <details className="mt-3"><summary className="cursor-pointer text-xs text-app-accent-dim">Recognized words and source coordinates ({result.words.length})</summary><ul className="mt-2 space-y-1">{result.words.map((word, index) => <li key={`${word.text}-${index}`} className="flex justify-between gap-2 rounded bg-app-black/30 px-2 py-1 text-[10px]"><span className="selectable-value break-all text-app-white">{word.text}</span><span className="selectable-value shrink-0 text-app-accent-dim">{formatOcrCoordinates(word?.boundingBox)}</span></li>)}</ul></details> : null}
                 </li>)}</ul>}
                 {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
               </div>

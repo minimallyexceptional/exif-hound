@@ -50,8 +50,17 @@ export default defineConfig({
     __UPDATE_CHANNEL__: JSON.stringify(updateChannel),
   },
   optimizeDeps: {
+    // PaddleOCR ships its worker as a relative sibling asset. Pre-bundling its
+    // package rewrites that URL into Vite's temporary deps directory, where the
+    // worker file is not copied. Keep the SDK on the normal package path.
+    exclude: ['@paddleocr/paddleocr-js'],
     include: [
       '@tauri-apps/api',
+      // These SDK dependencies include CommonJS packages that need Vite's
+      // interop when the Paddle SDK itself stays unoptimized for its worker URL.
+      'clipper-lib',
+      'js-yaml',
+      '@techstark/opencv-js',
       // This package exposes thousands of icon modules from one ESM entry.
       // Pre-bundle it so the browser doesn't have to resolve them one by one
       // during the first Cypress page load.
@@ -66,6 +75,7 @@ export default defineConfig({
       { find: 'investigation-archive', replacement: path.join(packagesDir, 'investigation-archive/dist') },
       { find: 'exif-insights', replacement: path.join(packagesDir, 'exif-insights/dist') },
       { find: 'image-forensics-middleware', replacement: path.join(packagesDir, 'image-forensics-middleware/dist') },
+      { find: 'image-processing-middleware', replacement: path.join(packagesDir, 'image-processing-middleware/dist') },
     ],
   },
   

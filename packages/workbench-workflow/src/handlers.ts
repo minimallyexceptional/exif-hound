@@ -1,10 +1,14 @@
 import type { NodeContext, NodeHandler } from './runner';
 import type { WorkflowGraph, WorkflowNode } from './workflow';
+import type { OcrProvider } from 'ocr-middleware';
 
 export interface ImageNodeInput {
   imageId: number;
   imageName: string;
   payload: unknown;
+  sourceBytes: Uint8Array;
+  processedBytes: Uint8Array;
+  preprocessing: unknown;
 }
 
 export interface OcrNodeOutput {
@@ -12,13 +16,21 @@ export interface OcrNodeOutput {
   imageName: string;
   text: string;
   confidence: number | null;
+  words: Array<{ text: string; confidence: number; boundingBox: { x: number; y: number; width: number; height: number } }>;
+  provider: OcrProvider;
+  engineVersion: string;
 }
 
-export function createImageNodeHandler(resolveImage: (imageId: number) => Promise<ImageNodeInput> | ImageNodeInput): NodeHandler {
-  return async (node) => {
+export function createImageNodeHandler(
+  resolveImage: (imageId: number) => Promise<Omit<ImageNodeInput, 'sourceBytes' | 'processedBytes' | 'preprocessing'> & { sourceBytes: Uint8Array }> | Omit<ImageNodeInput, 'sourceBytes' | 'processedBytes' | 'preprocessing'> & { sourceBytes: Uint8Array },
+  preprocess: (image: { imageId: number; imageName: string; sourceBytes: Uint8Array }, reportProgress: NodeContext['reportProgress']) => Promise<{ processedBytes: Uint8Array; manifest: unknown }>,
+): NodeHandler {
+  return async (node, context) => {
     const imageId = node.settings.imageId;
     if (typeof imageId !== 'number') throw new Error(`Choose a project image for ${node.id}.`);
-    return { data: await resolveImage(imageId) };
+    const image = await resolveImage(imageId);
+    const prepared = await preprocess(image, context.reportProgress);
+    return { data: { ...image, processedBytes: prepared.processedBytes, preprocessing: prepared.manifest } };
   };
 }
 
@@ -26,7 +38,7 @@ export function createOcrNodeHandler(recognize: (
   image: ImageNodeInput,
   language: string,
   reportProgress: NodeContext['reportProgress'],
-) => Promise<{ text: string; confidence: number | null }>): NodeHandler {
+) => Promise<{ text: string; confidence: number | null; words?: OcrNodeOutput['words']; provider: OcrProvider; engineVersion: string }>): NodeHandler {
   return async (node, context) => {
     const image = context.inputs.get('image') as ImageNodeInput | undefined;
     if (!image) throw new Error('OCR needs a connected project image.');
@@ -34,6 +46,9 @@ export function createOcrNodeHandler(recognize: (
     const data: OcrNodeOutput = {
       imageId: image.imageId, imageName: image.imageName,
       text: result.text, confidence: result.confidence,
+      words: result.words ?? [],
+      provider: result.provider,
+      engineVersion: result.engineVersion,
     };
     return { data, status: result.text.trim() ? 'success' : 'no-text' };
   };

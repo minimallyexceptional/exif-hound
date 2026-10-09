@@ -56,19 +56,75 @@ The OCR middleware SHALL create its recognition worker lazily, reuse it for comp
 - **THEN** no worker is created and subsequent recognition requests reject with a clear lifecycle error
 
 ### Requirement: Configure languages and engine resources
-The OCR middleware SHALL allow callers to configure language codes and Tesseract worker resources without requiring UI-specific configuration.
+The OCR middleware SHALL allow callers to configure supported language codes and local PaddleOCR model and WebAssembly resources without requiring UI-specific configuration.
 
 #### Scenario: Configure alternate language
-- **WHEN** a caller configures a non-default language or language combination
-- **THEN** the worker performs recognition using those language codes
+- **WHEN** a caller configures a language supported by the bundled PaddleOCR model
+- **THEN** the worker uses the bundled model for that language
+- **AND** unsupported language requests fail with a clear error
 
 #### Scenario: Configure local worker resources
-- **WHEN** a caller supplies worker, core, or language-data resource paths
-- **THEN** those paths are forwarded to worker creation
+- **WHEN** a caller supplies local detection-model, recognition-model, and ONNX Runtime WebAssembly paths
+- **THEN** those paths are used to initialize the PaddleOCR worker
 
 ### Requirement: Isolate OCR from presentation code
-The OCR package SHALL expose a framework-independent API and an injectable worker boundary so recognition lifecycle and result mapping can be tested without Tesseract WASM assets.
+The OCR package SHALL expose a framework-independent PaddleOCR API and an injectable worker boundary so recognition lifecycle and result mapping can be tested without loading PaddleOCR WASM assets.
 
 #### Scenario: Test with fake worker
-- **WHEN** the OCR service is constructed with a fake worker factory
-- **THEN** callers can verify recognition, progress, failure, reuse, and disposal behavior without loading browser UI or downloading language data
+- **WHEN** the OCR service is constructed with a fake worker
+- **THEN** callers can verify recognition, progress, failure, reuse, and disposal behavior without loading browser UI or downloading model data
+
+### Requirement: Select a local OCR provider per request
+The OCR middleware SHALL use PaddleOCR as its only supported provider and SHALL return the stable common OCR result contract.
+
+#### Scenario: Recognize with Tesseract
+- **WHEN** a caller explicitly requests the removed Tesseract provider
+- **THEN** the middleware rejects the request with an unsupported-provider error
+
+#### Scenario: Recognize with PaddleOCR
+- **WHEN** a caller requests PaddleOCR or omits a provider
+- **THEN** the middleware runs the local PaddleOCR model and returns text, confidence, provider attribution, engine/model version, and any valid word-level evidence
+- **AND** it does not invent word-level boxes from line-level results
+
+#### Scenario: Provider omitted
+- **WHEN** a caller omits the provider
+- **THEN** the middleware uses PaddleOCR
+
+#### Scenario: Provider unavailable or invalid
+- **WHEN** a caller requests Tesseract, an unknown provider, or PaddleOCR cannot initialize
+- **THEN** the request fails with an actionable unsupported-provider error
+- **AND** the middleware does not silently run another provider
+
+### Requirement: Keep provider execution local and offline-capable
+Both OCR providers SHALL run locally without transmitting image data, and their required runtime and model assets SHALL be available without network access at recognition time.
+
+#### Scenario: Run without network access
+- **WHEN** a caller recognizes an image while the device has no network connection
+- **THEN** the selected provider completes using locally available assets or reports a clear missing-asset error
+- **AND** it makes no network request to fetch models, runtime code, or image data
+
+#### Scenario: Run on supported desktop targets
+- **WHEN** the middleware runs in a supported Linux, macOS, or Windows desktop WebView on a supported processor architecture
+- **THEN** it uses a compatible portable runtime without requiring an architecture-specific native OCR binary
+
+### Requirement: Attribute OCR results to their provider
+Each recognition result SHALL identify the provider and model/runtime version used so downstream storage and review can distinguish test outputs.
+
+#### Scenario: Return provider attribution
+- **WHEN** recognition completes successfully
+- **THEN** the result includes the selected provider and an available engine or model version identifier
+
+#### Scenario: Preserve provider attribution on no-text results
+- **WHEN** recognition completes successfully but finds no text
+- **THEN** the empty result still identifies the provider and engine or model version used
+
+### Requirement: Preserve historical provider attribution
+The application SHALL preserve OCR records previously produced by Tesseract while restricting new OCR runs to PaddleOCR.
+
+#### Scenario: Display historical Tesseract results
+- **WHEN** the user opens a project containing OCR results attributed to Tesseract
+- **THEN** the app displays the saved text and its original Tesseract attribution without attempting to execute Tesseract
+
+#### Scenario: Save new OCR results
+- **WHEN** a new OCR result is written to a project
+- **THEN** its provider attribution is PaddleOCR

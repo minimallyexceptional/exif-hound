@@ -3,10 +3,17 @@ export interface OcrProgress {
   progress: number;
 }
 
-export interface OcrResult {
+export type OcrProvider = 'paddle';
+
+export interface OcrWorkerResult {
   text: string;
   confidence: number;
   words: OcrWord[];
+}
+
+export interface OcrResult extends OcrWorkerResult {
+  provider: OcrProvider;
+  engineVersion: string;
 }
 
 export interface OcrWord {
@@ -19,26 +26,15 @@ export interface ImageDimensions { width: number; height: number }
 export type ImageDimensionsResolver = (image: Blob | Uint8Array) => Promise<ImageDimensions>;
 
 export interface OcrWorker {
-  recognize(image: Blob | Uint8Array): Promise<OcrResult>;
+  recognize(image: Blob | Uint8Array): Promise<OcrWorkerResult>;
   reinitialize(languages: string[]): Promise<void>;
   terminate(): Promise<void>;
 }
 
 export interface OcrWorkerFactory {
+  readonly engineVersion?: string;
   create(
     languages: string[],
-    options: OcrWorkerOptions,
     onProgress: (progress: OcrProgress) => void,
   ): Promise<OcrWorker>;
-}
-
-/** Tesseract.js worker resource and cache settings, kept host-neutral. */
-export interface OcrWorkerOptions {
-  workerPath?: string;
-  corePath?: string;
-  langPath?: string;
-  cachePath?: string;
-  cacheMethod?: 'write' | 'readOnly' | 'refresh' | 'none';
-  workerBlobURL?: boolean;
-  gzip?: boolean;
 }
