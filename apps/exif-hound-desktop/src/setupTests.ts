@@ -1,6 +1,14 @@
 // Add Jest-DOM custom matchers
 import '@testing-library/jest-dom';
 
+if (typeof ResizeObserver === 'undefined') {
+  (globalThis as typeof globalThis & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 // Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
 // Kept false in tests to mirror production behavior and silence dev logging.
 (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;

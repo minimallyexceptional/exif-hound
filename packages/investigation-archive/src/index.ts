@@ -20,6 +20,8 @@ export type {
   ImageRecord,
   ImportRecord,
   OcrResultRecord,
+  ProjectWorkflowRecord,
+  WorkflowRunRecord,
 } from './format';
 export type {
   DatabaseEngine,

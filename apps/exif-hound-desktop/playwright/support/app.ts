@@ -66,6 +66,8 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     // Default parent folder for bootApp's implicit project creation.
     'plugin:dialog|open': '/tmp/e2e-projects',
     resolve_project_folder: '__selected_folder__',
+    list_workflow_templates: [],
+    save_workflow_template: null,
     ...options.commands,
   };
   // The active app requires a bound project, so the implicit boot creates one
