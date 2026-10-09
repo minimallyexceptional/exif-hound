@@ -53,7 +53,7 @@ photos), and the map imagery itself.
   body, `rounded-xl`, sizes sm/md/lg/xl, optional fullscreen toggle.
 - **`Panel`** — glass-panel card with optional titled header
   (`p-4 border-b border-app-gray-light/30`).
-- `Tooltip`, `FilterPanel`, `ImageContainer`, `Logomark` for the rest.
+- `Tooltip`, `FilterPanel`, and `Logomark` for the rest.
 
 ## Shape & spacing
 
