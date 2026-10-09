@@ -1,6 +1,10 @@
 import {
   ImageRecord,
   ImportRecord,
+  OcrResultRecord,
+  WorkflowToolResultRecord,
+  ProjectWorkflowRecord,
+  WorkflowRunRecord,
   ImportType,
   ProjectMeta,
   SessionState,
@@ -28,6 +32,79 @@ import { eq } from 'drizzle-orm';
 export interface ProjectStoreDeps {
   dbProvider: DatabaseEngineProvider;
   fs: FsPort;
+}
+
+function mapOcrResult(row: typeof schema.ocrResults.$inferSelect): OcrResultRecord {
+  let preprocessingManifest: unknown;
+  if (row.preprocessingManifestJson) {
+    try { preprocessingManifest = JSON.parse(row.preprocessingManifestJson); }
+    catch { throw new InvalidProjectError('Corrupt OCR preprocessing manifest.'); }
+  }
+  let words: OcrResultRecord['words'] = [];
+  if (row.wordsJson) {
+    try {
+      const parsed: unknown = JSON.parse(row.wordsJson);
+      // Older or partially written records may contain words without usable
+      // coordinates. Keep the OCR text available and ignore only those boxes.
+      words = Array.isArray(parsed) ? parsed.filter(isOcrWordWithBoundingBox) : [];
+    }
+    catch { throw new InvalidProjectError('Corrupt OCR word coordinates.'); }
+  }
+  return {
+    id: row.id,
+    imageId: row.imageId,
+    imageName: row.imageName,
+    text: row.text,
+    confidence: row.confidence,
+    resultStatus: row.resultStatus as OcrResultRecord['resultStatus'],
+    workflowId: row.workflowId,
+    workflowRunId: row.workflowRunId,
+    nodeId: row.nodeId,
+    processedAt: new Date(row.processedAt),
+    provider: row.provider as OcrResultRecord['provider'],
+    engineVersion: row.engineVersion,
+    preprocessingManifest,
+    words,
+  };
+}
+
+function isOcrWordWithBoundingBox(value: unknown): value is NonNullable<OcrResultRecord['words']>[number] {
+  if (!value || typeof value !== 'object') return false;
+  const word = value as { text?: unknown; confidence?: unknown; boundingBox?: unknown };
+  if (typeof word.text !== 'string' || typeof word.confidence !== 'number' || !word.boundingBox || typeof word.boundingBox !== 'object') return false;
+  const box = word.boundingBox as Record<string, unknown>;
+  return ['x', 'y', 'width', 'height'].every(key => typeof box[key] === 'number' && Number.isFinite(box[key]));
+}
+
+type WorkflowToolRow = typeof schema.imageProvenanceResults.$inferSelect | typeof schema.visualIdentifierResults.$inferSelect;
+
+function mapWorkflowToolResult(row: WorkflowToolRow): WorkflowToolResultRecord {
+  let result: unknown;
+  try {
+    result = JSON.parse(row.resultJson);
+  } catch {
+    throw new InvalidProjectError(`Corrupt ${row.nodeId} workflow result.`);
+  }
+  let preprocessingManifest: unknown;
+  if (row.preprocessingManifestJson) {
+    try { preprocessingManifest = JSON.parse(row.preprocessingManifestJson); }
+    catch { throw new InvalidProjectError(`Corrupt ${row.nodeId} preprocessing manifest.`); }
+  }
+  return {
+    id: row.id,
+    imageId: row.imageId,
+    imageName: row.imageName,
+    result,
+    resultStatus: row.resultStatus as WorkflowToolResultRecord['resultStatus'],
+    workflowId: row.workflowId,
+    workflowRunId: row.workflowRunId,
+    nodeId: row.nodeId,
+    toolVersion: row.toolVersion,
+    startedAt: new Date(row.startedAt),
+    finishedAt: new Date(row.finishedAt),
+    error: row.error,
+    preprocessingManifest,
+  };
 }
 
 /** Raw text of an import file, for re-parsing on open. */
@@ -115,7 +192,6 @@ export class ProjectStore {
       schemaFormatVersion: SCHEMA_FORMAT_VERSION,
       viewMode: 'map',
       showRoute: false,
-      investigationTool: null,
     });
 
     const store = new ProjectStore({ ...deps, rootPath }, engine, db);
@@ -160,7 +236,7 @@ export class ProjectStore {
         'all',
       );
       const version = versionRows.rows[0]?.[0];
-      if (typeof version === 'number' && version !== SCHEMA_FORMAT_VERSION) {
+      if (typeof version === 'number' && ![2, 3, 4, 5, 6, SCHEMA_FORMAT_VERSION].includes(version)) {
         throw new UnsupportedSchemaError(
           `Project database schema version ${version} is not supported (this app supports ${SCHEMA_FORMAT_VERSION}).`
         );
@@ -176,7 +252,9 @@ export class ProjectStore {
     const bytes = await deps.fs.readFile(joinPath(rootPath, DB_PATH));
     const engine = await deps.dbProvider.open(bytes);
     await runMigrations(engine); // defensive: forward-migrate old projects
-    return new ProjectStore({ ...deps, rootPath }, engine, createDb(engine));
+    const store = new ProjectStore({ ...deps, rootPath }, engine, createDb(engine));
+    await store.flush();
+    return store;
   }
 
   private async assertHealthy(): Promise<void> {
@@ -219,9 +297,11 @@ export class ProjectStore {
       sourceUrl,
       addedAt: addedAt.toISOString(),
     });
+    const rows = await this.db.select().from(schema.images).where(eq(schema.images.diskPath, diskPath));
     await this.flush();
 
     return {
+      id: rows[0].id,
       fileName,
       diskPath,
       hasImage,
@@ -247,6 +327,7 @@ export class ProjectStore {
         throw new InvalidProjectError(`Corrupt metadata for image "${row.fileName}".`);
       }
       records.push({
+        id: row.id,
         fileName: row.fileName,
         diskPath: row.diskPath,
         hasImage: row.hasImage,
@@ -257,6 +338,150 @@ export class ProjectStore {
       });
     }
     return records;
+  }
+
+  async saveOcrResult(imageId: number, text: string, confidence: number): Promise<OcrResultRecord> {
+    await this.assertHealthy();
+    if (!text.trim()) throw new InvalidProjectError('OCR result text must not be empty.');
+    const image = await this.db.select().from(schema.images).where(eq(schema.images.id, imageId));
+    if (!image[0] || !image[0].hasImage) {
+      throw new InvalidProjectError('OCR results can only be saved for a project image.');
+    }
+    const processedAt = new Date();
+    return this.appendWorkflowOcrResult({ imageId, imageName: image[0].fileName, text, confidence, processedAt });
+  }
+
+  async appendWorkflowOcrResult(result: OcrResultRecord): Promise<OcrResultRecord> {
+    await this.assertHealthy();
+    const images = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
+    if (!images[0] || !images[0].hasImage) {
+      throw new InvalidProjectError('OCR results can only be saved for a project image.');
+    }
+    const processedAt = result.processedAt ?? new Date();
+    await this.db.insert(schema.ocrResults).values({
+      imageId: result.imageId,
+      imageName: result.imageName ?? images[0].fileName,
+      text: result.text,
+      confidence: result.confidence,
+      resultStatus: result.resultStatus ?? (result.text.trim() ? 'success' : 'no-text'),
+      workflowId: result.workflowId ?? null,
+      workflowRunId: result.workflowRunId ?? null,
+      nodeId: result.nodeId ?? null,
+      processedAt: processedAt.toISOString(),
+      provider: result.provider ?? 'paddle',
+      engineVersion: result.engineVersion ?? 'PaddleOCR.js@0.4.2 / PP-OCRv6_small',
+      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
+      wordsJson: JSON.stringify(result.words ?? []),
+    });
+    await this.flush();
+    const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, result.imageId));
+    const saved = rows.sort((a, b) => b.id - a.id)[0];
+    return mapOcrResult(saved);
+  }
+
+  async getOcrResult(imageId: number): Promise<OcrResultRecord | null> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, imageId));
+    const row = rows.sort((a, b) => b.id - a.id)[0];
+    return row ? mapOcrResult(row) : null;
+  }
+
+  async listWorkflowOcrResults(workflowId: string, nodeId: string): Promise<OcrResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.ocrResults);
+    return rows
+      .filter((row) => row.workflowId === workflowId && row.nodeId === nodeId)
+      .sort((a, b) => b.id - a.id)
+      .map(mapOcrResult);
+  }
+
+  async appendWorkflowProvenanceResult(result: WorkflowToolResultRecord): Promise<WorkflowToolResultRecord> {
+    await this.assertHealthy();
+    const imageRows = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
+    if (!imageRows[0] || !imageRows[0].hasImage) throw new InvalidProjectError('Forensic results require a local project image.');
+    await this.db.insert(schema.imageProvenanceResults).values({
+      imageId: result.imageId, imageName: imageRows[0].fileName, resultJson: JSON.stringify(result.result),
+      resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
+      nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
+      finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
+      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
+    });
+    await this.flush();
+    const rows = await this.db.select().from(schema.imageProvenanceResults);
+    return mapWorkflowToolResult(rows.sort((a, b) => b.id - a.id)[0]);
+  }
+
+  async listWorkflowProvenanceResults(workflowId: string, nodeId: string): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.imageProvenanceResults);
+    return rows.filter(row => row.workflowId === workflowId && row.nodeId === nodeId)
+      .sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
+  async appendWorkflowIdentifierResult(result: WorkflowToolResultRecord): Promise<WorkflowToolResultRecord> {
+    await this.assertHealthy();
+    const imageRows = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
+    if (!imageRows[0] || !imageRows[0].hasImage) throw new InvalidProjectError('Forensic results require a local project image.');
+    await this.db.insert(schema.visualIdentifierResults).values({
+      imageId: result.imageId, imageName: imageRows[0].fileName, resultJson: JSON.stringify(result.result),
+      resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
+      nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
+      finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
+      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
+    });
+    await this.flush();
+    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    return mapWorkflowToolResult(rows.sort((a, b) => b.id - a.id)[0]);
+  }
+
+  async listWorkflowIdentifierResults(workflowId: string, nodeId: string): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    return rows.filter(row => row.workflowId === workflowId && row.nodeId === nodeId)
+      .sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
+  async saveWorkflow(record: ProjectWorkflowRecord): Promise<void> {
+    await this.assertHealthy();
+    await this.db.insert(schema.workbenchWorkflows).values({
+      id: record.id, name: record.name, graphJson: record.graphJson, updatedAt: record.updatedAt.toISOString(),
+    }).onConflictDoUpdate({
+      target: schema.workbenchWorkflows.id,
+      set: { name: record.name, graphJson: record.graphJson, updatedAt: record.updatedAt.toISOString() },
+    });
+    await this.flush();
+  }
+
+  async listWorkflows(): Promise<ProjectWorkflowRecord[]> {
+    const rows = await this.db.select().from(schema.workbenchWorkflows);
+    return rows.map((row) => ({ ...row, updatedAt: new Date(row.updatedAt) }));
+  }
+
+  async createWorkflowRun(record: WorkflowRunRecord): Promise<void> {
+    await this.db.insert(schema.workflowRuns).values({
+      id: record.id, workflowId: record.workflowId, status: record.status,
+      startedAt: record.startedAt.toISOString(), finishedAt: record.finishedAt?.toISOString() ?? null,
+      currentNodeId: record.currentNodeId, completedNodes: record.completedNodes,
+      totalNodes: record.totalNodes, error: record.error,
+    });
+    await this.flush();
+  }
+
+  async updateWorkflowRun(record: WorkflowRunRecord): Promise<void> {
+    await this.db.update(schema.workflowRuns).set({
+      status: record.status, startedAt: record.startedAt.toISOString(),
+      finishedAt: record.finishedAt?.toISOString() ?? null, currentNodeId: record.currentNodeId,
+      completedNodes: record.completedNodes, totalNodes: record.totalNodes, error: record.error,
+    }).where(eq(schema.workflowRuns.id, record.id));
+    await this.flush();
+  }
+
+  async listWorkflowRuns(workflowId: string): Promise<WorkflowRunRecord[]> {
+    const rows = await this.db.select().from(schema.workflowRuns).where(eq(schema.workflowRuns.workflowId, workflowId));
+    return rows.map((row) => ({
+      ...row, status: row.status as WorkflowRunRecord['status'],
+      startedAt: new Date(row.startedAt), finishedAt: row.finishedAt ? new Date(row.finishedAt) : null,
+    })).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
   }
 
   /** Write the raw import file to data/ and upsert the registry row. */
@@ -320,7 +545,6 @@ export class ProjectStore {
     return {
       viewMode: row.viewMode,
       showRoute: row.showRoute,
-      investigationTool: row.investigationTool,
     };
   }
 
@@ -330,7 +554,6 @@ export class ProjectStore {
       .set({
         viewMode: state.viewMode,
         showRoute: state.showRoute,
-        investigationTool: state.investigationTool,
       })
       .where(eq(schema.investigations.id, 1));
     await this.flush();
@@ -350,7 +573,6 @@ export class ProjectStore {
       state: {
         viewMode: row.viewMode,
         showRoute: row.showRoute,
-        investigationTool: row.investigationTool,
       },
     };
   }

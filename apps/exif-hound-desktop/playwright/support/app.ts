@@ -66,6 +66,8 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     // Default parent folder for bootApp's implicit project creation.
     'plugin:dialog|open': '/tmp/e2e-projects',
     resolve_project_folder: '__selected_folder__',
+    list_workflow_templates: [],
+    save_workflow_template: null,
     ...options.commands,
   };
   // The active app requires a bound project, so the implicit boot creates one
@@ -210,7 +212,7 @@ export async function closeSettings(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toHaveCount(0);
 }
 
-export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Investigation'): Promise<void> {
+export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Workbench'): Promise<void> {
   await page.locator('header').getByRole('button', { name, exact: true }).click();
 }
 

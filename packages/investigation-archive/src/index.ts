@@ -19,6 +19,10 @@ export type {
   ProjectMeta,
   ImageRecord,
   ImportRecord,
+  OcrResultRecord,
+  WorkflowToolResultRecord,
+  ProjectWorkflowRecord,
+  WorkflowRunRecord,
 } from './format';
 export type {
   DatabaseEngine,

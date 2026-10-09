@@ -46,19 +46,15 @@ These are enforced by convention and, where possible, by CI:
 1. **No Electron.** The app is Tauri-only. `npm run scan:electron` exits
    non-zero if Electron references are reintroduced.
 2. **No `import.meta` in source files** — Jest/Playwright compatibility. Use
-   the Vite `define` globals instead: `__DEV__`, `__APP_VERSION__`,
-   `__UPDATE_CHANNEL__`, `__FEATURE_FLAGS__`.
+   the Vite `define` globals instead: `__DEV__`, `__APP_VERSION__`, and
+   `__UPDATE_CHANNEL__`.
 3. **Single app version.** `apps/exif-hound-desktop/src-tauri/tauri.conf.json`
    is the only version you edit. Run `npm run release:version` to sync the
    workspace `package.json` and lockfile. See `docs/updater.md`.
-4. **In-progress features must be gated.** Register the feature in
-   `GATED_FEATURES` (`vite.config.ts`) and guard its UI with
-   `isFeatureEnabled()` — see `docs/feature-flags.md`. Gated features ship in
-   dev builds and stay out of production unless explicitly enabled.
-5. **Theming via tokens.** Never hardcode colors — use the token utilities
+4. **Theming via tokens.** Never hardcode colors — use the token utilities
    (e.g. `text-app-accent`, `bg-app-gray`). Respect
    `prefers-reduced-motion`.
-6. **Selectable values.** `body` is `user-select: none`; EXIF/metadata values
+5. **Selectable values.** `body` is `user-select: none`; EXIF/metadata values
    users should be able to copy opt back in with the `selectable-value` class.
 
 ## OpenSpec feature workflow

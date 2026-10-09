@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 @theme {
   --color-app-black: var(--app-black);
@@ -9,6 +10,9 @@
   --color-app-white: var(--app-white);
   --color-app-accent: var(--app-accent);
   --color-app-accent-dim: var(--app-accent-dim);
+  --color-app-danger: var(--app-danger);
+  --color-app-danger-bg: var(--app-danger-bg);
+  --color-app-modal-scrim: var(--app-modal-scrim);
   --shadow-inner-light: inset 0 0 20px rgba(128, 128, 128, 0.1);
   --shadow-inner-white: inset 0 0 30px rgba(128, 128, 128, 0.05);
 }
@@ -25,6 +29,9 @@
     --app-accent-dim: #858585;
     --app-overlay: rgba(0, 0, 0, 0.5);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --app-danger: #fca5a5;
+    --app-danger-bg: #450a0a;
+    --app-modal-scrim: rgba(0, 0, 0, 0.55);
   }
 
   :root[data-theme="light"] {
@@ -38,6 +45,9 @@
     --app-accent-dim: #6c757d;
     --app-overlay: rgba(0, 0, 0, 0.1);
     --glass-border: rgba(0, 0, 0, 0.1);
+    --app-danger: #b91c1c;
+    --app-danger-bg: #fee2e2;
+    --app-modal-scrim: rgba(0, 0, 0, 0.55);
   }
 
   body {
@@ -251,4 +261,19 @@ input:focus {
 
 .text-muted {
   color: var(--app-accent-dim);
+}
+
+.react-flow {
+  --xy-background-color: var(--app-black);
+  --xy-background-pattern-color: var(--app-gray-light);
+  --xy-edge-stroke: var(--app-accent-dim);
+  --xy-edge-stroke-selected: var(--app-accent);
+  --xy-node-border: var(--app-gray-light);
+  --xy-node-color: var(--app-white);
+  --xy-handle-background-color: var(--app-accent);
+  --xy-handle-border-color: var(--app-gray);
+  --xy-controls-button-background-color: var(--app-gray);
+  --xy-controls-button-color: var(--app-white);
+  --xy-controls-button-border-color: var(--app-gray-light);
+  --xy-minimap-background-color: var(--app-gray);
 }

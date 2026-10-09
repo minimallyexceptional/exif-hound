@@ -44,7 +44,7 @@ test.describe('mobile viewport', () => {
     await expect(close).toBeVisible();
     await expect(page.getByTestId('mobile-menu')).toContainText(/Map View/);
     await expect(page.getByTestId('mobile-menu')).toContainText(/List View/);
-    await expect(page.getByTestId('mobile-menu')).toContainText(/Investigation/);
+    await expect(page.getByTestId('mobile-menu')).not.toContainText(/Investigation/);
     await expect(page.getByTestId('mobile-menu')).toContainText(/Export/);
     await expect(page.getByTestId('mobile-menu')).toContainText(/Settings/);
     await close.click();

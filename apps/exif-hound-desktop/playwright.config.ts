@@ -18,7 +18,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev:test',
+    command: 'npm run dev:test -- --force',
     url: 'http://127.0.0.1:5276',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

@@ -7,15 +7,15 @@ test.beforeEach(async ({ page }) => {
   await uploadImages(page, [FIXTURE_IMAGES.fullExif, FIXTURE_IMAGES.noGps]);
 });
 
-test('switches between map, list, and investigation views', async ({ page }) => {
+test('switches between map, list, and Workbench with no Investigation tab', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Location Map' })).toBeVisible();
   await expect(page.locator('header').getByRole('button', { name: 'Map View' })).toHaveClass(/bg-app-white/);
   await switchView(page, 'List View');
   await expect(page.getByRole('heading', { name: 'Image Details' })).toBeVisible();
   await expect(page.locator('header').getByRole('button', { name: 'List View' })).toHaveClass(/bg-app-white/);
-  await switchView(page, 'Investigation');
-  await expect(page.getByRole('heading', { name: 'Investigation Dashboard' })).toBeVisible();
-  await expect(page.locator('header').getByRole('button', { name: 'Investigation' })).toHaveClass(/bg-app-white/);
+  await expect(page.locator('header').getByRole('button', { name: 'Investigation', exact: true })).toHaveCount(0);
+  await switchView(page, 'Workbench');
+  await expect(page.locator('header').getByRole('button', { name: 'Workbench', exact: true })).toHaveClass(/bg-app-white/);
   await switchView(page, 'Map View');
   await expect(page.getByRole('heading', { name: 'Location Map' })).toBeVisible();
 });

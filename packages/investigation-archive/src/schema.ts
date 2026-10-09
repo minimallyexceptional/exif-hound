@@ -1,7 +1,7 @@
-import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, real, text } from 'drizzle-orm/sqlite-core';
 
 /**
- * Drizzle schema for the project database (schema format version 2).
+ * Drizzle schema for the project database (schema format version 7).
  * Mirrors migrations.ts DDL — the test suite asserts both stay in sync
  * via round-trips through a real sql.js engine.
  */
@@ -15,6 +15,8 @@ export const investigations = sqliteTable('investigation_meta', {
   // Session state (restored on open).
   viewMode: text('view_mode').notNull(),
   showRoute: integer('show_route', { mode: 'boolean' }).notNull(),
+  // Retained in the physical schema for compatibility with existing projects;
+  // the application no longer reads or writes this retired view setting.
   investigationTool: text('investigation_tool'),
 });
 
@@ -37,4 +39,72 @@ export const projectImports = sqliteTable('project_imports', {
   type: text('type').notNull().unique(),
   fileName: text('file_name').notNull(),
   addedAt: text('added_at').notNull(), // ISO string
+});
+
+export const ocrResults = sqliteTable('ocr_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+  imageName: text('image_name').notNull(),
+  text: text('text').notNull(),
+  confidence: real('confidence'),
+  resultStatus: text('result_status').notNull(),
+  workflowId: text('workflow_id'),
+  workflowRunId: text('workflow_run_id'),
+  nodeId: text('node_id'),
+  processedAt: text('processed_at').notNull(),
+  provider: text('provider').notNull().default('paddle'),
+  engineVersion: text('engine_version').notNull().default('PaddleOCR.js@0.4.2 / PP-OCRv6_small'),
+  preprocessingManifestJson: text('preprocessing_manifest_json'),
+  wordsJson: text('words_json'),
+});
+
+export const workbenchWorkflows = sqliteTable('workbench_workflows', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  graphJson: text('graph_json').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const workflowRuns = sqliteTable('workflow_runs', {
+  id: text('id').primaryKey(),
+  workflowId: text('workflow_id').notNull().references(() => workbenchWorkflows.id, { onDelete: 'cascade' }),
+  status: text('status').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at'),
+  currentNodeId: text('current_node_id'),
+  completedNodes: integer('completed_nodes').notNull(),
+  totalNodes: integer('total_nodes').notNull(),
+  error: text('error'),
+});
+
+export const imageProvenanceResults = sqliteTable('image_provenance_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+  imageName: text('image_name').notNull(),
+  resultJson: text('result_json').notNull(),
+  resultStatus: text('result_status').notNull(),
+  workflowId: text('workflow_id').notNull().references(() => workbenchWorkflows.id, { onDelete: 'cascade' }),
+  workflowRunId: text('workflow_run_id').notNull().references(() => workflowRuns.id, { onDelete: 'cascade' }),
+  nodeId: text('node_id').notNull(),
+  toolVersion: text('tool_version').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at').notNull(),
+  error: text('error'),
+  preprocessingManifestJson: text('preprocessing_manifest_json'),
+});
+
+export const visualIdentifierResults = sqliteTable('visual_identifier_results', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+  imageName: text('image_name').notNull(),
+  resultJson: text('result_json').notNull(),
+  resultStatus: text('result_status').notNull(),
+  workflowId: text('workflow_id').notNull().references(() => workbenchWorkflows.id, { onDelete: 'cascade' }),
+  workflowRunId: text('workflow_run_id').notNull().references(() => workflowRuns.id, { onDelete: 'cascade' }),
+  nodeId: text('node_id').notNull(),
+  toolVersion: text('tool_version').notNull(),
+  startedAt: text('started_at').notNull(),
+  finishedAt: text('finished_at').notNull(),
+  error: text('error'),
+  preprocessingManifestJson: text('preprocessing_manifest_json'),
 });

@@ -1,0 +1,160 @@
+import { WorkflowRunner } from '../src/runner';
+import { WorkflowGraph } from '../src/workflow';
+import { createImageNodeHandler } from '../src/handlers';
+
+const workflow: WorkflowGraph = {
+  formatVersion: 1,
+  name: 'Two paths',
+  nodes: [
+    { id: 'img1', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 1 } },
+    { id: 'ocr1', type: 'ocr', position: { x: 1, y: 0 }, settings: {} },
+    { id: 'text1', type: 'text', position: { x: 2, y: 0 }, settings: {} },
+    { id: 'img2', type: 'image', position: { x: 0, y: 2 }, settings: { imageId: 2 } },
+    { id: 'ocr2', type: 'ocr', position: { x: 1, y: 2 }, settings: {} },
+    { id: 'text2', type: 'text', position: { x: 2, y: 2 }, settings: {} },
+  ],
+  edges: [
+    { id: 'a', source: 'img1', sourcePort: 'image', target: 'ocr1', targetPort: 'image' },
+    { id: 'b', source: 'ocr1', sourcePort: 'text', target: 'text1', targetPort: 'text' },
+    { id: 'c', source: 'img2', sourcePort: 'image', target: 'ocr2', targetPort: 'image' },
+    { id: 'd', source: 'ocr2', sourcePort: 'text', target: 'text2', targetPort: 'text' },
+  ],
+};
+
+describe('WorkflowRunner', () => {
+  it('preprocesses a shared image node once before its branches and fails closed', async () => {
+    const graph: WorkflowGraph = {
+      formatVersion: 1, name: 'Shared image',
+      nodes: [workflow.nodes[0], workflow.nodes[1], { id: 'provenance', type: 'provenance', position: { x: 1, y: 1 }, settings: {} }, workflow.nodes[2], { id: 'evidence', type: 'evidence', position: { x: 2, y: 1 }, settings: {} }],
+      edges: [
+        { id: 'ocr-in', source: 'img1', sourcePort: 'image', target: 'ocr1', targetPort: 'image' },
+        { id: 'provenance-in', source: 'img1', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'text-out', source: 'ocr1', sourcePort: 'text', target: 'text1', targetPort: 'text' },
+        { id: 'evidence-out', source: 'provenance', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+      ],
+    };
+    const preprocess = jest.fn(async (_image, report) => {
+      report(0.5, 'Preprocessing');
+      return { processedBytes: new Uint8Array([9]), manifest: { profile: 'ocr-default-v1' } };
+    });
+    const preparedInput = { imageId: 1, imageName: 'source.png', payload: null, sourceBytes: new Uint8Array([1]) };
+    let ocrInput: unknown;
+    let provenanceInput: unknown;
+    const runner = new WorkflowRunner();
+    await runner.run(graph, {
+      handlers: {
+        image: createImageNodeHandler(() => preparedInput, preprocess),
+        ocr: async (_node, context) => { ocrInput = context.inputs.get('image'); return { data: 'text' }; },
+        provenance: async (_node, context) => { provenanceInput = context.inputs.get('image'); return { data: 'facts' }; },
+      },
+      persistResult: async () => {},
+    });
+    expect(preprocess).toHaveBeenCalledTimes(1);
+    expect(ocrInput).toBe(provenanceInput);
+    expect(ocrInput).toMatchObject({ sourceBytes: new Uint8Array([1]), processedBytes: new Uint8Array([9]) });
+
+    const failed = new WorkflowRunner();
+    const downstream = jest.fn();
+    await expect(failed.run(graph, {
+      handlers: {
+        image: createImageNodeHandler(() => preparedInput, async () => { throw new Error('decode failed'); }),
+        ocr: downstream,
+        provenance: downstream,
+      },
+      persistResult: async () => {},
+    })).rejects.toThrow('decode failed');
+    expect(downstream).not.toHaveBeenCalled();
+  });
+
+  it('runs each image and transform in dependency order, reports progress, and persists tool results', async () => {
+    const runner = new WorkflowRunner();
+    const calls: string[] = [];
+    const events: string[] = [];
+    const writes: string[] = [];
+    await runner.run(workflow, {
+      handlers: {
+        image: async (node) => { calls.push(node.id); return { data: `image-${node.id}` }; },
+        ocr: async (node, context) => {
+          calls.push(node.id);
+          context.reportProgress(0.5, 'Recognizing');
+          expect(context.inputs.get('image')).toBe(`image-${node.id === 'ocr1' ? 'img1' : 'img2'}`);
+          return { data: `text-${node.id}` };
+        },
+      },
+      persistResult: async (node) => { writes.push(node.id); },
+      onEvent: (event) => { events.push(event.type); },
+    });
+    expect(calls).toEqual(['img1', 'ocr1', 'img2', 'ocr2']);
+    expect(writes).toEqual(['ocr1', 'ocr2']);
+    expect(events).toContain('node-progress');
+    expect(events).toContain('completed');
+  });
+
+  it('keeps earlier results and reports the failing node when a later handler fails', async () => {
+    const runner = new WorkflowRunner();
+    const persisted: string[] = [];
+    const failures: Array<{ nodeId: string; message: string }> = [];
+    let failure: unknown;
+    await expect(runner.run(workflow, {
+      handlers: {
+        image: async (node) => ({ data: node.id }),
+        ocr: async (node) => {
+          if (node.id === 'ocr2') throw new Error('OCR failed');
+          return { data: 'ok' };
+        },
+      },
+      persistResult: async (node) => { persisted.push(node.id); },
+      persistFailure: async (node, message) => { failures.push({ nodeId: node.id, message }); },
+      onEvent: (event) => { if (event.type === 'failed') failure = event; },
+    })).rejects.toThrow('OCR failed');
+    expect(persisted).toEqual(['ocr1']);
+    expect(failures).toEqual([{ nodeId: 'ocr2', message: 'OCR failed' }]);
+    expect(failure).toEqual(expect.objectContaining({ type: 'failed', nodeId: 'ocr2' }));
+  });
+
+  it('rejects overlapping runs', async () => {
+    const runner = new WorkflowRunner();
+    let release!: () => void;
+    const wait = new Promise<void>((resolve) => { release = resolve; });
+    const running = runner.run(workflow, {
+      handlers: { image: async () => { await wait; return { data: 'img' }; }, ocr: async () => ({ data: 'text' }) },
+      persistResult: async () => {},
+    });
+    await Promise.resolve();
+    await expect(runner.run(workflow, { handlers: {}, persistResult: async () => {} })).rejects.toThrow('already running');
+    release();
+    await running;
+  });
+
+  it('runs local forensic transforms in graph order and persists each transform result', async () => {
+    const graph: WorkflowGraph = {
+      formatVersion: 1, name: 'Forensic pipeline',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 1 } },
+        { id: 'provenance', type: 'provenance', position: { x: 1, y: 0 }, settings: {} },
+        { id: 'report', type: 'evidence', position: { x: 2, y: 0 }, settings: {} },
+      ],
+      edges: [
+        { id: 'in', source: 'image', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'out', source: 'provenance', sourcePort: 'evidence', target: 'report', targetPort: 'evidence' },
+      ],
+    };
+    const calls: string[] = [];
+    const persisted: string[] = [];
+
+    await new WorkflowRunner().run(graph, {
+      handlers: {
+        image: async () => ({ data: { imageId: 1 } }),
+        provenance: async (_node, context) => {
+          calls.push('provenance');
+          expect(context.inputs.get('image')).toEqual({ imageId: 1 });
+          return { data: { indicators: ['editor-tag'] } };
+        },
+      },
+      persistResult: async node => { persisted.push(node.id); },
+    });
+
+    expect(calls).toEqual(['provenance']);
+    expect(persisted).toEqual(['provenance']);
+  });
+});

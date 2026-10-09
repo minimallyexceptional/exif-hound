@@ -64,6 +64,7 @@ describe('toStoreImage', () => {
 describe('toImageData', () => {
   it('rebuilds a real image from disk bytes with an object URL', () => {
     const record = {
+      id: 42,
       fileName: 'photo.png',
       diskPath: 'images/photo.png',
       hasImage: true,
@@ -75,12 +76,14 @@ describe('toImageData', () => {
     expect(image.url).toBe('mock-object-url');
     expect(image.file.name).toBe('photo.png');
     expect(image.exif).toEqual({ latitude: 9 });
+    expect(image.projectImageId).toBe(42);
     expect(image.isProcessing).toBe(false);
     expect('hasImage' in image).toBe(false);
   });
 
   it('rebuilds a point entry from sourceUrl without an object URL', () => {
     const record = {
+      id: 43,
       fileName: 'Imported Point 1',
       diskPath: 'images/point.csv-entry',
       hasImage: false,
@@ -96,6 +99,7 @@ describe('toImageData', () => {
 
   it('rebuilds a point entry without a url as hasImage false', () => {
     const record = {
+      id: 44,
       fileName: 'Imported Point 2',
       diskPath: 'images/point2.csv-entry',
       hasImage: false,
@@ -110,10 +114,24 @@ describe('toImageData', () => {
 });
 
 describe('state mapping', () => {
-  it('maps app state to store state and back', () => {
-    const app = { viewMode: 'investigation' as const, showRoute: true, investigationTool: 'timeline' };
+  it('maps supported app state to store state and back', () => {
+    const app = { viewMode: 'workbench' as const, showRoute: true };
     const store = toStoreState(app);
     expect(store).toEqual(app);
     expect(fromStoreState(store)).toEqual(app);
+  });
+
+  it('opens projects saved in the retired Investigation view in Workbench', () => {
+    expect(fromStoreState({ viewMode: 'investigation', showRoute: true })).toEqual({
+      viewMode: 'workbench',
+      showRoute: true,
+    });
+  });
+
+  it('falls back to Map for unknown saved views', () => {
+    expect(fromStoreState({ viewMode: 'unknown', showRoute: false })).toEqual({
+      viewMode: 'map',
+      showRoute: false,
+    });
   });
 });

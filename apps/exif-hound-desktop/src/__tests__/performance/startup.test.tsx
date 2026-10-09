@@ -18,11 +18,6 @@ jest.mock('../../components/Map', () => ({
   default: () => <div data-testid="lazy-map">Map Component</div>
 }));
 
-jest.mock('../../components/Investigation', () => ({
-  __esModule: true,
-  default: () => <div data-testid="lazy-investigation">Investigation Component</div>
-}));
-
 jest.mock('../../components/FullExifView', () => ({
   __esModule: true,
   default: () => <div data-testid="lazy-full-exif">FullExifView Component</div>
@@ -78,12 +73,5 @@ describe('Startup Performance Optimizations', () => {
     
     // This test would need to simulate navigation to map view
     // For now, we just ensure it's not loaded initially
-  });
-
-  test('should lazy load Investigation component only when needed', async () => {
-    renderWithProviders(<App />);
-    
-    // Investigation should not be in initial render
-    expect(screen.queryByTestId('lazy-investigation')).not.toBeInTheDocument();
   });
 });

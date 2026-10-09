@@ -6,13 +6,12 @@
       "cache": false
     },
     "build": {
-      "env": ["EXIFHOUND_UPDATE_CHANNEL", "EXIFHOUND_FEATURES"]
+      "env": ["EXIFHOUND_UPDATE_CHANNEL"]
     },
     "tauri:build": {
       "cache": false,
       "env": [
         "EXIFHOUND_UPDATE_CHANNEL",
-        "EXIFHOUND_FEATURES",
         "TAURI_BUNDLES",
         "TAURI_TARGET"
       ],
