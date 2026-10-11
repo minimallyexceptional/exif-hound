@@ -5,9 +5,17 @@
 [![Latest release](https://img.shields.io/github/v/release/minimallyexceptional/exif-hound)](https://github.com/minimallyexceptional/exif-hound/releases/latest)
 
 Privacy-first desktop app for inspecting image EXIF metadata, mapping photo
-locations, and organizing investigations. **All processing happens locally on
-your device** — image data, metadata, filenames, and investigation data are
-never transmitted.
+locations, and organizing investigations. **EXIF analysis runs locally on your
+device** — images, metadata, filenames, and investigation data are not uploaded
+or transmitted. No account, no telemetry.
+
+The app uses the network only for:
+
+| Use | What is sent |
+| --- | --- |
+| **Map tiles** | Requests to load map imagery (OpenStreetMap by default; optional built-in styles or a custom tile server URL in settings) |
+| **Updates** | Signed update checks against the static feed on GitHub Pages; downloading an update when you choose to install one |
+| **Place names** | GPS coordinates to [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) for reverse geocoding when a photo has location metadata |
 
 ## Features
 
