@@ -18,6 +18,7 @@ coverage/
 apps/*/playwright-results/
 apps/*/playwright-report/
 apps/*/test-results/
+.playwright-mcp/
 
 # Logs
 logs

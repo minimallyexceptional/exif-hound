@@ -4,6 +4,10 @@ All notable changes to the Exif Hound desktop app are documented in this file.
 
 ## 2.6.7
 
+### Added
+
+- **Settings About:** GitHub Sponsor action sits beside "Star on GitHub" and opens the maintainer Sponsors page in the system browser.
+
 ### Fixed
 
 - **Settings startup:** Corrupt or blocked `localStorage` for map/privacy settings no longer crashes the app; reads and writes fall back to safe defaults.

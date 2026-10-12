@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Sun, Map as MapIcon, Star } from 'lucide-react';
+import { X, Moon, Sun, Map as MapIcon, Star, Heart } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
 import { openExternalUrl } from '../utils/openExternalUrl';
 import previewCustomTiles from '../assets/map-previews/custom-tiles.svg';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
-import { GITHUB_REPOSITORY_URL } from '../constants/github';
+import { GITHUB_REPOSITORY_URL, GITHUB_SPONSORS_URL } from '../constants/github';
 import { useUpdateControl } from './updater/useUpdateControl';
 import { UpdateStateName, UpdateErrorCode } from '../services/updater';
 
@@ -50,6 +50,12 @@ const Settings: React.FC<Props> = ({ onClose }) => {
   const handleStarOnGitHub = () => {
     void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
       console.error('Unable to open the Exif Hound GitHub repository:', error);
+    });
+  };
+
+  const handleSponsorOnGitHub = () => {
+    void openExternalUrl(GITHUB_SPONSORS_URL).catch((error: unknown) => {
+      console.error('Unable to open the GitHub Sponsors page:', error);
     });
   };
 
@@ -291,14 +297,32 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     device identifiers.
                   </p>
                   <div className="mt-4 pt-2 border-t border-app-gray-light/30">
-                    <button
-                      onClick={handleStarOnGitHub}
-                      data-testid="settings-star-on-github"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
-                    >
-                      <Star className="w-4 h-4" />
-                      Star on GitHub
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={handleStarOnGitHub}
+                        data-testid="settings-star-on-github"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
+                      >
+                        <Star className="w-4 h-4" />
+                        Star on GitHub
+                      </button>
+                      <a
+                        href={GITHUB_SPONSORS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handleSponsorOnGitHub();
+                        }}
+                        data-testid="settings-sponsor-on-github"
+                        aria-label="Sponsor minimallyexceptional"
+                        title="Sponsor minimallyexceptional"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors no-underline"
+                      >
+                        <Heart className="w-4 h-4 fill-current" aria-hidden />
+                        Sponsor
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
