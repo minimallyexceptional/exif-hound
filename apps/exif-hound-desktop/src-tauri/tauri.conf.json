@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://nominatim.openstreetmap.org https://minimallyexceptional.github.io https://*.tile.openstreetmap.org https://*.openstreetmap.fr https://*.opentopomap.org https: http: blob:; img-src 'self' data: blob: https: http:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:"
+      "csp": "default-src 'self'; connect-src 'self' ipc: https://nominatim.openstreetmap.org https://minimallyexceptional.github.io https://*.tile.openstreetmap.org https://*.openstreetmap.fr https://*.opentopomap.org https: http: blob:; img-src 'self' data: blob: https: http:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:"
     }
   },
   "bundle": {
