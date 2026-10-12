@@ -43,7 +43,6 @@ npm workspaces + Turborepo monorepo:
 | Path | What it is |
 | --- | --- |
 | `apps/exif-hound-desktop` | The desktop app: Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript; EXIF parsing in a Web Worker; visx analysis visualizations |
-| `apps/exif-hound-website` | Companion website |
 | `packages/exif-middleware` | Shared EXIF processing middleware (consumed by the desktop app via a Vite alias) |
 
 ## Development
