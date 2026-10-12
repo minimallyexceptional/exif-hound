@@ -6,6 +6,7 @@ import {
   artifactMatchesApp,
   feedUrl,
   RELEASED_TARGETS,
+  stagingDirectoryForTarget,
 } from '../manifest.mjs';
 
 const GOOD_SIGNATURE = 'dW5zaWduZWQgY29tbWVudA==';
@@ -27,6 +28,22 @@ function goodManifest(overrides = {}) {
     'linux-aarch64': {
       signature: GOOD_SIGNATURE,
       url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_arm64.AppImage',
+    },
+    'linux-x86_64-deb': {
+      signature: GOOD_SIGNATURE,
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_amd64.deb',
+    },
+    'linux-x86_64-rpm': {
+      signature: GOOD_SIGNATURE,
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_amd64.rpm',
+    },
+    'linux-aarch64-deb': {
+      signature: GOOD_SIGNATURE,
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_arm64.deb',
+    },
+    'linux-aarch64-rpm': {
+      signature: GOOD_SIGNATURE,
+      url: 'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_arm64.rpm',
     },
     ...overrides.platforms,
   };
@@ -214,5 +231,29 @@ test('rejects URLs pointing at the wrong tag or repo', () => {
 });
 
 test('RELEASED_TARGETS matches what the pipeline actually builds', () => {
-  assert.deepEqual(RELEASED_TARGETS, ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64']);
+  assert.deepEqual(RELEASED_TARGETS, [
+    'darwin-aarch64',
+    'windows-x86_64',
+    'linux-x86_64',
+    'linux-aarch64',
+    'linux-x86_64-deb',
+    'linux-x86_64-rpm',
+    'linux-aarch64-deb',
+    'linux-aarch64-rpm',
+  ]);
+});
+
+test('stagingDirectoryForTarget maps Linux package keys to arch staging dirs', () => {
+  assert.equal(stagingDirectoryForTarget('linux-x86_64-deb'), 'linux-x86_64');
+  assert.equal(stagingDirectoryForTarget('linux-aarch64-rpm'), 'linux-aarch64');
+  assert.equal(stagingDirectoryForTarget('darwin-aarch64'), 'darwin-aarch64');
+});
+
+test('rejects deb/rpm artifacts with wrong extension for the platform key', () => {
+  const manifest = goodManifest();
+  manifest.platforms['linux-x86_64-deb'].url =
+    'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_amd64.AppImage';
+  const result = validate(manifest);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('linux-x86_64-deb') && error.includes('naming')));
 });
