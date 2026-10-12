@@ -47,3 +47,18 @@ test('reports up to date after a manual update check', async ({ page }) => {
   await page.getByRole('button', { name: 'Check for Updates' }).click();
   await expect(page.getByTestId('update-status')).toContainText("You're up to date.");
 });
+
+test('shows GitHub star and sponsor actions side by side in About', async ({ page }) => {
+  const star = page.getByTestId('settings-star-on-github');
+  const sponsor = page.getByTestId('settings-sponsor-on-github');
+  await expect(star).toBeVisible();
+  await expect(sponsor).toBeVisible();
+  await expect(sponsor).toHaveAccessibleName('Sponsor minimallyexceptional');
+  await expect(sponsor).toHaveAttribute('href', 'https://github.com/sponsors/minimallyexceptional');
+  const [starBox, sponsorBox] = await Promise.all([star.boundingBox(), sponsor.boundingBox()]);
+  expect(starBox).toBeTruthy();
+  expect(sponsorBox).toBeTruthy();
+  expect(sponsorBox!.x).toBeGreaterThan(starBox!.x);
+  expect(Math.abs(sponsorBox!.y - starBox!.y)).toBeLessThan(8);
+});
+
