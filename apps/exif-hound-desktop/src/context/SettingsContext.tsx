@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MapSettings } from '../types';
+import { MapSettings, PrivacySettings } from '../types';
 
 interface SettingsContextType {
   mapSettings: MapSettings;
   updateMapSettings: (settings: Partial<MapSettings>) => void;
+  privacySettings: PrivacySettings;
+  updatePrivacySettings: (settings: Partial<PrivacySettings>) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -14,6 +16,10 @@ const defaultMapSettings: MapSettings = {
     enabled: false,
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
   }
+};
+
+const defaultPrivacySettings: PrivacySettings = {
+  reverseGeocoding: false,
 };
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
@@ -30,9 +36,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     };
   });
 
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() => {
+    const saved = localStorage.getItem('privacySettings');
+    const parsed = saved ? JSON.parse(saved) : {};
+    return {
+      ...defaultPrivacySettings,
+      ...parsed,
+    };
+  });
+
   useEffect(() => {
     localStorage.setItem('mapSettings', JSON.stringify(mapSettings));
   }, [mapSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('privacySettings', JSON.stringify(privacySettings));
+  }, [privacySettings]);
 
   const updateMapSettings = (settings: Partial<MapSettings>) => {
     setMapSettings(prev => ({
@@ -45,8 +64,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  const updatePrivacySettings = (settings: Partial<PrivacySettings>) => {
+    setPrivacySettings(prev => ({ ...prev, ...settings }));
+  };
+
   return (
-    <SettingsContext.Provider value={{ mapSettings, updateMapSettings }}>
+    <SettingsContext.Provider
+      value={{
+        mapSettings,
+        updateMapSettings,
+        privacySettings,
+        updatePrivacySettings,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );
