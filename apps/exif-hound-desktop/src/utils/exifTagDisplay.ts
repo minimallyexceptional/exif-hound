@@ -47,6 +47,22 @@ export function formatExifTagForDisplay(tag: ExifTagValue | undefined): string {
   return 'N/A';
 }
 
+function formatRationalPair(pair: unknown): string | null {
+  if (
+    Array.isArray(pair) &&
+    pair.length === 2 &&
+    typeof pair[0] === 'number' &&
+    typeof pair[1] === 'number'
+  ) {
+    return `${pair[0]}/${pair[1]}`;
+  }
+  return null;
+}
+
+function formatArrayItemForCopy(item: unknown): string {
+  return formatRationalPair(item) ?? String(item);
+}
+
 /** Raw value for clipboard copy (no units / formatted suffixes). */
 export function formatExifTagForCopy(tag: ExifTagValue | undefined): string {
   if (!tag) {
@@ -61,7 +77,9 @@ export function formatExifTagForCopy(tag: ExifTagValue | undefined): string {
       ) {
         return `${tag.value[0]}/${tag.value[1]}`;
       }
-      return tag.value.join(', ');
+      return tag.value
+        .map((item) => formatArrayItemForCopy(item))
+        .join(', ');
     }
     if (typeof tag.value === 'object') {
       return JSON.stringify(tag.value);
