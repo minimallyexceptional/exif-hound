@@ -261,9 +261,8 @@ function App() {
               <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
                 isExifPanelCollapsed ? 'w-0' : 'w-full'
               }`}>
-                <ExifErrorBoundary>
+                <ExifErrorBoundary key={selectedImage.id}>
                   <ExifPanel
-                    key={selectedImage.id}
                     image={selectedImage}
                     onShowComparison={handleShowComparison}
                   />
