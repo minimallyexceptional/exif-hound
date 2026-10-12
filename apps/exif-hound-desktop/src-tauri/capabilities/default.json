@@ -17,11 +17,10 @@
     "core:window:allow-set-title",
     "log:default",
     "dialog:default",
-    "http:default",
     {
-      "identifier": "http:allow-fetch",
+      "identifier": "http:default",
       "allow": [
-        "https://nominatim.openstreetmap.org/*"
+        { "url": "https://nominatim.openstreetmap.org/*" }
       ]
     },
     "updater:default",

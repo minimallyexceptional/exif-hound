@@ -6,6 +6,12 @@ import {
   LocationData,
 } from '../../utils/geocoding';
 
+const mockTauriFetch = jest.fn();
+
+jest.mock('@tauri-apps/plugin-http', () => ({
+  fetch: (...args: unknown[]) => mockTauriFetch(...args),
+}));
+
 describe('geocoding utility', () => {
   describe('formatLocation', () => {
     it('should format location data into a full address string', () => {
@@ -89,11 +95,12 @@ describe('geocoding utility', () => {
 
     afterEach(() => {
       global.fetch = originalFetch;
+      mockTauriFetch.mockReset();
       jest.restoreAllMocks();
       jest.useRealTimers();
     });
 
-    it('requests Nominatim with coordinates only and identifies the app via User-Agent', async () => {
+    it('requests Nominatim with coordinates only and does not set User-Agent (WebKit forbids it)', async () => {
       jest.spyOn(fileSystem, 'isTauriEnvironment').mockReturnValue(false);
       const fetchMock = jest.fn().mockResolvedValue({
         ok: true,
@@ -108,13 +115,32 @@ describe('geocoding utility', () => {
 
       expect(result.country).toBe('Testland');
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit?];
       expect(url).toContain('lat=12.3456');
       expect(url).toContain('lon=98.7654');
       expect(url).not.toContain('email=');
-      expect(init?.headers).toMatchObject({
-        'User-Agent': expect.stringContaining('ExifHound/'),
+      const headers = init?.headers as Record<string, string> | undefined;
+      expect(headers?.['User-Agent']).toBeUndefined();
+    });
+
+    it('uses the Tauri HTTP plugin in a desktop webview without setting User-Agent', async () => {
+      jest.spyOn(fileSystem, 'isTauriEnvironment').mockReturnValue(true);
+      mockTauriFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ address: { country: 'TauriLand' }, display_name: 'Tauri' }),
       });
+
+      jest.useFakeTimers();
+      const resultPromise = getLocationFromCoordinates(51.5074, -0.1278);
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(result.country).toBe('TauriLand');
+      expect(mockTauriFetch).toHaveBeenCalledTimes(1);
+      const [url, init] = mockTauriFetch.mock.calls[0] as [string, RequestInit?];
+      expect(url).toContain('nominatim.openstreetmap.org/reverse');
+      const headers = init?.headers as Record<string, string> | undefined;
+      expect(headers?.['User-Agent']).toBeUndefined();
     });
   });
 }); 

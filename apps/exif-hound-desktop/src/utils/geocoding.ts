@@ -4,24 +4,17 @@
 
 import { isTauriEnvironment } from './fileSystem';
 
-const NOMINATIM_USER_AGENT = `ExifHound/${__APP_VERSION__} (https://github.com/minimallyexceptional/exif-hound)`;
-
 async function fetchNominatim(url: string): Promise<Response> {
+  // Do not set User-Agent here. WebKit (Linux/macOS Tauri webviews) treats it
+  // as a forbidden header and `new Request(...)` / `fetch` can throw, which
+  // is how place-name lookup failed in release builds. The HTTP plugin sends
+  // its own User-Agent; webview fetch sends the webview's.
   if (isTauriEnvironment()) {
     const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
-    return tauriFetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': NOMINATIM_USER_AGENT,
-      },
-    });
+    return tauriFetch(url, { method: 'GET' });
   }
 
-  return fetch(url, {
-    headers: {
-      'User-Agent': NOMINATIM_USER_AGENT,
-    },
-  });
+  return fetch(url);
 }
 
 // Define the location data structure
