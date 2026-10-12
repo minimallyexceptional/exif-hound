@@ -4,6 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/minimallyexceptional/exif-hound)](https://github.com/minimallyexceptional/exif-hound/releases/latest)
 
+<img width="1854" height="1117" alt="image" src="https://github.com/user-attachments/assets/9cb0d7bf-27ec-4566-b576-78349a14e615" />
+
+
 Privacy-first desktop app for inspecting image EXIF metadata, mapping photo
 locations, and organizing investigations. **EXIF analysis runs locally on your
 device** — images, metadata, filenames, and investigation data are not uploaded
