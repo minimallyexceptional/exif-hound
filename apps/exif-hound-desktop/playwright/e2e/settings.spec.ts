@@ -7,7 +7,9 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('renders all sections', async ({ page }) => {
-  for (const section of ['Appearance', 'Map Settings', 'About']) await expect(page.getByRole('heading', { name: section, exact: true })).toBeVisible();
+  for (const section of ['Appearance', 'Map Settings', 'Privacy', 'About']) {
+    await expect(page.getByRole('heading', { name: section, exact: true })).toBeVisible();
+  }
   await expect(page.getByTestId('app-version')).toContainText(`Version ${APP_VERSION}`);
   await expect(page.getByRole('button', { name: 'Light', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Dark', exact: true })).toBeVisible();
@@ -34,8 +36,8 @@ test('selects a map style and persists it to localStorage', async ({ page }) => 
 
 test('toggles the custom tile server and persists the URL', async ({ page }) => {
   const url = 'https://{s}.tiles.example.org/{z}/{x}/{y}.png';
-  await page.locator('input[type="checkbox"]').check({ force: true });
-  await page.locator('input[type="text"]').fill(url);
+  await page.getByText('Use Custom Tiles').click();
+  await page.getByPlaceholder(/tile server URL/i).fill(url);
   const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('mapSettings')!));
   expect(settings.customTiles.enabled).toBe(true);
   expect(settings.customTiles.url).toContain('tiles.example.org');

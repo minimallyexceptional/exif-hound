@@ -60,7 +60,11 @@ jest.mock('leaflet', () => {
 });
 
 jest.mock('../../context/SettingsContext', () => ({
-  useSettings: () => ({ mapSettings: undefined }),
+  useSettings: () => ({
+    mapSettings: undefined,
+    privacySettings: { reverseGeocoding: false },
+    updatePrivacySettings: jest.fn(),
+  }),
 }));
 
 const makeFC = (name: string): FeatureCollection<Geometry, GeoJsonProperties> => ({

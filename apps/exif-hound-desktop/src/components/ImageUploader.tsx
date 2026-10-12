@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { ImageData } from '../types';
 import { useExifData } from '../hooks/useExifData';
+import { useSettings } from '../context/SettingsContext';
 
 // Utility for limiting concurrent operations
 class ConcurrencyLimiter {
@@ -50,7 +51,9 @@ interface Props {
 const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', hideDropZone = false }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingCount, setProcessingCount] = useState(0);
-  const { processExifData } = useExifData({ fetchLocation: false }); // Don't await location in initial processing
+  const { privacySettings } = useSettings();
+  const fetchLocation = privacySettings.reverseGeocoding;
+  const { processExifData } = useExifData({ fetchLocation });
 
   // Create concurrency limiter for EXIF processing
   const concurrencyLimiter = useCallback(() => new ConcurrencyLimiter(3), []);
@@ -76,10 +79,9 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
             id: imageId,
             file,
             url,
-            exif: {
-              // Set loading state for location
-              location: { loading: true }
-            },
+            exif: fetchLocation
+              ? { location: { loading: true } }
+              : {},
             isProcessing: true
           };
           
@@ -135,7 +137,7 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
     completedImages.forEach(onImageUpload);
     setIsProcessing(false);
     setProcessingCount(0);
-  }, [onImageUpload, processExifData, concurrencyLimiter]);
+  }, [onImageUpload, processExifData, concurrencyLimiter, fetchLocation]);
 
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

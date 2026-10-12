@@ -84,14 +84,12 @@ export async function getLocationFromCoordinates(
     await respectRateLimit();
     
     // Use OpenStreetMap Nominatim for reverse geocoding
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
-    
-    const response = await fetch(url, {
-      headers: {
-        // Add a user agent as required by Nominatim usage policy
-        'User-Agent': 'Exif-Hound/1.0',
-      },
-    });
+    // email= identifies the app per Nominatim usage policy (User-Agent cannot be set in webview fetch).
+    const url =
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}` +
+      `&zoom=18&addressdetails=1&email=minimallyexceptionalapps%40gmail.com`;
+
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`Geocoding API error: ${response.status}`);

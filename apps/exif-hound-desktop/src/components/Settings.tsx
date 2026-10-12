@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { X, Moon, Sun, Map as MapIcon, Star } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openExternalUrl } from '../utils/openExternalUrl';
+import previewCustomTiles from '../assets/map-previews/custom-tiles.svg';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
-import { isTauriEnvironment } from '../utils/fileSystem';
 import { useUpdateControl } from './updater/useUpdateControl';
 import { UpdateStateName, UpdateErrorCode } from '../services/updater';
 
@@ -43,16 +43,12 @@ function renderUpdateStatus(
 
 const Settings: React.FC<Props> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
-  const { mapSettings, updateMapSettings } = useSettings();
+  const { mapSettings, updateMapSettings, privacySettings, updatePrivacySettings } = useSettings();
   const [appVersion, setAppVersion] = useState('…');
   const update = useUpdateControl();
 
   const handleStarOnGitHub = () => {
-    if (!isTauriEnvironment()) {
-      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+    void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
       console.error('Unable to open the Exif Hound GitHub repository:', error);
     });
   };
@@ -146,7 +142,11 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       }`}
                     >
                       <img
-                        src={style.preview}
+                        src={
+                          mapSettings.customTiles.enabled
+                            ? previewCustomTiles
+                            : style.preview
+                        }
                         alt={style.name}
                         className="w-full aspect-video object-cover"
                       />
@@ -196,6 +196,30 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   </p>
                 </div>
               </div>
+            </section>
+
+            <section className="glass-panel rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-app-white mb-2">Privacy</h2>
+              <p className="text-app-accent-dim mb-6 text-sm">
+                EXIF analysis stays on your device. Network use is limited to map tiles, optional
+                place-name lookup, and update checks.
+              </p>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacySettings.reverseGeocoding}
+                  onChange={(e) =>
+                    updatePrivacySettings({ reverseGeocoding: e.target.checked })
+                  }
+                  className="sr-only peer"
+                  data-testid="privacy-reverse-geocoding"
+                />
+                <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
+                <span className="ml-3 text-sm font-medium text-app-white">
+                  Look up place names for GPS-tagged photos (sends coordinates to OpenStreetMap
+                  Nominatim)
+                </span>
+              </label>
             </section>
 
             <section className="glass-panel rounded-lg p-6">
