@@ -7,6 +7,7 @@ import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
 import Logomark from './common/Logomark';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 
 type ViewMode = 'map' | 'list' | 'investigation';
 
@@ -35,7 +36,7 @@ export const AppHeader: React.FC<Props> = ({
 
   const handleStarOnGitHub = () => {
     void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
-      console.error('Unable to open the Exif Hound GitHub repository:', error);
+      console.error(`Unable to open the ${APP_DISPLAY_NAME} GitHub repository:`, error);
     });
     setIsMobileMenuOpen(false);
   };
@@ -149,7 +150,7 @@ export const AppHeader: React.FC<Props> = ({
             <Logomark className="w-9 h-9" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
-                Exif Hound
+                {APP_DISPLAY_NAME}
               </h1>
               <p className="text-xs text-app-accent-dim hidden sm:block">
                 Tracking digital footprints in every image
@@ -252,7 +253,7 @@ export const AppHeader: React.FC<Props> = ({
                           className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-app-gray-light text-app-white text-sm transition-colors"
                         >
                           <Info className="w-4 h-4" />
-                          About Exif Hound
+                          About {APP_DISPLAY_NAME}
                         </button>
                       </div>
                     </Panel>

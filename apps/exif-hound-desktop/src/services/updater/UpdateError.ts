@@ -2,7 +2,7 @@
  * Update errors.
  *
  * The updater is non-critical infrastructure: any failure here must never
- * prevent EXIF HOUND from launching or working normally. Silent (automatic)
+ * prevent EXIF Hound from launching or working normally. Silent (automatic)
  * checks swallow these entirely; manual checks surface `userMessage`.
  *
  * There is deliberately no "ignore signature" path. An artifact whose

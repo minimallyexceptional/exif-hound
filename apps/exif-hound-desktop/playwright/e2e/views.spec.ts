@@ -48,7 +48,7 @@ test('opens the help menu and its entries work', async ({ page }) => {
   await expect(page.getByTestId('update-status')).toContainText("You're up to date.");
   await closeSettings(page);
   await page.getByRole('button', { name: 'Help menu' }).click();
-  await page.locator('#help-menu').getByText('About Exif Hound').click();
+  await page.locator('#help-menu').getByText('About EXIF Hound').click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await closeSettings(page);
 });

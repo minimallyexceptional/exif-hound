@@ -1,12 +1,16 @@
 # Changelog
 
-All notable changes to the Exif Hound desktop app are documented in this file.
+All notable changes to the EXIF Hound desktop app are documented in this file.
 
 ## 2.6.7
 
 ### Added
 
 - **Settings About:** GitHub Sponsor action sits beside "Star on GitHub" and opens the maintainer Sponsors page in the system browser.
+
+### Changed
+
+- **Branding:** User-facing product name is consistently "EXIF Hound".
 
 ### Fixed
 

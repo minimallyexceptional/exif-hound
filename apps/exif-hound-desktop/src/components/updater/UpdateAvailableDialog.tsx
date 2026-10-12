@@ -13,7 +13,7 @@ interface Props {
 }
 
 /**
- * "EXIF HOUND 2.7.0 is available" — shown when a check discovers an update.
+ * "EXIF Hound 2.7.0 is available" — shown when a check discovers an update.
  * Never opens on its own schedule without user consent to act: only after
  * the user picks Download does anything download.
  */

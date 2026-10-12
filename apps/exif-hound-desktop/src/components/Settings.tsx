@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
 import { GITHUB_REPOSITORY_URL, GITHUB_SPONSORS_URL } from '../constants/github';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 import { useUpdateControl } from './updater/useUpdateControl';
 import { UpdateStateName, UpdateErrorCode } from '../services/updater';
 
@@ -49,7 +50,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
 
   const handleStarOnGitHub = () => {
     void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
-      console.error('Unable to open the Exif Hound GitHub repository:', error);
+      console.error(`Unable to open the ${APP_DISPLAY_NAME} GitHub repository:`, error);
     });
   };
 
@@ -232,7 +233,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
               <h2 className="text-xl font-semibold text-app-white mb-6">About</h2>
               <div className="space-y-4 text-app-accent-dim">
                 <p>
-                  Exif Hound is a powerful tool for exploring and analyzing image metadata.
+                  {APP_DISPLAY_NAME} is a powerful tool for exploring and analyzing image metadata.
                   Built with privacy in mind, all processing happens locally in your browser.
                 </p>
                 <p data-testid="app-version">Version {appVersion}</p>
@@ -259,7 +260,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'available' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        Exif Hound {update.state.update.version} is available.
+                        {APP_DISPLAY_NAME} {update.state.update.version} is available.
                       </span>
                       <button
                         onClick={update.download}
@@ -280,7 +281,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'ready-to-install' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        Exif Hound {update.state.update.version} is ready to install.
+                        {APP_DISPLAY_NAME} {update.state.update.version} is ready to install.
                       </span>
                       <button
                         onClick={update.restart}
@@ -291,7 +292,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     </div>
                   )}
                   <p className="text-xs mt-4 text-app-accent-dim">
-                    EXIF HOUND does not collect telemetry or analytics when checking for updates.
+                    {APP_DISPLAY_NAME} does not collect telemetry or analytics when checking for updates.
                     Update checks retrieve a static release manifest over HTTPS and do not transmit
                     investigation data, image metadata, filenames, usage information, or persistent
                     device identifiers.

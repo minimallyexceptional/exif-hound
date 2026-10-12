@@ -6,7 +6,7 @@
  *
  *  - the update state machine (UpdateState)
  *  - silent (automatic) vs manual (user-initiated) check semantics:
- *      * automatic check failures are swallowed; EXIF HOUND keeps working
+ *      * automatic check failures are swallowed; EXIF Hound keeps working
  *      * manual check failures surface a clear, non-technical message
  *  - download with progress, install, and relaunch
  *  - a single-flight guard so checks/downloads cannot race
