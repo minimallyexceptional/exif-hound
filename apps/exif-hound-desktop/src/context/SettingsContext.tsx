@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { MapSettings, PrivacySettings } from '../types';
+import { readJsonStorage, writeJsonStorage } from '../utils/settingsStorage';
 
 interface SettingsContextType {
   mapSettings: MapSettings;
@@ -24,33 +25,27 @@ const defaultPrivacySettings: PrivacySettings = {
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [mapSettings, setMapSettings] = useState<MapSettings>(() => {
-    const saved = localStorage.getItem('mapSettings');
-    const savedSettings = saved ? JSON.parse(saved) : {};
+    const savedSettings = readJsonStorage<Partial<MapSettings>>('mapSettings', {});
     return {
       ...defaultMapSettings,
       ...savedSettings,
       customTiles: {
         ...defaultMapSettings.customTiles,
-        ...(savedSettings.customTiles || {})
-      }
+        ...(savedSettings.customTiles || {}),
+      },
     };
   });
 
-  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() => {
-    const saved = localStorage.getItem('privacySettings');
-    const parsed = saved ? JSON.parse(saved) : {};
-    return {
-      ...defaultPrivacySettings,
-      ...parsed,
-    };
-  });
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() =>
+    readJsonStorage<PrivacySettings>('privacySettings', defaultPrivacySettings)
+  );
 
   useEffect(() => {
-    localStorage.setItem('mapSettings', JSON.stringify(mapSettings));
+    writeJsonStorage('mapSettings', mapSettings);
   }, [mapSettings]);
 
   useEffect(() => {
-    localStorage.setItem('privacySettings', JSON.stringify(privacySettings));
+    writeJsonStorage('privacySettings', privacySettings);
   }, [privacySettings]);
 
   const updateMapSettings = (settings: Partial<MapSettings>) => {
