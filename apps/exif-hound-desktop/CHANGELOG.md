@@ -2,6 +2,12 @@
 
 All notable changes to the EXIF Hound desktop app are documented in this file.
 
+## 2.6.9
+
+### Fixed
+
+- **Place names:** Reverse geocoding works again in packaged builds. Nominatim is now allowed on the Tauri `http:default` scope, and lookups no longer set a `User-Agent` header that WebKit rejects.
+
 ## 2.6.7
 
 ### Added
