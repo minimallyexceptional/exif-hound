@@ -59,6 +59,8 @@ test('feedUrl separates update channels', () => {
 });
 
 test('artifactMatchesApp accepts consolidated names and rejects legacy editions', () => {
+  assert.equal(artifactMatchesApp('EXIF Hound.app.tar.gz'), true);
+  assert.equal(artifactMatchesApp('EXIF Hound_2.7.0_x64-setup.exe'), true);
   assert.equal(artifactMatchesApp('Exif Hound.app.tar.gz'), true);
   assert.equal(artifactMatchesApp('Exif Hound_2.7.0_x64-setup.exe'), true);
   assert.equal(artifactMatchesApp('exif-hound_2.7.0_amd64.AppImage'), true);
@@ -122,7 +124,7 @@ test('rejects legacy edition artifacts', () => {
   });
   const result = validate(manifest, { targets: ['darwin-aarch64'] });
   assert.equal(result.valid, false);
-  assert.ok(result.errors.some(error => error.includes('consolidated Exif Hound app')));
+  assert.ok(result.errors.some(error => error.includes('consolidated EXIF Hound app')));
 });
 
 test('rejects manifest version that does not match the release version', () => {

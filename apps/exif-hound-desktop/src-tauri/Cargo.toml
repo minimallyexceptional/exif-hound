@@ -5,7 +5,7 @@ name = "exif-hound"
 # This constant is frozen so Cargo.toml and Cargo.lock require no edits per release.
 version = "0.1.0"
 description = "Exif metadata explorer and map visualization tool"
-authors = ["Exif Hound Team"]
+authors = ["EXIF Hound Team"]
 license = "MIT"
 repository = ""
 edition = "2021"

@@ -1,5 +1,5 @@
 /**
- * Update configuration for the single Exif Hound application.
+ * Update configuration for the single EXIF Hound application.
  *
  * PRIVACY NOTE: the update system is pull-based and anonymous by design.
  * The updater fetches a small static manifest from the project's GitHub Pages
@@ -14,6 +14,8 @@
  * or a channel overlay and consumed by the Rust updater plugin. The constants
  * here keep the frontend, manifest tooling, and documentation aligned.
  */
+
+import { APP_DISPLAY_NAME } from '../../constants/brand';
 
 /** Internal: used to test update chains (e.g. 2.7.0-test.1 -> 2.7.0-test.2). */
 export type UpdateChannel = 'stable' | 'beta' | 'internal';
@@ -53,6 +55,6 @@ export function getUpdateConfiguration(
   return {
     channel,
     feedUrl: resolveFeedUrl(channel),
-    appName: 'Exif Hound',
+    appName: APP_DISPLAY_NAME,
   };
 }

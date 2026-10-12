@@ -1,4 +1,4 @@
-# DESIGN.md — Exif Hound (desktop app)
+# DESIGN.md — EXIF Hound (desktop app)
 
 Generated from `apps/exif-hound-desktop` code. This is the incumbent design
 system; polish aligns toward it, never against it.

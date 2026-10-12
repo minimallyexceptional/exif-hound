@@ -1,6 +1,6 @@
-# Exif Hound automatic updates
+# EXIF Hound automatic updates
 
-Exif Hound uses Tauri's signed updater to check for, download, verify, and
+EXIF Hound uses Tauri's signed updater to check for, download, verify, and
 install releases. There is one application, one update-signing identity, and
 one GitHub Pages manifest per release channel.
 
@@ -204,7 +204,7 @@ node scripts/updater/validate-update-manifest.mjs latest.json \
 
 Validation covers SemVer and channel policy, RFC 3339 publication dates,
 required targets, HTTPS release URLs, non-empty signatures, safe filenames,
-the consolidated Exif Hound artifact name, duplicate platform keys, and local
+the consolidated EXIF Hound artifact name, duplicate platform keys, and local
 staging-file existence.
 
 ## Local checks
