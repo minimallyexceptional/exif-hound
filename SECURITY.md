@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Exif Hound processes images locally and is designed to never transmit user
+EXIF Hound processes images locally and is designed to never transmit user
 data. If you believe you have found a security vulnerability, **please do not
 open a public GitHub issue**.
 

@@ -33,7 +33,7 @@ export const UpdateReadyDialog: React.FC<Props> = ({
       <UpdateDialog title="Unsaved work" onClose={() => setConfirmingUnsaved(false)}>
         <div className="space-y-4">
           <p className="text-app-white">
-            You have unsaved work. Restarting now will close EXIF HOUND and any loaded
+            You have unsaved work. Restarting now will close EXIF Hound and any loaded
             images that have not been exported will be lost.
           </p>
           <p className="text-sm text-app-accent-dim">

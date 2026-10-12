@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, BarChart, Search } from 'lucide-react';
 import Logomark from './common/Logomark';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 
 const SplashScreen: React.FC = () => {
   const [showSecondary, setShowSecondary] = useState(false);
@@ -39,7 +40,7 @@ const SplashScreen: React.FC = () => {
           showSecondary ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
         }`}>
           <h1 className="text-3xl font-bold text-app-white mb-2">
-            EXIF HOUND
+            {APP_DISPLAY_NAME}
           </h1>
           <p className="text-app-accent-dim font-mono">
             INITIALIZING METADATA ANALYSIS...

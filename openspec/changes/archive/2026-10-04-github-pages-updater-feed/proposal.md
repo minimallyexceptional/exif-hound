@@ -6,7 +6,7 @@ The desktop updater currently points to `updates.exifhound.com`, which does not 
 
 ## What Changes
 
-- Add a small static Exif Hound updates page suitable for GitHub Pages.
+- Add a small static EXIF Hound updates page suitable for GitHub Pages.
 - Publish validated stable, beta, and internal manifests at predictable channel paths on the Pages site while retaining the other channels' current manifests.
 - Point the native updater configuration and its frontend diagnostics at those Pages URLs.
 - Support beta releases through the existing manual release workflow so all configured update channels can publish their own manifests.
