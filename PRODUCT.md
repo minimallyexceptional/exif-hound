@@ -21,9 +21,9 @@ command line or a cloud upload. All processing happens locally.
 - **Investigation-grade.** The Investigation view (timelines, device dendrogram,
   software-processing analysis, geographic analysis) is a first-class surface,
   not a gimmick. Precision and accuracy of metadata matter more than flourish.
-- **Monorepo layout.** `apps/exif-hound-desktop` is the product; `apps/exif-hound-website`
-  is marketing/site; `packages/exif-middleware` holds EXIF processing. The desktop
-  app is the design center of gravity.
+- **Monorepo layout.** `apps/exif-hound-desktop` is the product;
+  `packages/exif-middleware` holds EXIF processing. The desktop app is the design
+  center of gravity.
 
 ## Surface modes
 
@@ -31,7 +31,6 @@ command line or a cloud upload. All processing happens locally.
 | --- | --- | --- |
 | Desktop app (uploader, map, list, gallery, EXIF views) | **Operate** | Fast scanability, consistent states, native-app expectations |
 | Investigation views | **Operate (dense)** | Information density without disorientation |
-| Website (`apps/exif-hound-website`) | **Persuade** | Earn download action |
 
 ## Non-goals
 
