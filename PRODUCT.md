@@ -1,8 +1,8 @@
-# PRODUCT.md — Exif Hound
+# PRODUCT.md — EXIF Hound
 
 ## What this is
 
-Exif Hound is a cross-platform desktop application (Tauri + React) for inspecting,
+EXIF Hound is a cross-platform desktop application (Tauri + React) for inspecting,
 visualizing, and managing EXIF metadata in photos. Users import images, see what
 metadata they carry (GPS location, camera, lens, timestamps, software), view photo
 locations on an interactive map, run investigative analyses, and export findings

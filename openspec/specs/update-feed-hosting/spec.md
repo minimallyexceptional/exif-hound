@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Define how Exif Hound publishes public update manifests and release information on GitHub Pages so installed applications can discover signed releases without a separate update-hosting service.
+Define how EXIF Hound publishes public update manifests and release information on GitHub Pages so installed applications can discover signed releases without a separate update-hosting service.
 
 ## Requirements
 
 ### Requirement: Public updates landing page
 
-The project SHALL publish a static Exif Hound updates page on GitHub Pages. The page SHALL identify the application, provide a link to GitHub Releases, and list the stable, beta, and internal manifest URLs.
+The project SHALL publish a static EXIF Hound updates page on GitHub Pages. The page SHALL identify the application, provide a link to GitHub Releases, and list the stable, beta, and internal manifest URLs.
 
 #### Scenario: Visitor opens the Pages site
 
 - **WHEN** a visitor opens the configured GitHub Pages site
-- **THEN** the page identifies Exif Hound and links to releases and each update channel's manifest
+- **THEN** the page identifies EXIF Hound and links to releases and each update channel's manifest
 
 ### Requirement: Public channel manifests
 

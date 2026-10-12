@@ -1,4 +1,10 @@
-import { formatLocation, formatShortLocation, LocationData } from '../../utils/geocoding';
+import * as fileSystem from '../../utils/fileSystem';
+import {
+  formatLocation,
+  formatShortLocation,
+  getLocationFromCoordinates,
+  LocationData,
+} from '../../utils/geocoding';
 
 describe('geocoding utility', () => {
   describe('formatLocation', () => {
@@ -75,6 +81,40 @@ describe('geocoding utility', () => {
     it('should handle error in location data', () => {
       const result = formatShortLocation({ loading: false, error: 'Some error' });
       expect(result).toBe('Unknown');
+    });
+  });
+
+  describe('getLocationFromCoordinates', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+
+    it('requests Nominatim with coordinates only and identifies the app via User-Agent', async () => {
+      jest.spyOn(fileSystem, 'isTauriEnvironment').mockReturnValue(false);
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ address: { country: 'Testland' }, display_name: 'Test' }),
+      });
+      global.fetch = fetchMock as typeof fetch;
+
+      jest.useFakeTimers();
+      const resultPromise = getLocationFromCoordinates(12.3456, 98.7654);
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(result.country).toBe('Testland');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toContain('lat=12.3456');
+      expect(url).toContain('lon=98.7654');
+      expect(url).not.toContain('email=');
+      expect(init?.headers).toMatchObject({
+        'User-Agent': expect.stringContaining('ExifHound/'),
+      });
     });
   });
 }); 

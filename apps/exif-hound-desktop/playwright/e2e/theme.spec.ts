@@ -27,7 +27,7 @@ test('persists the chosen theme across reloads', async ({ page }) => {
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Exif Hound' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'EXIF Hound' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
