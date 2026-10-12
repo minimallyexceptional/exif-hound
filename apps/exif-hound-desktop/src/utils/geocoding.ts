@@ -2,6 +2,28 @@
  * Geocoding utility for converting coordinates to human-readable locations
  */
 
+import { isTauriEnvironment } from './fileSystem';
+
+const NOMINATIM_USER_AGENT = `ExifHound/${__APP_VERSION__} (https://github.com/minimallyexceptional/exif-hound)`;
+
+async function fetchNominatim(url: string): Promise<Response> {
+  if (isTauriEnvironment()) {
+    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
+    return tauriFetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': NOMINATIM_USER_AGENT,
+      },
+    });
+  }
+
+  return fetch(url, {
+    headers: {
+      'User-Agent': NOMINATIM_USER_AGENT,
+    },
+  });
+}
+
 // Define the location data structure
 export interface LocationData {
   country?: string;
@@ -83,13 +105,11 @@ export async function getLocationFromCoordinates(
     // Wait for rate limit before making API call
     await respectRateLimit();
     
-    // Use OpenStreetMap Nominatim for reverse geocoding
-    // email= identifies the app per Nominatim usage policy (User-Agent cannot be set in webview fetch).
     const url =
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}` +
-      `&zoom=18&addressdetails=1&email=minimallyexceptionalapps%40gmail.com`;
+      `&zoom=18&addressdetails=1`;
 
-    const response = await fetch(url);
+    const response = await fetchNominatim(url);
     
     if (!response.ok) {
       throw new Error(`Geocoding API error: ${response.status}`);
