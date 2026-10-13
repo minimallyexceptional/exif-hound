@@ -23,8 +23,16 @@ beforeEach(() => {
   fs.writeFileSync(path.join(staging, 'windows-x86_64', 'Exif.Hound_2.7.0_x64-setup.exe.sig'), 'SIG-WIN');
   fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.AppImage'), 'linux-bytes');
   fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.AppImage.sig'), 'SIG-LINUX');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.deb'), 'linux-deb-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.deb.sig'), 'SIG-LINUX-DEB');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.rpm'), 'linux-rpm-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-x86_64', 'Exif.Hound_2.7.0_amd64.rpm.sig'), 'SIG-LINUX-RPM');
   fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.AppImage'), 'linux-arm-bytes');
   fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.AppImage.sig'), 'SIG-LINUX-ARM');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.deb'), 'linux-arm-deb-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.deb.sig'), 'SIG-LINUX-ARM-DEB');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.rpm'), 'linux-arm-rpm-bytes');
+  fs.writeFileSync(path.join(staging, 'linux-aarch64', 'Exif.Hound_2.7.0_arm64.rpm.sig'), 'SIG-LINUX-ARM-RPM');
 });
 
 afterEach(() => {
@@ -90,6 +98,14 @@ test('generate produces a valid manifest from staged artifacts; validate accepts
   assert.equal(manifest.platforms['darwin-aarch64'].signature, 'SIG-MAC');
   assert.equal(manifest.platforms['windows-x86_64'].signature, 'SIG-WIN');
   assert.equal(manifest.platforms['linux-x86_64'].signature, 'SIG-LINUX');
+  assert.equal(
+    manifest.platforms['linux-x86_64-deb'].url,
+    'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif.Hound_2.7.0_amd64.deb'
+  );
+  assert.equal(manifest.platforms['linux-x86_64-deb'].signature, 'SIG-LINUX-DEB');
+  assert.equal(manifest.platforms['linux-x86_64-rpm'].signature, 'SIG-LINUX-RPM');
+  assert.equal(manifest.platforms['linux-aarch64-deb'].signature, 'SIG-LINUX-ARM-DEB');
+  assert.equal(Object.keys(manifest.platforms).length, 8);
   await assert.doesNotReject(() => validateManifestCli());
 });
 
