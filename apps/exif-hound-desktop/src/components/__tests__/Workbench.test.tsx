@@ -69,6 +69,7 @@ describe('Workbench workflow editor', () => {
     expect(screen.getByRole('button', { name: 'Run Workflow' })).toBeDisabled();
     expect(screen.getByText('Add an analysis transform to the workflow.')).toBeInTheDocument();
     expect(screen.getByText('Start with an image')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add All images node' })).toBeInTheDocument();
   });
 
   it('collapses the nodes and inspector rails independently', async () => {
