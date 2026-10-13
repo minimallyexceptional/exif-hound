@@ -262,6 +262,28 @@ describe('image write-through', () => {
     await expect(store.listWorkflowIdentifierResults('forensic-flow', 'identifiers-1')).resolves.toMatchObject([
       { resultStatus: 'success', result: { text: '', words: [], candidates: [] }, imageId: image.id, nodeId: 'identifiers-1', preprocessingManifest: { profile: 'ocr-default-v1', operations: [] } },
     ]);
+    expect(await store.listProjectProvenanceResults()).toHaveLength(2);
+    expect(await store.listProjectIdentifierResults()).toHaveLength(1);
+  });
+
+  it('lists all project OCR rows across workflows', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'ProjectOcrList', '2.7.0');
+    const image = await store.addImage('scan.png', pngBytes, {});
+    const now = new Date();
+    await store.saveWorkflow({ id: 'flow-a', name: 'A', graphJson: '{}', updatedAt: now });
+    await store.saveWorkflow({ id: 'flow-b', name: 'B', graphJson: '{}', updatedAt: now });
+    await store.appendWorkflowOcrResult({
+      imageId: image.id, imageName: image.fileName, text: 'first', confidence: 90,
+      processedAt: now, workflowId: 'flow-a', workflowRunId: 'run-a', nodeId: 'ocr-a',
+    });
+    await store.appendWorkflowOcrResult({
+      imageId: image.id, imageName: image.fileName, text: 'second', confidence: 91,
+      processedAt: new Date(now.getTime() + 1000), workflowId: 'flow-b', workflowRunId: 'run-b', nodeId: 'ocr-b',
+    });
+    const rows = await store.listProjectOcrResults();
+    expect(rows).toHaveLength(2);
+    expect(rows[0].text).toBe('second');
+    expect(rows[1].text).toBe('first');
   });
 
   it('migrates schema v4 projects to add forensic result tables without losing OCR rows', async () => {

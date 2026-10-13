@@ -441,6 +441,24 @@ export class ProjectStore {
       .sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
   }
 
+  async listProjectOcrResults(): Promise<OcrResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.ocrResults);
+    return rows.sort((a, b) => b.id - a.id).map(mapOcrResult);
+  }
+
+  async listProjectProvenanceResults(): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.imageProvenanceResults);
+    return rows.sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
+  async listProjectIdentifierResults(): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    return rows.sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
   async saveWorkflow(record: ProjectWorkflowRecord): Promise<void> {
     await this.assertHealthy();
     await this.db.insert(schema.workbenchWorkflows).values({
