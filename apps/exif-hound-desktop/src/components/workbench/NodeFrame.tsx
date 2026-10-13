@@ -1,7 +1,7 @@
 import React from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
-import { FileOutput, FileSearch, Image, ScanSearch, ScanText, Text } from 'lucide-react';
+import { FileOutput, FileSearch, Image, Images, ScanSearch, ScanText, Text } from 'lucide-react';
 import type { NodeKind } from 'workbench-workflow';
 import type { ImageData } from '../../types';
 import type { LucideIcon } from 'lucide-react';
@@ -34,6 +34,7 @@ type Props = NodeProps & {
 
 const labels: Record<NodeKind, { title: string; icon: LucideIcon }> = {
   image: { title: 'Image', icon: Image },
+  'all-images': { title: 'All images', icon: Images },
   ocr: { title: 'OCR', icon: ScanText },
   provenance: { title: 'Image Provenance', icon: FileSearch },
   'visual-identifiers': { title: 'Text & Identifiers', icon: ScanSearch },
