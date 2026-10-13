@@ -5,9 +5,9 @@ import {
 } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord } from 'investigation-archive';
-import { clearProjectImageSelections, parseWorkflow, serializeWorkflow, normalizeConnection, WorkflowRunQueue, WorkflowRunner, type NodeKind, type WorkflowNode } from 'workbench-workflow';
-import type { OcrResult } from 'ocr-middleware';
+import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord } from 'exif-hound-core';
+import { clearProjectImageSelections, parseWorkflow, serializeWorkflow, normalizeConnection, WorkflowRunQueue, WorkflowRunner, type NodeKind, type WorkflowNode } from 'exif-hound-core';
+import type { OcrResult } from 'exif-hound-core';
 import type { ImageData } from '../types';
 import { Button } from './common/Button';
 import { appControlBlockClassName } from './common/formControls';
@@ -29,19 +29,19 @@ import { notify } from '../feedback';
 import {
   IDENTIFIER_FAMILY_OPTIONS,
   WORKBENCH_PORT_DEFAULTS,
-} from '../services/workbench/workbenchCatalog';
-import { formatOcrCoordinates } from '../services/workbench/workbenchOcrHelpers';
+} from 'exif-hound-core';
+import { formatOcrCoordinates } from 'exif-hound-core';
 import {
   WorkbenchGraphMapper,
   createEmptyWorkflowGraph,
   createWorkflowNodeId,
   type WorkbenchCanvasNode,
-} from '../services/workbench/WorkbenchGraphMapper';
-import { WorkbenchInspectorService, type WorkbenchEvidenceEntry } from '../services/workbench/WorkbenchInspectorService';
-import { WorkbenchProjectService } from '../services/workbench/WorkbenchProjectService';
-import { WorkbenchRunPlanner } from '../services/workbench/WorkbenchRunPlanner';
-import { WorkbenchRunService } from '../services/workbench/WorkbenchRunService';
-import { VisualIdentifierSettingsResolver } from '../services/workbench/VisualIdentifierSettingsResolver';
+} from 'exif-hound-core';
+import { WorkbenchInspectorService, type WorkbenchEvidenceEntry } from 'exif-hound-core';
+import { WorkbenchProjectService } from 'exif-hound-core';
+import { WorkbenchRunPlanner } from 'exif-hound-core';
+import { WorkbenchRunService } from 'exif-hound-core';
+import { VisualIdentifierSettingsResolver } from 'exif-hound-core';
 
 interface Template { name: string; content: string }
 interface Props {

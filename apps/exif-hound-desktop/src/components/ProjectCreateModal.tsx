@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FolderOpen, AlertCircle } from 'lucide-react';
 import { Modal } from './common/Modal';
 import { Button } from './common/Button';
-import { pickParentFolder } from '../services/investigationArchive/projectDialogs';
+import { pickParentFolder } from 'exif-hound-core';
 
 interface Props {
   onClose: () => void;

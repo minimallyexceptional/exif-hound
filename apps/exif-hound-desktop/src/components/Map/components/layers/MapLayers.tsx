@@ -52,13 +52,18 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
 
   // Handle KML layer
   useEffect(() => {
-    if (!kmlData?.layer || !(kmlData.layer instanceof L.GeoJSON)) {
+    const kmlLayer = kmlData?.layer;
+    const hasGeoJsonLayer =
+      kmlLayer &&
+      typeof (kmlLayer as L.GeoJSON).toGeoJSON === 'function' &&
+      typeof (kmlLayer as L.GeoJSON).getBounds === 'function';
+    if (!hasGeoJsonLayer) {
       setKmlGeoJSON(null);
       return;
     }
 
     try {
-      const geoJSON = kmlData.layer.toGeoJSON();
+      const geoJSON = (kmlLayer as L.GeoJSON).toGeoJSON();
       
       // Ensure we have a FeatureCollection
       if ('features' in geoJSON) {
@@ -69,7 +74,7 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
       }
 
       // Fit bounds to show all KML features
-      const bounds = kmlData.layer.getBounds();
+      const bounds = (kmlLayer as L.GeoJSON).getBounds();
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [50, 50] });
       }

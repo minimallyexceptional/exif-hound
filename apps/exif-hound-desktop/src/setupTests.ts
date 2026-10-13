@@ -1,6 +1,17 @@
 // Add Jest-DOM custom matchers
 import '@testing-library/jest-dom';
 
+jest.mock('@tauri-apps/plugin-updater', () => ({
+  check: jest.fn(async () => null),
+  Update: class MockUpdate {
+    async download() {}
+    async install() {}
+  },
+}));
+jest.mock('@tauri-apps/plugin-process', () => ({
+  relaunch: jest.fn(async () => undefined),
+}));
+
 if (typeof ResizeObserver === 'undefined') {
   (globalThis as typeof globalThis & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver = class {
     observe() {}

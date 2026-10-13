@@ -59,7 +59,9 @@ test.describe('Import', () => {
     await page.locator('#fileInput').setInputFiles(FIXTURE_IMPORT.kml.path);
     await expect(page.getByRole('heading', { name: 'Import Location Data' })).toHaveCount(0);
     await expect(page.getByText('Imported KML overlay')).toBeVisible();
-    await expect(page.locator('.leaflet-overlay-pane path').nth(1)).toBeAttached();
+    await expect(page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane circle')).toHaveCount(2, {
+      timeout: 15_000,
+    });
   });
 
   test('supports switching to CSV format', async ({ page }) => {

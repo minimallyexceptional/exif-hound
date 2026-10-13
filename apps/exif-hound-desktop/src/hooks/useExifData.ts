@@ -1,5 +1,5 @@
 import { ExifData } from '../types';
-import { ExifMetadata } from 'exif-middleware';
+import { ExifMetadata } from 'exif-hound-core';
 import { fixCoordinates } from '../utils/diagnostics';
 import { getLocationFromCoordinates } from '../utils/geocoding';
 import exifWorkerUrl from '../workers/exifWorker?worker&url';

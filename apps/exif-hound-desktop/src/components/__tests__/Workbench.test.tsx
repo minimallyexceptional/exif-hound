@@ -2,10 +2,10 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import Workbench from '../Workbench';
 import { invoke } from '@tauri-apps/api/core';
-import type { ProjectStore } from 'investigation-archive';
-import { serializeWorkflow, type WorkflowGraph } from 'workbench-workflow';
+import type { ProjectStore } from 'exif-hound-core';
+import { serializeWorkflow, type WorkflowGraph } from 'exif-hound-core';
 import type { ImageData } from '../../types';
-import { preprocessImage } from '../../utils/preprocessImage';
+import { __setPreprocessImageForTests, preprocessImage } from 'exif-hound-core';
 import { notify } from '../../feedback/notify';
 import { NodeFrame, type WorkbenchFlowData } from '../workbench/NodeFrame';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -21,13 +21,12 @@ jest.mock('../../feedback/notify', () => ({
   UPDATE_TOAST_IDS: {},
 }));
 
-jest.mock('../../utils/preprocessImage', () => ({
-  preprocessImage: jest.fn(async (imageId: number, imageName: string, sourceBytes: Uint8Array) => ({
-    imageId, imageName, sourceBytes, processedBytes: new Uint8Array([4, 5, 6]),
-    manifest: { profile: 'ocr-default-v1', sourceWidth: 64, sourceHeight: 48, processedWidth: 128, processedHeight: 96, processedToSource: { a: 0.5, b: 0, c: 0, d: 0.5, e: 4, f: 2 } },
-  })),
-}));
-import { ImageProvenanceAnalyzer, type ImageProvenanceResult, type VisualIdentifierResult } from 'image-forensics-middleware';
+import { ImageProvenanceAnalyzer, type ImageProvenanceResult, type VisualIdentifierResult } from 'exif-hound-core';
+
+const mockPreprocessImage: typeof preprocessImage = jest.fn(async (imageId, imageName, sourceBytes) => ({
+  imageId, imageName, sourceBytes, processedBytes: new Uint8Array([4, 5, 6]),
+  manifest: { profile: 'ocr-default-v1', sourceWidth: 64, sourceHeight: 48, processedWidth: 128, processedHeight: 96, processedToSource: { a: 0.5, b: 0, c: 0, d: 0.5, e: 4, f: 2 } },
+})) as unknown as typeof preprocessImage;
 
 jest.mock('@tauri-apps/api/core', () => ({ invoke: jest.fn().mockResolvedValue([]) }));
 
@@ -51,12 +50,17 @@ describe('Workbench workflow editor', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
+    __setPreprocessImageForTests(mockPreprocessImage);
     storeMocks.listWorkflows.mockResolvedValue([{
       id: 'workflow-1',
       name: graph.name,
       graphJson: serializeWorkflow(graph),
       updatedAt: new Date(),
     }]);
+  });
+
+  afterEach(() => {
+    __setPreprocessImageForTests(null);
   });
 
   it('asks the user to open an investigation when no project store is bound', () => {
@@ -329,7 +333,7 @@ describe('Workbench workflow editor', () => {
         imageId: 12, resultStatus: 'success', nodeId: 'identifiers',
       }));
     });
-    expect(preprocessImage).toHaveBeenCalledTimes(1);
+    expect(mockPreprocessImage).toHaveBeenCalledTimes(1);
     expect(analyze).toHaveBeenCalledWith(expect.objectContaining({ bytes: new Uint8Array([1, 2, 3]) }));
     expect(recognize).toHaveBeenCalledWith(expect.objectContaining({ type: 'image/png' }), 'eng', expect.any(Function));
     expect(storeMocks.appendWorkflowProvenanceResult).toHaveBeenCalledWith(expect.objectContaining({ preprocessingManifest: expect.objectContaining({ profile: 'ocr-default-v1' }) }));

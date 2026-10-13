@@ -2,8 +2,8 @@ import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UpdateNotification } from '../UpdateNotification';
-import { UpdateService } from '../../../services/updater/UpdateService';
-import { FakeUpdaterBackend, UPDATE_2_7_0 } from '../../../services/updater/__tests__/FakeUpdaterBackend';
+import { UpdateService } from 'exif-hound-core';
+import { FakeUpdaterBackend, UPDATE_2_7_0 } from 'exif-hound-core';
 import { notify } from '../../../feedback/notify';
 
 jest.mock('../../../feedback/notify', () => ({
