@@ -81,20 +81,22 @@ export default defineConfig({
     ],
   },
   
-  // Vite config for Tauri
+  // Vite config for Tauri (must match src-tauri/tauri.conf.json devUrl)
   clearScreen: false,
   server: {
-    port: 5173,
-    strictPort: false, // Allow fallback ports
+    port: 5176,
+    strictPort: true,
+    host: '127.0.0.1',
     watch: {
-      // Don't trigger reload for these files
-      ignored: ['**/node_modules/**', '**/.git/**']
+      ignored: ['**/node_modules/**', '**/.git/**', '**/src-tauri/**'],
     },
     hmr: {
-      // Make HMR available for Tauri even when using a different port
-      host: 'localhost',
+      // WebView loads http://127.0.0.1:5176 — HMR must use the same host, not
+      // "localhost", or WebSocket may hit a different Vite instance on ::1.
+      host: '127.0.0.1',
+      port: 5176,
       protocol: 'ws',
-    }
+    },
   },
   envPrefix: ['VITE_', 'TAURI_'],
   build: {

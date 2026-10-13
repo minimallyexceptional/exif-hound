@@ -145,7 +145,7 @@ const EvidenceView: React.FC<Props> = ({ images, store, onSelectImage, onNavigat
         </Button>
       </div>
 
-      <div className={`min-h-0 flex-1 ${categoryId ? 'overflow-hidden' : 'overflow-auto'}`}>
+      <div className={`min-h-0 flex-1 ${categoryId ? 'overflow-hidden' : 'overflow-auto bg-app-black'}`}>
         {isHub && (
           <>
             {totalItems === 0 && (

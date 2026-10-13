@@ -65,6 +65,8 @@ export const AppHeader: React.FC<Props> = ({
                 </Button>
               )}
 
+              <div className="border-t border-app-gray-light/30 pt-4" role="presentation" />
+
               {imagesCount > 0 && <>
                 <Button
                   variant={viewMode === 'map' ? 'primary' : 'secondary'}
@@ -153,9 +155,12 @@ export const AppHeader: React.FC<Props> = ({
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-4">
-            {/* Primary Actions */}
-            <div className="flex items-center">
+          <div className="hidden lg:flex min-w-0 flex-1 items-center justify-end gap-4 pl-8">
+            <div
+              className="flex items-center gap-2 rounded-lg border border-app-gray-light/40 bg-app-dark/50 p-1"
+              role="group"
+              aria-label="Import and export"
+            >
               <Button
                 variant="primary"
                 icon={<Upload className="w-4 h-4" />}
@@ -163,11 +168,7 @@ export const AppHeader: React.FC<Props> = ({
               >
                 Import
               </Button>
-            </div>
-
-            {/* Secondary Actions */}
-              <div className="flex items-center gap-2 border-l border-r border-app-gray-light/30 px-4">
-                {imagesCount > 0 && (
+              {imagesCount > 0 && (
                 <Button
                   variant="secondary"
                   icon={<Download className="w-4 h-4" />}
@@ -175,9 +176,14 @@ export const AppHeader: React.FC<Props> = ({
                 >
                   Export
                 </Button>
-                )}
+              )}
+            </div>
 
-                {imagesCount > 0 && <>
+            <div className="w-5 shrink-0" aria-hidden="true" />
+
+            <div className="flex items-center gap-2" role="group" aria-label="Views">
+              {imagesCount > 0 && (
+                <>
                   <Button
                     variant={viewMode === 'map' ? 'primary' : 'secondary'}
                     icon={<MapIcon className="w-4 h-4" />}
@@ -193,34 +199,32 @@ export const AppHeader: React.FC<Props> = ({
                   >
                     List View
                   </Button>
-                </>}
+                </>
+              )}
 
-                <Button
-                  variant={viewMode === 'workbench' ? 'primary' : 'secondary'}
-                  icon={<PanelsTopLeft className="w-4 h-4" />}
-                  onClick={() => onSetView('workbench')}
-                >
-                  Workbench
-                </Button>
-
-                <Button
-                  variant={viewMode === 'evidence' ? 'primary' : 'secondary'}
-                  icon={<Shield className="w-4 h-4" />}
-                  onClick={() => onSetView('evidence')}
-                >
-                  Evidence
-                </Button>
-              </div>
-
-            {/* System Actions */}
-            <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
-                icon={<SettingsIcon className="w-5 h-5" />}
-                onClick={onOpenSettings}
-                aria-label="Open settings"
-              />
+                variant={viewMode === 'workbench' ? 'primary' : 'secondary'}
+                icon={<PanelsTopLeft className="w-4 h-4" />}
+                onClick={() => onSetView('workbench')}
+              >
+                Workbench
+              </Button>
+
+              <Button
+                variant={viewMode === 'evidence' ? 'primary' : 'secondary'}
+                icon={<Shield className="w-4 h-4" />}
+                onClick={() => onSetView('evidence')}
+              >
+                Evidence
+              </Button>
             </div>
+
+            <Button
+              variant="ghost"
+              icon={<SettingsIcon className="w-5 h-5" />}
+              onClick={onOpenSettings}
+              aria-label="Open settings"
+            />
           </div>
 
           {/* Mobile Menu Button */}
