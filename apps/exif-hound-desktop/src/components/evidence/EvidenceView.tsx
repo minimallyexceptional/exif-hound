@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, RefreshCw, Shield } from 'lucide-react';
 import type { ProjectStore } from 'investigation-archive';
 import type { ImageData } from '../../types';
-import { buildEvidenceIndex } from '../../services/evidence/buildEvidenceIndex';
-import { loadProjectEvidenceData } from '../../services/evidence/loadProjectEvidence';
+import { EvidenceHubService } from '../../services/evidence/EvidenceHubService';
 import type { EvidenceCategoryId, EvidenceIndex } from '../../services/evidence/evidenceTypes';
 import { EvidenceBentoGrid } from './EvidenceBentoGrid';
 import { EvidenceCategoryTable } from './EvidenceCategoryTable';
@@ -22,8 +21,13 @@ const EvidenceView: React.FC<Props> = ({ images, store, onSelectImage, onNavigat
   const [categoryId, setCategoryId] = useState<EvidenceCategoryId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const hubService = useMemo(
+    () => (store ? new EvidenceHubService(store, images) : null),
+    [store, images],
+  );
+
   const reload = useCallback(async () => {
-    if (!store) {
+    if (!hubService) {
       setIndex(null);
       setLoading(false);
       return;
@@ -31,31 +35,30 @@ const EvidenceView: React.FC<Props> = ({ images, store, onSelectImage, onNavigat
     setLoading(true);
     setError(null);
     try {
-      const { ocr, identifiers, provenance } = await loadProjectEvidenceData(store);
-      setIndex(buildEvidenceIndex(ocr, identifiers, provenance, images));
+      setIndex(await hubService.loadIndex());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load evidence.');
+      setError(EvidenceHubService.loadErrorMessage(cause));
       setIndex(null);
     } finally {
       setLoading(false);
     }
-  }, [images, store]);
+  }, [hubService]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
   const totalItems = useMemo(
-    () => (index ? index.categories.reduce((sum, category) => sum + category.count, 0) : 0),
+    () => (index ? EvidenceHubService.totalItemCount(index) : 0),
     [index],
   );
 
   const handleOpenImage = useCallback((imageId: number) => {
-    const image = images.find((item) => item.projectImageId === imageId && !('hasImage' in item));
+    const image = hubService?.resolveImage(imageId);
     if (!image) return;
     onSelectImage(image);
     onNavigateToMap?.();
-  }, [images, onNavigateToMap, onSelectImage]);
+  }, [hubService, onNavigateToMap, onSelectImage]);
 
   if (!store) {
     return (
