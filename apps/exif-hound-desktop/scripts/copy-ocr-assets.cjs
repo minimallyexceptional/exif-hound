@@ -6,7 +6,9 @@ const output = path.join(appRoot, 'public', 'ocr');
 const onnxRuntimeRoot = path.dirname(require.resolve('onnxruntime-web'));
 const paddleAssets = path.join(appRoot, 'assets', 'ocr', 'paddle');
 
-fs.rmSync(output, { recursive: true, force: true });
+// Overwrite in place. Deleting public/ocr while Vite is running drops those
+// paths from its public file set, so later requests get the SPA index.html
+// and PaddleOCR fails with "inference.onnx was not found in the tar archive".
 const paddleOutput = path.join(output, 'paddle');
 const ortOutput = path.join(paddleOutput, 'ort');
 fs.mkdirSync(ortOutput, { recursive: true });
