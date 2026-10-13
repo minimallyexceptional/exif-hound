@@ -4,7 +4,7 @@ import {
   UpdateState,
   getUpdateService,
   getUpdateConfiguration,
-} from '../../services/updater';
+} from 'exif-hound-core';
 import { notify, UPDATE_TOAST_IDS } from '../../feedback';
 import { UpdateReadyDialog } from './UpdateReadyDialog';
 

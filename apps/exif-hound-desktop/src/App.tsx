@@ -15,14 +15,14 @@ import { SidebarRailToggle } from './components/common/SidebarRailToggle';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
-import { getUpdateService } from './services/updater';
+import { getUpdateService } from 'exif-hound-core';
 import { notify } from './feedback';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
-import { ProjectStore } from 'investigation-archive';
-import type { OcrMiddleware, OcrProgress, OcrResult } from 'ocr-middleware';
-import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
-import { TauriFsPort } from './services/investigationArchive/TauriFsPort';
+import { ProjectStore } from 'exif-hound-core';
+import type { OcrMiddleware, OcrProgress, OcrResult } from 'exif-hound-core';
+import { getArchiveDbProvider } from 'exif-hound-core';
+import { TauriFsPort } from 'exif-hound-core';
 import {
   toImageData,
   toStoreImage,
@@ -30,14 +30,14 @@ import {
   fromStoreState,
   serializeExif,
   ProjectViewMode,
-} from './services/investigationArchive/ProjectSessionService';
-import { pickProjectFolder, resolveProjectFolder } from './services/investigationArchive/projectDialogs';
+} from 'exif-hound-core';
+import { pickProjectFolder, resolveProjectFolder } from 'exif-hound-core';
 import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';
 import {
   InvalidProjectError,
   ProjectExistsError,
   UnsupportedSchemaError,
-} from 'investigation-archive';
+} from 'exif-hound-core';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
@@ -136,7 +136,7 @@ function App() {
   ): Promise<OcrResult> => {
     if (!projectStoreRef.current) throw new Error('Save this image to the project before running OCR.');
     const file = image;
-    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware, PaddleOcrWorkerFactory }) => new Middleware({
+    ocrMiddlewareRef.current ??= import('exif-hound-core').then(({ OcrMiddleware: Middleware, PaddleOcrWorkerFactory }) => new Middleware({
       workerFactory: new PaddleOcrWorkerFactory({
         // These are app-root assets. Resolving against href would append them to
         // any nested pathname and could fetch the SPA fallback HTML as a model TAR.

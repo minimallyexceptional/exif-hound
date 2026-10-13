@@ -1,4 +1,4 @@
-import type { ExpandedTags } from 'exifreader';
+import type { ExpandedTags } from 'exif-hound-core';
 import {
   formatExifTagForCopy,
   formatExifTagForDisplay,

@@ -2,20 +2,12 @@ import React from 'react';
 import type { NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
 import { FileOutput, FileSearch, Image, Images, ScanSearch, ScanText, Text } from 'lucide-react';
-import type { NodeKind } from 'workbench-workflow';
-import type { ImageData } from '../../types';
+import type { NodeKind, WorkbenchFlowData } from 'exif-hound-core';
 import type { LucideIcon } from 'lucide-react';
 import { sourceHandleId, targetHandleId } from './flowHandles';
 import { portColor, portHandleClass } from './portStyle';
 
-export interface WorkbenchFlowData {
-  [key: string]: unknown;
-  settings: Record<string, string | number | boolean | null>;
-  image?: ImageData;
-  state?: 'idle' | 'running' | 'completed' | 'failed';
-  progress?: number;
-  status?: string;
-}
+export type { WorkbenchFlowData };
 
 export interface NodeOutputHandle {
   id: string;

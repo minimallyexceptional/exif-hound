@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import EvidenceView from '../EvidenceView';
-import type { ProjectStore } from 'investigation-archive';
+import type { ProjectStore } from 'exif-hound-core';
 import type { ImageData } from '../../../types';
 const storeMocks = {
   listProjectOcrResults: jest.fn().mockResolvedValue([]),

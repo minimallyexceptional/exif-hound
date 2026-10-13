@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
-import type { EvidenceCategoryMeta, EvidenceCategoryId } from '../../services/evidence/evidenceTypes';
+import type { EvidenceCategoryMeta, EvidenceCategoryId } from 'exif-hound-core';
 import { EVIDENCE_CATEGORY_ICONS } from './evidenceCategoryMeta';
 
 interface Props {

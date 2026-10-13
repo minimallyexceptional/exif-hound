@@ -9,7 +9,7 @@ import { MAP_STYLES } from '../constants/mapStyles';
 import { GITHUB_REPOSITORY_URL, GITHUB_SPONSORS_URL } from '../constants/github';
 import { APP_DISPLAY_NAME } from '../constants/brand';
 import { useUpdateControl } from './updater/useUpdateControl';
-import { UpdateStateName, UpdateErrorCode } from '../services/updater';
+import { UpdateStateName, UpdateErrorCode } from 'exif-hound-core';
 
 interface Props {
   onClose: () => void;

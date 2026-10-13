@@ -12,6 +12,8 @@ module.exports = {
     }]
   },
   moduleNameMapper: {
+    '^exif-hound-core/desktop$': '<rootDir>/../../packages/exif-hound-core/dist/desktop.cjs',
+    '^exif-hound-core$': '<rootDir>/../../packages/exif-hound-core/dist/index.cjs',
     '\\?worker&url$': '<rootDir>/src/__mocks__/fileMock.cjs',
     '\\?url$': '<rootDir>/src/__mocks__/fileMock.cjs',
     '\\.(css|less|scss)$': '<rootDir>/src/__mocks__/styleMock.cjs',
@@ -66,24 +68,6 @@ module.exports = {
       branches: 95,
       functions: 95,
       lines: 95
-    },
-    'src/services/evidence/buildEvidenceIndex.ts': {
-      statements: 95,
-      branches: 82,
-      functions: 100,
-      lines: 100
-    },
-    'src/services/evidence/loadProjectEvidence.ts': {
-      statements: 95,
-      branches: 85,
-      functions: 80,
-      lines: 95
-    },
-    'src/services/evidence/evidenceTableFormatters.ts': {
-      statements: 100,
-      branches: 90,
-      functions: 100,
-      lines: 100
     },
     'src/components/evidence/EvidenceView.tsx': {
       statements: 95,

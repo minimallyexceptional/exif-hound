@@ -2,7 +2,7 @@ import {
   evidenceRowDisplayValue,
   formatEvidenceConfidence,
   formatEvidenceWhen,
-} from '../../../services/evidence/evidenceTableFormatters';
+} from 'exif-hound-core';
 
 describe('evidenceCategoryTableFormatters', () => {
   describe('formatEvidenceWhen', () => {

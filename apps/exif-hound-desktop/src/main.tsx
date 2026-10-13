@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { bootstrapCore } from './core/bootstrap';
+import { CoreProvider } from './core/CoreContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { TauriProvider } from './context/TauriContext';
@@ -9,6 +11,7 @@ import './index.css';
 
 // Initialize app immediately - TauriProvider handles availability detection
 const initApp = () => {
+  const core = bootstrapCore();
   try {
     if (__DEV__) {
       console.log('[Main] Starting app initialization...');
@@ -17,14 +20,16 @@ const initApp = () => {
     
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
-        <ThemeProvider>
-          <SettingsProvider>
-            <TauriProvider>
-              <AppToaster />
-              <App />
-            </TauriProvider>
-          </SettingsProvider>
-        </ThemeProvider>
+        <CoreProvider core={core}>
+          <ThemeProvider>
+            <SettingsProvider>
+              <TauriProvider>
+                <AppToaster />
+                <App />
+              </TauriProvider>
+            </SettingsProvider>
+          </ThemeProvider>
+        </CoreProvider>
       </StrictMode>
     );
   } catch (error) {
@@ -35,14 +40,16 @@ const initApp = () => {
     // Render the app anyway, TauriProvider will handle unavailability
     createRoot(document.getElementById('root')!).render(
       <StrictMode>
-        <ThemeProvider>
-          <SettingsProvider>
-            <TauriProvider>
-              <AppToaster />
-              <App />
-            </TauriProvider>
-          </SettingsProvider>
-        </ThemeProvider>
+        <CoreProvider core={core}>
+          <ThemeProvider>
+            <SettingsProvider>
+              <TauriProvider>
+                <AppToaster />
+                <App />
+              </TauriProvider>
+            </SettingsProvider>
+          </ThemeProvider>
+        </CoreProvider>
       </StrictMode>
     );
   }

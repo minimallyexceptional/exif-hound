@@ -1,4 +1,4 @@
-import type { WorkflowGraph } from 'workbench-workflow';
+import type { WorkflowGraph } from 'exif-hound-core';
 import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from '../flowHandles';
 
 const graph: WorkflowGraph = {

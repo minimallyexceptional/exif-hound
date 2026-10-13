@@ -1,7 +1,7 @@
 /**
- * EXIF Worker - Handles EXIF parsing in a separate thread to avoid blocking UI
+ * EXIF Worker - thin thread entry; loads only exif-middleware (not full core bundle).
  */
-import { extractExifData, ExifMetadata } from 'exif-middleware';
+import { extractExifData, type ExifMetadata } from 'exif-middleware';
 
 export interface ExifWorkerMessage {
   type: 'PARSE_EXIF';
@@ -16,38 +16,29 @@ export interface ExifWorkerResponse {
   error?: string;
 }
 
-// Worker message handler
 self.onmessage = async (event: MessageEvent<ExifWorkerMessage>) => {
   const { type, id, buffer } = event.data;
 
   if (type === 'PARSE_EXIF') {
     try {
-      // Use the middleware to extract EXIF data
       const metadata = await extractExifData(buffer);
-      
-      // Send success response
       const response: ExifWorkerResponse = {
         type: 'EXIF_PARSED',
         id,
-        data: metadata
+        data: metadata,
       };
-      
       self.postMessage(response);
     } catch (error) {
-      // Send error response
       const response: ExifWorkerResponse = {
         type: 'EXIF_ERROR',
         id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
-      
       self.postMessage(response);
     }
   }
 };
 
-// Export worker class for type checking (not used in worker context).
-// The actual worker URL is resolved via Vite's ?worker&url import where needed.
 export default class ExifWorker extends Worker {
   constructor(workerUrl?: string) {
     super(workerUrl ?? '', { type: 'module' });

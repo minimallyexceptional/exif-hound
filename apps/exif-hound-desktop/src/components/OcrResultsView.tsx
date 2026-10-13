@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, Copy, ScanText } from 'lucide-react';
-import type { OcrResultRecord } from 'investigation-archive';
+import type { OcrResultRecord } from 'exif-hound-core';
 import { ImageData } from '../types';
 import { Button } from './common/Button';
 import { notify } from '../feedback';

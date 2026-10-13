@@ -13,7 +13,7 @@ import {
   Tag
 } from 'lucide-react';
 import { ImageData } from '../types';
-import type { ExpandedTags } from 'exifreader';
+import type { ExpandedTags } from 'exif-hound-core';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
 import { formatDateTime, formatDateOnly } from '../utils/date';

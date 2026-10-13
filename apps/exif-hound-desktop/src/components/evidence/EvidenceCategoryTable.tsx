@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { VirtualDataGrid } from '../common/VirtualDataGrid';
-import type { EvidenceCategoryId, EvidenceRow } from '../../services/evidence/evidenceTypes';
-import { EvidenceCategoryColumnModel } from '../../services/evidence/EvidenceCategoryColumnModel';
+import type { EvidenceCategoryId, EvidenceRow } from 'exif-hound-core';
+import { EvidenceCategoryColumnModel } from 'exif-hound-core';
 
 interface Props {
   categoryId: EvidenceCategoryId;

@@ -4,13 +4,14 @@
 
 // We're using simple import syntax to avoid TypeScript/ESLint issues with mocking
 import { renderHook } from '@testing-library/react';
-import type { ExifMetadata } from 'exif-middleware';
+import type { ExifMetadata } from 'exif-hound-core';
 import type { ExifWorkerResponse } from '../../workers/exifWorker';
 
 // Mock all dependencies
-jest.mock('exif-middleware', () => ({
-  extractExifData: jest.fn()
-}), { virtual: true });
+jest.mock('exif-hound-core', () => ({
+  ...jest.requireActual('exif-hound-core'),
+  extractExifData: jest.fn(),
+}));
 
 jest.mock('../../utils/diagnostics', () => ({
   fixCoordinates: jest.fn((lat, lng) => [lat, lng])
@@ -21,7 +22,7 @@ jest.mock('../../utils/geocoding', () => ({
 }));
 
 // Get references to mocked functions
-const mockExtractExifData = jest.requireMock('exif-middleware').extractExifData;
+const mockExtractExifData = jest.requireMock('exif-hound-core').extractExifData;
 const mockFixCoordinates = jest.requireMock('../../utils/diagnostics').fixCoordinates;
 const mockGetLocationFromCoordinates = jest.requireMock('../../utils/geocoding').getLocationFromCoordinates;
 

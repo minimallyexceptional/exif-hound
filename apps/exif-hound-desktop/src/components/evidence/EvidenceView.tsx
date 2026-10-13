@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, RefreshCw, Shield } from 'lucide-react';
-import type { ProjectStore } from 'investigation-archive';
+import type { ProjectStore } from 'exif-hound-core';
 import type { ImageData } from '../../types';
-import { EvidenceHubService } from '../../services/evidence/EvidenceHubService';
-import type { EvidenceCategoryId, EvidenceIndex } from '../../services/evidence/evidenceTypes';
+import { EvidenceHubService } from 'exif-hound-core';
+import type { EvidenceCategoryId, EvidenceIndex } from 'exif-hound-core';
 import { EvidenceBentoGrid } from './EvidenceBentoGrid';
 import { EvidenceCategoryTable } from './EvidenceCategoryTable';
 import { Button } from '../common/Button';

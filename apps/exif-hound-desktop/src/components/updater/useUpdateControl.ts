@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { UpdateService, UpdateState, getUpdateService } from '../../services/updater';
+import { UpdateService, UpdateState, getUpdateService } from 'exif-hound-core';
 
 /**
  * Binds the update service state to React for surfaces that show update

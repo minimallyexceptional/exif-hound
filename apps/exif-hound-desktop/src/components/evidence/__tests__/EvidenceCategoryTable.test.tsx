@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { EvidenceCategoryTable } from '../EvidenceCategoryTable';
-import type { EvidenceRow } from '../../../services/evidence/evidenceTypes';
+import type { EvidenceRow } from 'exif-hound-core';
 
 const baseMeta = {
   imageId: 9,

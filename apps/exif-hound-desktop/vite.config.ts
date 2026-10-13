@@ -68,15 +68,16 @@ export default defineConfig({
       // Pre-bundle it so the browser doesn't have to resolve them one by one
       // during the first Playwright page load.
       'lucide-react',
-      'investigation-archive',
+      'exif-hound-core',
       'sql.js',
     ],
   },
   resolve: {
+    dedupe: ['leaflet'],
     alias: [
+      { find: 'exif-hound-core/desktop', replacement: path.join(packagesDir, 'exif-hound-core/dist/desktop.js') },
+      { find: 'exif-hound-core', replacement: path.join(packagesDir, 'exif-hound-core/dist/index.js') },
       { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') },
-      { find: 'investigation-archive', replacement: path.join(packagesDir, 'investigation-archive/dist') },
-      { find: 'image-forensics-middleware', replacement: path.join(packagesDir, 'image-forensics-middleware/dist') },
       { find: 'image-processing-middleware', replacement: path.join(packagesDir, 'image-processing-middleware/dist') },
     ],
   },
