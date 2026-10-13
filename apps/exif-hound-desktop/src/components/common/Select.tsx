@@ -29,12 +29,21 @@ function parseOptions(children: React.ReactNode): SelectOption[] {
         disabled: props.disabled,
       };
     })
-    .filter((option): option is SelectOption => option !== null);
+    .filter((option) => option !== null) as SelectOption[];
 }
 
-type SelectProps = Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & {
+type SelectProps = {
   compact?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+  value?: string | number | readonly string[];
+  defaultValue?: string | number | readonly string[];
+  disabled?: boolean;
+  name?: string;
+  id?: string;
+  'aria-label'?: string;
   onChange?: React.ChangeEventHandler<HTMLSelectElement>;
+  onBlur?: React.FocusEventHandler<HTMLSelectElement>;
 };
 
 export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function Select(
@@ -50,7 +59,6 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function 
     name,
     id,
     'aria-label': ariaLabel,
-    ...rest
   },
   ref,
 ) {
@@ -137,7 +145,6 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function 
   return (
     <div ref={rootRef} className={`relative ${compact ? 'inline-flex max-w-full min-w-0' : 'w-full'}`}>
       <button
-        {...rest}
         ref={ref}
         id={id}
         type="button"
