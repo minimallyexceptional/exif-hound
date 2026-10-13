@@ -42,6 +42,7 @@ import {
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
 const Workbench = lazy(() => import('./components/Workbench'));
+const EvidenceView = lazy(() => import('./components/evidence/EvidenceView'));
 
 type ViewMode = ProjectViewMode;
 
@@ -234,10 +235,15 @@ function App() {
         return 'Image Details';
       case 'workbench':
         return 'Workbench';
+      case 'evidence':
+        return 'Evidence';
       default:
         return '';
     }
   };
+
+  const hidePageSubheader = viewMode === 'workbench';
+  const isFullBleedView = viewMode === 'workbench' || viewMode === 'evidence';
 
   const renderMap = () => (
     <Suspense fallback={<div className="flex items-center justify-center h-full">
@@ -276,6 +282,21 @@ function App() {
               images={images}
               store={activeProjectStore}
               recognizeImage={handleRecognizeImage}
+            />
+          </Suspense>
+        );
+      case 'evidence':
+        return (
+          <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading Evidence...</div>}>
+            <EvidenceView
+              key={activeProjectStore?.rootPath ?? 'no-project'}
+              images={images}
+              store={activeProjectStore}
+              onSelectImage={handleSelectImage}
+              onNavigateToMap={() => {
+                setViewMode('map');
+                persistSessionState({ viewMode: 'map' });
+              }}
             />
           </Suspense>
         );
@@ -422,7 +443,7 @@ function App() {
           showSidebar={images.length > 0 && viewMode === 'map'}
           isGalleryCollapsed={isGalleryCollapsed}
           onToggleGallery={toggleGallery}
-          isEmpty={images.length === 0 && viewMode !== 'workbench'}
+          isEmpty={images.length === 0 && !isFullBleedView}
           sidebar={
             <ImageGallery 
               images={images}
@@ -431,7 +452,7 @@ function App() {
             />
           }
         >
-          <div className={`flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30 ${viewMode === 'workbench' ? 'hidden' : ''}`}>
+          <div className={`flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30 ${hidePageSubheader ? 'hidden' : ''}`}>
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
@@ -442,7 +463,7 @@ function App() {
         </AppLayout>
 
         {/* EXIF Panel - Only show for map and list views */}
-        {selectedImage && viewMode !== 'workbench' && (
+        {selectedImage && !isFullBleedView && (
           <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
           }`}>

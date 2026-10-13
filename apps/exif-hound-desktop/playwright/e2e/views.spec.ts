@@ -20,6 +20,13 @@ test('switches between map, list, and workbench views', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Location Map' })).toBeVisible();
 });
 
+test('opens the Evidence hub', async ({ page }) => {
+  await switchView(page, 'Evidence');
+  await expect(page.getByRole('heading', { name: 'Evidence' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Evidence' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /License plates/i })).toBeVisible();
+});
+
 test('collapses and expands the gallery sidebar', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
   const galleryToggle = page.getByTestId('gallery-sidebar-toggle');

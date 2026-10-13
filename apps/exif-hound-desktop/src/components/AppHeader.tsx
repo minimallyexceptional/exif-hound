@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, RefreshCw, Star, PanelsTopLeft } from 'lucide-react';
+import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, RefreshCw, Star, PanelsTopLeft, Shield } from 'lucide-react';
 import { openExternalUrl } from '../utils/openExternalUrl';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
@@ -7,7 +7,7 @@ import Logomark from './common/Logomark';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
 import { APP_DISPLAY_NAME } from '../constants/brand';
 
-type ViewMode = 'map' | 'list' | 'workbench';
+type ViewMode = 'map' | 'list' | 'workbench' | 'evidence';
 
 interface Props {
   imagesCount: number;
@@ -92,6 +92,15 @@ export const AppHeader: React.FC<Props> = ({
                 fullWidth
               >
                 Workbench
+              </Button>
+
+              <Button
+                variant={viewMode === 'evidence' ? 'primary' : 'secondary'}
+                icon={<Shield className="w-4 h-4" />}
+                onClick={() => { onSetView('evidence'); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                Evidence
               </Button>
 
               <Button
@@ -192,6 +201,14 @@ export const AppHeader: React.FC<Props> = ({
                   onClick={() => onSetView('workbench')}
                 >
                   Workbench
+                </Button>
+
+                <Button
+                  variant={viewMode === 'evidence' ? 'primary' : 'secondary'}
+                  icon={<Shield className="w-4 h-4" />}
+                  onClick={() => onSetView('evidence')}
+                >
+                  Evidence
                 </Button>
               </div>
 

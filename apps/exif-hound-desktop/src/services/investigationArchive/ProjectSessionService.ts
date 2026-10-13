@@ -8,7 +8,7 @@ import { SessionState } from 'investigation-archive';
 import { ImageData, ExifData } from '../../types';
 import { ImportedPoint } from '../../utils/importData';
 
-export type ProjectViewMode = 'map' | 'list' | 'workbench';
+export type ProjectViewMode = 'map' | 'list' | 'workbench' | 'evidence';
 
 /** Union with the app's ImportedPoint marker field. */
 export type SessionEntry = ImageData | ImportedPoint;
@@ -126,7 +126,7 @@ export function toStoreState(state: AppSessionState): SessionState {
 export function fromStoreState(state: SessionState): AppSessionState {
   const viewMode: ProjectViewMode = state.viewMode === 'investigation'
     ? 'workbench'
-    : state.viewMode === 'list' || state.viewMode === 'workbench'
+    : state.viewMode === 'list' || state.viewMode === 'workbench' || state.viewMode === 'evidence'
       ? state.viewMode
       : 'map';
   return {
