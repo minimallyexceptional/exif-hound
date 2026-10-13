@@ -3,7 +3,7 @@ import {
   addEdge, Background, BackgroundVariant, Controls, ReactFlow, ReactFlowProvider,
   useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type Node,
 } from '@xyflow/react';
-import { Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord, WorkflowToolResultRecord } from 'investigation-archive';
 import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, createImageProvenanceNodeHandler, createVisualIdentifierNodeHandler, getEvidenceOutputSources, getTextOutputSource, parseWorkflow, serializeWorkflow, transformNodeTypes, validateConnection, validateRunnableWorkflow, WorkflowRunner, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
@@ -133,6 +133,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isNodesCollapsed, setIsNodesCollapsed] = useState(false);
+  const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [dialog, setDialog] = useState<'save' | 'new' | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -580,8 +582,18 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
 
       {tab === 'editor' ? (
         <div id="workbench-editor-panel" role="tabpanel" aria-labelledby="workbench-editor-tab" tabIndex={0} className="flex min-h-0 flex-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent">
-          <aside className="flex w-52 flex-none flex-col border-r border-app-gray-light/40 bg-app-dark p-3" aria-label="Workflow nodes">
-            <div className="mb-3 flex items-center justify-between"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2><Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setDialog('save')} title="Save reusable workflow" aria-label="Save reusable workflow" tooltip="Save a reusable copy of this workflow on this machine" icon={<Save className="h-4 w-4" />} /></div>
+          <aside className={`flex flex-none flex-col border-r border-app-gray-light/40 bg-app-dark transition-all duration-300 ease-in-out ${isNodesCollapsed ? 'w-12' : 'w-52'}`} aria-label="Workflow nodes">
+            <div
+              className={`flex cursor-pointer items-center border-b border-app-gray-light/30 hover:bg-app-gray-light/30 ${isNodesCollapsed ? 'h-12 justify-center' : 'justify-between px-3 py-3'}`}
+              onClick={() => setIsNodesCollapsed((current) => !current)}
+            >
+              {!isNodesCollapsed && <h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2>}
+              <div className="flex items-center gap-1">
+                {!isNodesCollapsed && <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={(event) => { event.stopPropagation(); setDialog('save'); }} title="Save reusable workflow" aria-label="Save reusable workflow" tooltip="Save a reusable copy of this workflow on this machine" icon={<Save className="h-4 w-4" />} />}
+                <Button type="button" variant="ghost" className="h-8 w-8 !p-0" aria-expanded={!isNodesCollapsed} aria-label={isNodesCollapsed ? 'Expand nodes' : 'Collapse nodes'} icon={isNodesCollapsed ? <ChevronRight className="h-5 w-5 text-app-white" /> : <ChevronLeft className="h-5 w-5 text-app-white" />} />
+              </div>
+            </div>
+            {!isNodesCollapsed && <div className="flex min-h-0 flex-1 flex-col p-3">
             {(['Inputs', 'Transforms', 'Outputs'] as const).map((category) => {
               const types: NodeKind[] = category === 'Inputs' ? ['image'] : category === 'Transforms'
                 ? ['ocr', 'provenance', 'visual-identifiers'] : ['text', 'evidence'];
@@ -593,6 +605,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               </div>;
             })}
             <div className="mt-auto border-t border-app-gray-light/30 pt-3 text-[11px] leading-relaxed text-app-accent-dim">Drag nodes onto the canvas, connect their ports, then run the workflow.</div>
+            </div>}
           </aside>
 
           <div className="relative min-w-0 flex-1" onDrop={onDrop} onDragOver={(event) => event.preventDefault()}>
@@ -606,9 +619,15 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
             {!loading && nodes.length === 0 && <div className="pointer-events-none absolute inset-0 flex items-center justify-center"><div className="rounded-xl border border-dashed border-app-gray-light bg-app-black/70 px-6 py-5 text-center"><p className="text-sm font-medium text-app-white">Start with an image</p><p className="mt-1 text-xs text-app-accent-dim">Drag a node from the catalog or click + to add it.</p></div></div>}
           </div>
 
-          <aside className="flex w-72 flex-none flex-col border-l border-app-gray-light/40 bg-app-dark" aria-label="Node inspector">
-            <div className="border-b border-app-gray-light/30 px-4 py-3"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Inspector</h2><p className="mt-1 truncate text-sm font-medium text-app-white">{selectedNode ? portDefaults[selectedNode.type as NodeKind].title : 'Select a node'}</p>{runHistory[0] && <p className="mt-1 text-[10px] text-app-accent-dim">Last run: {runHistory[0].status} · started {runHistory[0].startedAt.toLocaleString()}{runHistory[0].finishedAt ? ` · finished ${runHistory[0].finishedAt.toLocaleString()}` : ''}</p>}</div>
-            {!selectedNode ? <p className="p-4 text-sm text-app-accent-dim">Select a node on the canvas to view its settings or output.</p> : selectedNode.type === 'image' ? (
+          <aside className={`flex flex-none flex-col border-l border-app-gray-light/40 bg-app-dark transition-all duration-300 ease-in-out ${isInspectorCollapsed ? 'w-12' : 'w-72'}`} aria-label="Node inspector">
+            <div
+              className={`flex cursor-pointer items-center border-b border-app-gray-light/30 hover:bg-app-gray-light/30 ${isInspectorCollapsed ? 'h-12 justify-center' : 'justify-between px-4 py-3'}`}
+              onClick={() => setIsInspectorCollapsed((current) => !current)}
+            >
+              {!isInspectorCollapsed && <div className="min-w-0"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Inspector</h2><p className="mt-1 truncate text-sm font-medium text-app-white">{selectedNode ? portDefaults[selectedNode.type as NodeKind].title : 'Select a node'}</p>{runHistory[0] && <p className="mt-1 text-[10px] text-app-accent-dim">Last run: {runHistory[0].status} · started {runHistory[0].startedAt.toLocaleString()}{runHistory[0].finishedAt ? ` · finished ${runHistory[0].finishedAt.toLocaleString()}` : ''}</p>}</div>}
+              <Button type="button" variant="ghost" className="h-8 w-8 !p-0" aria-expanded={!isInspectorCollapsed} aria-label={isInspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'} icon={isInspectorCollapsed ? <ChevronLeft className="h-5 w-5 text-app-white" /> : <ChevronRight className="h-5 w-5 text-app-white" />} />
+            </div>
+            {!isInspectorCollapsed && (!selectedNode ? <p className="p-4 text-sm text-app-accent-dim">Select a node on the canvas to view its settings or output.</p> : selectedNode.type === 'image' ? (
               <div className="space-y-4 p-4">
                 <label className="block text-xs font-medium text-app-accent-dim">Project image
                   <select className="mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white" value={typeof selectedNode.data.settings.imageId === 'number' ? selectedNode.data.settings.imageId : ''} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, imageId: event.target.value ? Number(event.target.value) : null })}>
@@ -666,7 +685,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
                 })}</ul>}
                 {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
               </div>
-            )}
+            ))}
           </aside>
         </div>
       ) : (
