@@ -313,3 +313,17 @@ select:focus-visible {
   outline: 2px solid var(--app-accent-dim);
   outline-offset: 2px;
 }
+
+[data-sonner-toaster] {
+  --normal-bg: var(--app-gray);
+  --normal-border: var(--glass-border);
+  --normal-text: var(--app-white);
+  --success-bg: var(--app-gray);
+  --success-border: var(--glass-border);
+  --success-text: var(--app-white);
+  --error-bg: var(--app-danger-bg);
+  --error-border: var(--app-danger);
+  --error-text: var(--app-danger);
+  --border-radius: 0.75rem;
+  font-family: inherit;
+}

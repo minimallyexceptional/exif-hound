@@ -4,6 +4,7 @@ import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { TauriProvider } from './context/TauriContext';
+import { AppToaster } from './feedback';
 import './index.css';
 
 // Initialize app immediately - TauriProvider handles availability detection
@@ -19,6 +20,7 @@ const initApp = () => {
         <ThemeProvider>
           <SettingsProvider>
             <TauriProvider>
+              <AppToaster />
               <App />
             </TauriProvider>
           </SettingsProvider>
@@ -36,6 +38,7 @@ const initApp = () => {
         <ThemeProvider>
           <SettingsProvider>
             <TauriProvider>
+              <AppToaster />
               <App />
             </TauriProvider>
           </SettingsProvider>

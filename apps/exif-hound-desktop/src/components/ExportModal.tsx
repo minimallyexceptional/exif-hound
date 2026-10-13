@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { FileJson, FileSpreadsheet, Loader, AlertCircle } from 'lucide-react';
+import { FileJson, FileSpreadsheet, Loader } from 'lucide-react';
 import { ImageData } from '../types';
 import { generateCsv } from '../utils/csvExport';
 import { generateJson } from '../utils/jsonExport';
 import { saveJsonFile, saveCsvFile } from '../utils/fileSystem';
 import { Modal } from './common/Modal';
 import { Button } from './common/Button';
+import { notify } from '../feedback';
 
 interface Props {
   images: ImageData[];
@@ -14,10 +15,8 @@ interface Props {
 
 const ExportModal: React.FC<Props> = ({ images, onClose }) => {
   const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
 
   const handleExport = async (format: 'csv' | 'json') => {
-    setExportError(null);
     setIsExporting(true);
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -33,13 +32,14 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
       }
       
       if (success) {
+        notify.success(format === 'csv' ? 'Exported CSV' : 'Exported JSON');
         onClose();
       } else {
-        setExportError(`Failed to save ${format.toUpperCase()} file. Please try again.`);
+        notify.error(`Failed to save ${format.toUpperCase()} file. Please try again.`);
       }
     } catch (error) {
       if (__DEV__) console.error(`Error during ${format} export:`, error);
-      setExportError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      notify.error(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsExporting(false);
     }
@@ -52,14 +52,7 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
       size="sm"
       className="export-modal"
     >
-      <div className="p-6 space-y-6">
-        {exportError && (
-          <div className="bg-red-900/30 p-3 rounded-md text-red-300 flex items-start gap-2 mb-2 text-sm">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <div>{exportError}</div>
-          </div>
-        )}
-        
+      <div className="flex flex-col gap-6 p-6">
         <Button
           fullWidth
           variant="secondary"

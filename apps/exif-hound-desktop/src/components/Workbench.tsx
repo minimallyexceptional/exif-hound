@@ -3,7 +3,7 @@ import {
   addEdge, Background, BackgroundVariant, ConnectionMode, Controls, ReactFlow, ReactFlowProvider,
   useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type Node,
 } from '@xyflow/react';
-import { ChevronLeft, ChevronRight, Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord, WorkflowToolResultRecord } from 'investigation-archive';
 import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, createImageProvenanceNodeHandler, createVisualIdentifierNodeHandler, getEvidenceOutputSources, getTextOutputSource, parseWorkflow, serializeWorkflow, transformNodeTypes, normalizeConnection, validateRunnableWorkflow, WorkflowRunner, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
@@ -23,6 +23,7 @@ import type { WorkbenchFlowData } from './workbench/NodeFrame';
 import { preprocessImage } from '../utils/preprocessImage';
 import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from './workbench/flowHandles';
 import { portEdgeStyle } from './workbench/portStyle';
+import { notify } from '../feedback';
 
 interface Template { name: string; content: string }
 interface Props {
@@ -138,9 +139,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [resultEntries, setResultEntries] = useState<OcrResultRecord[]>([]);
   const [evidenceEntries, setEvidenceEntries] = useState<EvidenceEntry[]>([]);
   const [runHistory, setRunHistory] = useState<WorkflowRunRecord[]>([]);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isNodesCollapsed, setIsNodesCollapsed] = useState(false);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [dialog, setDialog] = useState<'save' | 'new' | null>(null);
@@ -190,7 +189,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       initialized.current = true;
       setLoading(false);
     }).catch((cause: unknown) => {
-      if (active) { setError(cause instanceof Error ? cause.message : 'Could not load project workflows.'); setLoading(false); }
+      if (active) { notify.error(cause instanceof Error ? cause.message : 'Could not load project workflows.'); setLoading(false); }
     });
     return () => { active = false; };
     // The image list is resolved into node previews after graph restore below.
@@ -204,9 +203,9 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
         const graph = toGraph(activeWorkflowId, workflowName, nodes, edges);
         void store.saveWorkflow({ id: activeWorkflowId, name: workflowName, graphJson: serializeWorkflow(graph), updatedAt: new Date() })
           .then(() => setProjectWorkflows((current) => current.map((item) => item.id === activeWorkflowId ? { ...item, name: workflowName, graphJson: serializeWorkflow(graph), updatedAt: new Date() } : item)))
-          .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Could not save workflow changes.'));
+          .catch((cause: unknown) => notify.error(cause instanceof Error ? cause.message : 'Could not save workflow changes.'));
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not serialize workflow.');
+        notify.error(cause instanceof Error ? cause.message : 'Could not serialize workflow.');
       }
     }, 250);
     return () => window.clearTimeout(timer);
@@ -254,8 +253,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setResultEntries([]);
       setEvidenceEntries([]);
       setSelectedNodeId(null);
-      setError(null);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'The project workflow is invalid.'); }
+    } catch (cause) { notify.error(cause instanceof Error ? cause.message : 'The project workflow is invalid.'); }
   }, [flushCurrentWorkflow, images, reactFlow, setEdges, setNodes]);
 
   const addNode = useCallback((type: NodeKind, position?: { x: number; y: number }) => {
@@ -275,8 +273,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       id: makeId(), source: connection.source, sourcePort: portFromHandle(connection.sourceHandle),
       target: connection.target, targetPort: portFromHandle(connection.targetHandle),
     });
-    if ('message' in edge) { setError(edge.message); return; }
-    setError(null);
+    if ('message' in edge) { notify.error(edge.message); return; }
     setEdges((current) => addEdge({
       id: edge.id, source: edge.source, target: edge.target,
       sourceHandle: sourceHandleId(edge.sourcePort), targetHandle: targetHandleId(edge.targetPort),
@@ -292,10 +289,9 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
 
   const openLibrary = async () => {
     setTab('library');
-    setError(null);
     setTemplatesLoading(true);
     try { setTemplates(await invoke<Template[]>('list_workflow_templates')); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    catch (cause) { notify.error(cause instanceof Error ? cause.message : String(cause)); }
     finally { setTemplatesLoading(false); }
   };
 
@@ -309,7 +305,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setDialog(null);
       setNameInput('');
       await openLibrary();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    } catch (cause) { notify.error(cause instanceof Error ? cause.message : String(cause)); }
   };
 
   const openTemplate = async (template: Template) => {
@@ -324,14 +320,14 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setProjectWorkflows((current) => [...current, record]);
       setTab('editor');
       await selectWorkflow(record);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not open this workflow.'); }
+    } catch (cause) { notify.error(cause instanceof Error ? cause.message : 'Could not open this workflow.'); }
     finally { setOpeningTemplate(null); }
   };
 
   const runWorkflow = async () => {
     if (!currentGraph || !store || !activeWorkflowId || isRunning) return;
     const issues = validateRunnableWorkflow(currentGraph);
-    if (issues.length) { setError(issues[0].message); return; }
+    if (issues.length) { notify.error(issues[0].message); return; }
     const id = makeId();
     const startedAt = new Date();
     const pipelineNodeIds = new Set<string>();
@@ -345,7 +341,6 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     const run: WorkflowRunRecord = { id, workflowId: activeWorkflowId, status: 'running', startedAt, finishedAt: null, currentNodeId: null, completedNodes: 0, totalNodes: total, error: null };
     setIsRunning(true);
     preparedPackets.current.clear();
-    setError(null);
     runProgressRef.current = { completed: 0, total, current: 0, nodeId: '' };
     setRunProgress(runProgressRef.current);
     setRunStates({});
@@ -507,12 +502,13 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
         },
       });
       await store.updateWorkflowRun({ ...run, status: 'completed', finishedAt: new Date(), completedNodes: total });
+      notify.success('Workflow finished.');
       setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
       if (selectedNode?.type === 'text') await loadOutputResults(selectedNode.id, currentGraph);
       if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause);
-      setError(message);
+      notify.error(message);
       await store.updateWorkflowRun({ ...run, status: 'failed', finishedAt: new Date(), currentNodeId: runProgressRef.current.nodeId || null, completedNodes: runProgressRef.current.completed, error: message });
       setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
       if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
@@ -545,9 +541,9 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     try {
       if (!navigator.clipboard) throw new Error('Clipboard access is unavailable.');
       await navigator.clipboard.writeText(value);
-      setNotice('Evidence value copied to clipboard.');
+      notify.success('Evidence value copied to clipboard.');
     } catch {
-      setError('Clipboard access is unavailable.');
+      notify.error('Clipboard access is unavailable.');
     }
   };
 
@@ -606,8 +602,6 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
         <button id="workbench-editor-tab" type="button" role="tab" aria-controls="workbench-editor-panel" aria-selected={tab === 'editor'} tabIndex={tab === 'editor' ? 0 : -1} className={`border-b-2 px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${tab === 'editor' ? 'border-app-accent text-app-white' : 'border-transparent text-app-accent-dim hover:text-app-white'}`} onKeyDown={handleTabKeyDown} onClick={() => setTab('editor')}>Editor</button>
         <button id="workbench-library-tab" type="button" role="tab" aria-controls="workbench-library-panel" aria-selected={tab === 'library'} tabIndex={tab === 'library' ? 0 : -1} className={`border-b-2 px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${tab === 'library' ? 'border-app-accent text-app-white' : 'border-transparent text-app-accent-dim hover:text-app-white'}`} onKeyDown={handleTabKeyDown} onClick={() => void openLibrary()}>Saved workflows</button>
       </nav>
-
-      {error && <div role="alert" className="flex flex-none items-center justify-between gap-3 border-b border-app-danger/30 bg-app-danger-bg px-4 py-2 text-sm text-app-danger"><span className="min-w-0 break-words">{error}</span><Tooltip content="Dismiss error" position="left"><button type="button" aria-label="Dismiss error" className="rounded p-1 text-app-danger hover:bg-app-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-danger" onClick={() => setError(null)}><X className="h-4 w-4" aria-hidden="true" /></button></Tooltip></div>}
 
       {!store ? (
         <div className="flex min-h-0 flex-1 items-center justify-center p-6">
@@ -705,11 +699,10 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               <div className="p-4">
                 <div className="mb-3 flex items-center justify-between"><p className="text-xs text-app-accent-dim">Saved output history</p><span className="text-[10px] text-app-accent-dim">{resultEntries.length} entries</span></div>
                 {resultEntries.length === 0 ? <p className="rounded-lg border border-dashed border-app-gray-light p-3 text-xs text-app-accent-dim">Run the connected workflow to create an output.</p> : <ul className="space-y-3">{resultEntries.map((result) => <li key={result.id ?? `${result.workflowRunId}-${result.processedAt.toISOString()}`} className="rounded-lg border border-app-gray-light/60 bg-app-gray/60 p-3">
-                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`} · {result.provider === 'paddle' ? 'PaddleOCR' : 'Tesseract'}{result.engineVersion ? ` · ${result.engineVersion}` : ''}</p></div><Tooltip content="Copy extracted text" position="left"><button type="button" className="rounded p-2 text-app-accent-dim hover:bg-app-gray hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" aria-label={`Copy extracted text from ${result.imageName}`} onClick={() => void navigator.clipboard.writeText(result.text).then(() => setNotice('Text copied to clipboard.')).catch(() => setError('Clipboard access is unavailable.'))}><Copy className="h-4 w-4" /></button></Tooltip></div>
+                  <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-app-white">{result.imageName} <span className="text-app-accent-dim">· ID {result.imageId}</span></p><p className="mt-1 text-[10px] text-app-accent-dim">{result.processedAt.toLocaleString()}{result.confidence == null ? '' : ` · ${Math.round(result.confidence)}% confidence`} · {result.provider === 'paddle' ? 'PaddleOCR' : 'Tesseract'}{result.engineVersion ? ` · ${result.engineVersion}` : ''}</p></div><Tooltip content="Copy extracted text" position="left"><button type="button" className="rounded p-2 text-app-accent-dim hover:bg-app-gray hover:text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent" aria-label={`Copy extracted text from ${result.imageName}`} onClick={() => void navigator.clipboard.writeText(result.text).then(() => notify.success('Text copied to clipboard.')).catch(() => notify.error('Clipboard access is unavailable.'))}><Copy className="h-4 w-4" /></button></Tooltip></div>
                   <pre className="selectable-value mt-3 whitespace-pre-wrap break-words font-sans text-xs text-app-white">{result.text || 'No text could be extracted.'}</pre>
                   {result.words?.length ? <details className="mt-3"><summary className="cursor-pointer text-xs text-app-accent-dim">Recognized words and source coordinates ({result.words.length})</summary><ul className="mt-2 space-y-1">{result.words.map((word, index) => <li key={`${word.text}-${index}`} className="flex justify-between gap-2 rounded bg-app-black/30 px-2 py-1 text-[10px]"><span className="selectable-value break-all text-app-white">{word.text}</span><span className="selectable-value shrink-0 text-app-accent-dim">{formatOcrCoordinates(word?.boundingBox)}</span></li>)}</ul></details> : null}
                 </li>)}</ul>}
-                {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
               </div>
             ) : (
               <div className="p-4">
@@ -726,7 +719,6 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
                     </>}
                   </li>;
                 })}</ul>}
-                {notice && <p className="mt-2 text-xs text-app-accent-dim" role="status">{notice}</p>}
               </div>
             )}</div>}
           </aside>
@@ -755,7 +747,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setDialog(null);
       setNameInput('');
       await selectWorkflow(record);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not create workflow.'); }
+    } catch (cause) { notify.error(cause instanceof Error ? cause.message : 'Could not create workflow.'); }
   }
 
   function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {

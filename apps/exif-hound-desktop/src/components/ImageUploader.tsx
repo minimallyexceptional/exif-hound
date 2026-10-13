@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react';
 import { ImageData } from '../types';
 import { useExifData } from '../hooks/useExifData';
 import { useSettings } from '../context/SettingsContext';
+import { notify } from '../feedback';
 
 // Utility for limiting concurrent operations
 class ConcurrencyLimiter {
@@ -135,6 +136,14 @@ const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', 
     // of letting worker timing choose the final selection.
     const completedImages = await Promise.all(processingPromises);
     completedImages.forEach(onImageUpload);
+    const failed = completedImages.filter(image => image.exif.error);
+    if (failed.length && failed.length === completedImages.length) {
+      notify.error(failed.length === 1 ? "Couldn't process 1 image" : `Couldn't process ${failed.length} images`);
+    } else if (failed.length) {
+      notify.error(`Couldn't process ${failed.length} of ${completedImages.length} images`);
+    } else {
+      notify.success(completedImages.length === 1 ? 'Imported 1 image' : `Imported ${completedImages.length} images`);
+    }
     setIsProcessing(false);
     setProcessingCount(0);
   }, [onImageUpload, processExifData, concurrencyLimiter, fetchLocation]);
