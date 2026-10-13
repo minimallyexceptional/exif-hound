@@ -2,6 +2,12 @@
 
 All notable changes to the EXIF Hound desktop app are documented in this file.
 
+## 2.7.0
+
+### Fixed
+
+- **Linux updates:** In-app updates work for `.deb` and `.rpm` installs. The release feed now publishes signed `linux-*-deb` and `linux-*-rpm` manifest entries, and mismatched updater formats surface a clear GitHub Releases fallback message.
+
 ## 2.6.9
 
 ### Fixed
