@@ -36,7 +36,7 @@ export const UpdateNotification: React.FC<Props> = ({
   const service = useMemo(() => serviceProp ?? getUpdateService(), [serviceProp]);
   const [state, setState] = useState<UpdateState>(service.getState());
   // Versions the user deferred with "Later" — they stay reachable through
-  // the manual check (Settings / Help menu) but stop nagging automatically.
+  // the manual check in Settings but stop nagging automatically.
   const [dismissedVersions, setDismissedVersions] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => service.subscribe(setState), [service]);
