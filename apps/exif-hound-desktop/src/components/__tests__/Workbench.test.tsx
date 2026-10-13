@@ -141,7 +141,8 @@ describe('Workbench workflow editor', () => {
 
     expect(await screen.findByTestId('flow-node-visual-identifiers')).toBeInTheDocument();
     expect(screen.getByLabelText('Email addresses')).toBeChecked();
-    expect(screen.getByLabelText('License-plate profile')).toHaveValue('');
+    expect(screen.getByLabelText('License plates')).toBeChecked();
+    expect(screen.queryByLabelText('License-plate profile')).not.toBeInTheDocument();
     expect(screen.getByText(/pattern candidates with source coordinates/)).toBeInTheDocument();
   });
 

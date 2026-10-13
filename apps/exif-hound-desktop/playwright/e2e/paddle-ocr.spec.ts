@@ -15,6 +15,6 @@ test('PaddleOCR loads packaged local models and recognizes text without network 
   expect(runtime.provider).toBe('paddle');
   expect(runtime.engineVersion).toContain('PP-OCRv6_small');
   expect(runtime.text.toUpperCase()).toContain('PADDLE');
-  expect(runtime.words).toBe(0);
+  expect(runtime.words).toBeGreaterThan(0);
   expect(externalRequests).toEqual([]);
 });

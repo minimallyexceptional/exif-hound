@@ -40,7 +40,7 @@ const portDefaults: Record<NodeKind, { title: string; settings: WorkflowNode['se
   image: { title: 'Image', settings: { imageId: null } },
   ocr: { title: 'OCR', settings: { language: 'eng' } },
   provenance: { title: 'Image Provenance', settings: {} },
-  'visual-identifiers': { title: 'Text & Identifiers', settings: { language: 'eng', enabledFamilies: 'email,url-domain,phone-like,coordinate-pair', licensePlateProfile: null } },
+  'visual-identifiers': { title: 'Text & Identifiers', settings: { language: 'eng', enabledFamilies: 'email,url-domain,phone-like,coordinate-pair,license-plate-like', licensePlateProfile: 'us-general' } },
   text: { title: 'Text output', settings: {} },
   evidence: { title: 'Evidence Report', settings: {} },
 };
@@ -52,7 +52,10 @@ const identifierFamilies: Array<{ id: CandidateFamily; title: string }> = [
   { id: 'url-domain', title: 'URLs and domains' },
   { id: 'phone-like', title: 'Phone-like numbers' },
   { id: 'coordinate-pair', title: 'Coordinate pairs' },
+  { id: 'license-plate-like', title: 'License plates' },
 ];
+
+const defaultIdentifierFamilies = 'email,url-domain,phone-like,coordinate-pair,license-plate-like';
 
 interface EvidenceEntry { sourceNode: WorkflowNode; record: WorkflowToolResultRecord }
 interface EvidencePayload {
@@ -404,14 +407,29 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               imageId: imageInput.imageId, imageName: imageInput.imageName, bytes,
               settings: {
                 language: String(settings.language ?? 'eng'),
-                enabledFamilies: String(settings.enabledFamilies ?? 'email,url-domain,phone-like,coordinate-pair'),
-                licensePlateProfile: typeof settings.licensePlateProfile === 'string' ? settings.licensePlateProfile : null,
+                enabledFamilies: String(settings.enabledFamilies ?? defaultIdentifierFamilies),
+                licensePlateProfile: settings.licensePlateProfile === 'off' || settings.licensePlateProfile === ''
+                  ? null
+                  : settings.licensePlateProfile === 'us-general'
+                    || String(settings.enabledFamilies ?? defaultIdentifierFamilies).split(',').includes('license-plate-like')
+                    || settings.licensePlateProfile == null
+                    ? 'us-general'
+                    : null,
               },
             }, reportProgress);
             const manifest = imageInput.preprocessing as ImageProcessingManifest;
-            const sourceBox = (box: { x: number; y: number; width: number; height: number }) => mapProcessedBoxToSource(
-              box, manifest.processedWidth, manifest.processedHeight, manifest.sourceWidth, manifest.sourceHeight, manifest.processedToSource,
-            );
+            const sourceBox = (box: { x: number; y: number; width: number; height: number }) => {
+              const values = [box?.x, box?.y, box?.width, box?.height, manifest?.processedWidth, manifest?.processedHeight, manifest?.sourceWidth, manifest?.sourceHeight];
+              if (!values.every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0)) {
+                return { x: 0, y: 0, width: 0, height: 0 };
+              }
+              const mapped = mapProcessedBoxToSource(
+                box, manifest.processedWidth, manifest.processedHeight, manifest.sourceWidth, manifest.sourceHeight, manifest.processedToSource,
+              );
+              const mappedValues = [mapped.x, mapped.y, mapped.width, mapped.height];
+              if (!mappedValues.every(value => Number.isFinite(value))) return { x: 0, y: 0, width: 0, height: 0 };
+              return mapped;
+            };
             return {
               ...result,
               words: result.words.map(word => ({ ...word, boundingBox: sourceBox(word.boundingBox) })),
@@ -667,14 +685,20 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
               <div className="space-y-4 p-4">
                 <label className="block text-xs font-medium text-app-accent-dim">OCR language<select className={fieldClass} value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label>
                 <fieldset><legend className="mb-2 text-xs font-medium text-app-accent-dim">Candidate patterns</legend><div className="space-y-1">{identifierFamilies.map((family) => {
-                  const enabled = String(selectedNode.data.settings.enabledFamilies ?? 'email,url-domain,phone-like,coordinate-pair').split(',').includes(family.id);
+                  const families = String(selectedNode.data.settings.enabledFamilies ?? defaultIdentifierFamilies).split(',');
+                  const enabled = family.id === 'license-plate-like'
+                    ? selectedNode.data.settings.licensePlateProfile !== 'off'
+                    : families.includes(family.id);
                   return <label key={family.id} className="flex min-h-8 cursor-pointer items-center gap-2 rounded-lg px-1 text-sm text-app-white hover:bg-app-gray"><input type="checkbox" className="h-4 w-4 shrink-0 rounded border-app-gray-light accent-app-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent" checked={enabled} onChange={(event) => {
-                    const current = new Set(String(selectedNode.data.settings.enabledFamilies ?? 'email,url-domain,phone-like,coordinate-pair').split(',').filter(Boolean));
+                    const current = new Set(String(selectedNode.data.settings.enabledFamilies ?? defaultIdentifierFamilies).split(',').filter(Boolean));
                     if (event.target.checked) current.add(family.id); else current.delete(family.id);
-                    updateSettings(selectedNode.id, { ...selectedNode.data.settings, enabledFamilies: Array.from(current).join(',') });
+                    updateSettings(selectedNode.id, {
+                      ...selectedNode.data.settings,
+                      enabledFamilies: Array.from(current).join(','),
+                      licensePlateProfile: current.has('license-plate-like') ? 'us-general' : 'off',
+                    });
                   }} />{family.title}</label>;
                 })}</div></fieldset>
-                <label className="block text-xs font-medium text-app-accent-dim">License-plate profile<select className={fieldClass} value={String(selectedNode.data.settings.licensePlateProfile ?? '')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, licensePlateProfile: event.target.value || null })}><option value="">Off</option><option value="us-general">US general candidate pattern</option></select></label>
                 <p className="text-xs leading-relaxed text-app-accent-dim">Matches are pattern candidates with source coordinates, not identity claims. OCR uses local image bytes.</p>
               </div>
             ) : selectedNode.type === 'text' ? (
