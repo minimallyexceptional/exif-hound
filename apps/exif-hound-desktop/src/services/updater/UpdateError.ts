@@ -85,7 +85,8 @@ export function mapPluginError(
   if (
     operation === 'install' &&
     (normalized.includes('invalidupdaterformat') ||
-      normalized.includes('invalid updater format'))
+      normalized.includes('invalid updater format') ||
+      normalized.includes('invalid updater binary format'))
   ) {
     return new UpdateError(
       UpdateErrorCode.InstallFailed,

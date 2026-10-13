@@ -34,7 +34,7 @@ describe('UpdateError mapping', () => {
   });
 
   it('maps InvalidUpdaterFormat on install to a GitHub Releases package hint', () => {
-    const error = mapPluginError(new Error('InvalidUpdaterFormat'), 'install');
+    const error = mapPluginError(new Error('invalid updater binary format'), 'install');
     expect(error.code).toBe(UpdateErrorCode.InstallFailed);
     expect(error.userMessage).toContain('GitHub Releases');
     expect(error.userMessage).toContain('.deb or .rpm');
