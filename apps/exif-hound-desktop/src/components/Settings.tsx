@@ -196,7 +196,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       }
                     })}
                     placeholder="Enter tile server URL (e.g., https://{s}.tile.server.org/{z}/{x}/{y}.png)"
-                    className="w-full px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light focus:outline-none focus:border-app-accent"
+                    className="app-control app-control-block !mt-0 w-full"
                   />
                   <p className="mt-2 text-xs text-app-accent-dim">
                     Supports standard map tile URL format with {'{z}'}, {'{x}'}, {'{y}'} placeholders and optional {'{s}'} for subdomains

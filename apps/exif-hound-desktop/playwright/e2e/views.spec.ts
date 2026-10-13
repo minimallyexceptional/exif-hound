@@ -22,20 +22,23 @@ test('switches between map, list, and workbench views', async ({ page }) => {
 
 test('collapses and expands the gallery sidebar', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
-  await page.getByRole('button', { name: 'Collapse gallery' }).click();
-  await expect(page.getByRole('button', { name: 'Expand gallery' })).toBeVisible();
+  const galleryToggle = page.getByTestId('gallery-sidebar-toggle');
+  await galleryToggle.click();
+  await expect(galleryToggle).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('heading', { name: 'Gallery' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Expand gallery' }).click();
-  await expect(page.getByRole('button', { name: 'Collapse gallery' })).toBeVisible();
+  await galleryToggle.click();
+  await expect(galleryToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
 });
 
 test('collapses and expands the EXIF details panel', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Collapse details' }).click();
-  await expect(page.getByRole('button', { name: 'Expand details' })).toBeVisible();
+  const detailsToggle = page.getByTestId('exif-details-toggle');
+  await detailsToggle.click();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Expand details' }).click();
+  await detailsToggle.click();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
 });
 

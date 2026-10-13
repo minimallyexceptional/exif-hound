@@ -11,7 +11,7 @@ import Settings from './components/Settings';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from './components/common/Button';
+import { SidebarRailToggle } from './components/common/SidebarRailToggle';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
@@ -448,31 +448,27 @@ function App() {
           }`}>
             <div className="flex flex-col h-full">
               {/* Panel Header */}
-              <div 
+              <SidebarRailToggle
+                expanded={!isExifPanelCollapsed}
+                onToggle={() => setIsExifPanelCollapsed((prev) => !prev)}
+                screenReaderLabel="Image details panel"
+                testId="exif-details-toggle"
                 className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
-                  isExifPanelCollapsed 
-                    ? 'h-12 justify-center hover:bg-app-gray-light/30' 
+                  isExifPanelCollapsed
+                    ? 'h-12 justify-center hover:bg-app-gray-light/30'
                     : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
                 }`}
-                onClick={() => setIsExifPanelCollapsed(prev => !prev)}
-              >
-                {!isExifPanelCollapsed && (
+                leading={!isExifPanelCollapsed ? (
                   <h2 className="font-medium text-app-white flex items-center gap-2">
                     Details
                   </h2>
+                ) : undefined}
+                chevron={isExifPanelCollapsed ? (
+                  <ChevronLeft className="w-7 h-7 text-app-white" />
+                ) : (
+                  <ChevronRight className="w-7 h-7 text-app-white" />
                 )}
-                <Button
-                  variant="ghost"
-                  className="w-8 h-8 !p-0"
-                  aria-label={isExifPanelCollapsed ? "Expand details" : "Collapse details"}
-                >
-                  {isExifPanelCollapsed ? (
-                    <ChevronLeft className="w-7 h-7 text-app-white" />
-                  ) : (
-                    <ChevronRight className="w-7 h-7 text-app-white" />
-                  )}
-                </Button>
-              </div>
+              />
 
               {/* Panel Content */}
               <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${

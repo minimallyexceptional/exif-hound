@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 import { Panel } from './common/Panel';
-import { Button } from './common/Button';
+import { SidebarRailToggle } from './common/SidebarRailToggle';
 import Logomark from './common/Logomark';
 
 interface Props {
@@ -50,34 +50,30 @@ export const AppLayout: React.FC<Props> = ({
         >
           <div className="flex flex-col h-full">
             {/* Sidebar Header */}
-            <div 
+            <SidebarRailToggle
+              expanded={!isGalleryCollapsed}
+              onToggle={() => onToggleGallery?.()}
+              screenReaderLabel="Gallery panel"
+              testId="gallery-sidebar-toggle"
               className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
-                isGalleryCollapsed 
-                  ? 'h-12 justify-center hover:bg-app-gray-light/30' 
+                isGalleryCollapsed
+                  ? 'h-12 justify-center hover:bg-app-gray-light/30'
                   : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
               }`}
-              onClick={onToggleGallery}
-            >
-              {!isGalleryCollapsed && (
+              leading={!isGalleryCollapsed ? (
                 <h2 className="font-medium text-app-white flex items-center gap-2">
                   Gallery
                 </h2>
+              ) : undefined}
+              chevron={isGalleryCollapsed ? (
+                <ChevronRight className="w-7 h-7 text-app-white" />
+              ) : (
+                <>
+                  <ChevronLeft className="hidden lg:block w-7 h-7 text-app-white" />
+                  <ChevronUp className="lg:hidden w-7 h-7 text-app-white" />
+                </>
               )}
-              <Button
-                variant="ghost"
-                className="w-8 h-8 !p-0"
-                aria-label={isGalleryCollapsed ? "Expand gallery" : "Collapse gallery"}
-              >
-                {isGalleryCollapsed ? (
-                  <ChevronRight className="w-7 h-7 text-app-white" />
-                ) : (
-                  <>
-                    <ChevronLeft className="hidden lg:block w-7 h-7 text-app-white" />
-                    <ChevronUp className="lg:hidden w-7 h-7 text-app-white" />
-                  </>
-                )}
-              </Button>
-            </div>
+            />
 
             {/* Sidebar Content */}
             <div
