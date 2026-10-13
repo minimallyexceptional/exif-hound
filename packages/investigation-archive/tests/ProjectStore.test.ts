@@ -113,7 +113,7 @@ describe('project creation and validation', () => {
     legacyEngine.close();
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Legacy');
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(7);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(8);
     expect((await reopened.listImages())[0].exif).toEqual({ make: 'kept' });
   });
 
@@ -257,13 +257,42 @@ describe('image write-through', () => {
 
     await expect(store.listWorkflowProvenanceResults('forensic-flow', 'provenance-1')).resolves.toMatchObject([
       { resultStatus: 'failed', error: 'Malformed image structure', workflowRunId: 'forensic-run', preprocessingManifest: { profile: 'ocr-default-v1', middlewareVersion: '0.1.0', operations: [] } },
-      { resultStatus: 'success', result: { indicators: [] }, imageName: 'evidence.jpg', toolVersion: '1.0.0', startedAt: now, finishedAt: now, preprocessingManifest: { profile: 'ocr-default-v1', operations: [] } },
     ]);
     await expect(store.listWorkflowIdentifierResults('forensic-flow', 'identifiers-1')).resolves.toMatchObject([
       { resultStatus: 'success', result: { text: '', words: [], candidates: [] }, imageId: image.id, nodeId: 'identifiers-1', preprocessingManifest: { profile: 'ocr-default-v1', operations: [] } },
     ]);
-    expect(await store.listProjectProvenanceResults()).toHaveLength(2);
+    expect(await store.listProjectProvenanceResults()).toHaveLength(1);
     expect(await store.listProjectIdentifierResults()).toHaveLength(1);
+  });
+
+  it('merges identifier results from different workflows for the same image', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'CanonicalMerge', '2.7.0');
+    const image = await store.addImage('merge.jpg', jpegBytes, {});
+    const now = new Date();
+    await store.saveWorkflow({ id: 'flow-a', name: 'A', graphJson: '{}', updatedAt: now });
+    await store.saveWorkflow({ id: 'flow-b', name: 'B', graphJson: '{}', updatedAt: now });
+    await store.createWorkflowRun({
+      id: 'run-a', workflowId: 'flow-a', status: 'completed', startedAt: now, finishedAt: now,
+      currentNodeId: null, completedNodes: 1, totalNodes: 1, error: null,
+    });
+    await store.createWorkflowRun({
+      id: 'run-b', workflowId: 'flow-b', status: 'completed', startedAt: now, finishedAt: now,
+      currentNodeId: null, completedNodes: 1, totalNodes: 1, error: null,
+    });
+    const base = {
+      imageId: image.id, imageName: image.fileName, toolVersion: '1', startedAt: now, finishedAt: now, resultStatus: 'success' as const,
+    };
+    await store.appendWorkflowIdentifierResult({
+      ...base, workflowId: 'flow-a', workflowRunId: 'run-a', nodeId: 'ids-a',
+      result: { candidates: [{ family: 'email', value: 'one@example.com', confidence: 90 }] },
+    });
+    await store.appendWorkflowIdentifierResult({
+      ...base, workflowId: 'flow-b', workflowRunId: 'run-b', nodeId: 'ids-b',
+      result: { candidates: [{ family: 'phone-like', value: '555-0100', confidence: 88 }] },
+    });
+    const rows = await store.listProjectIdentifierResults();
+    expect(rows).toHaveLength(1);
+    expect((rows[0].result as { candidates: unknown[] }).candidates).toHaveLength(2);
   });
 
   it('lists all project OCR rows across workflows', async () => {
@@ -281,9 +310,9 @@ describe('image write-through', () => {
       processedAt: new Date(now.getTime() + 1000), workflowId: 'flow-b', workflowRunId: 'run-b', nodeId: 'ocr-b',
     });
     const rows = await store.listProjectOcrResults();
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(1);
     expect(rows[0].text).toBe('second');
-    expect(rows[1].text).toBe('first');
+    expect(rows[0].confidence).toBe(91);
   });
 
   it('migrates schema v4 projects to add forensic result tables without losing OCR rows', async () => {
@@ -299,7 +328,7 @@ describe('image write-through', () => {
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/ForensicMigration');
 
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(7);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(8);
     expect(await reopened.getOcrResult(image.id)).toMatchObject({ text: 'preserve OCR' });
     const engine = await dbProvider.open(await fs.readFile('/projects/ForensicMigration/data/data.db'));
     const tables = await engine.exec("SELECT name FROM sqlite_master WHERE type='table'", [], 'all');
@@ -330,7 +359,7 @@ describe('image write-through', () => {
     engine.close();
 
     const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/ManifestMigration');
-    expect((await reopened.getMeta()).schemaFormatVersion).toBe(7);
+    expect((await reopened.getMeta()).schemaFormatVersion).toBe(8);
     expect(await reopened.listWorkflowOcrResults('manifest-flow', 'ocr')).toMatchObject([{ text: 'legacy result', provider: 'tesseract', engineVersion: 'Tesseract.js', preprocessingManifest: undefined, words: [] }]);
     expect(await reopened.listWorkflowProvenanceResults('manifest-flow', 'prov')).toMatchObject([{ result: { ok: true }, preprocessingManifest: undefined }]);
     expect(await reopened.listWorkflowIdentifierResults('manifest-flow', 'ids')).toMatchObject([{ result: { ok: true }, preprocessingManifest: undefined }]);
