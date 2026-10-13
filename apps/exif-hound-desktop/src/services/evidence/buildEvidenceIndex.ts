@@ -63,6 +63,13 @@ function isProvenanceIndicator(value: unknown): value is { code?: string; messag
   return Boolean(value && typeof value === 'object');
 }
 
+function identifierDedupeKey(categoryId: EvidenceCategoryId, imageId: number, value: string): string {
+  const normalized = categoryId === 'emails' || categoryId === 'urls'
+    ? value.trim().toLowerCase()
+    : value.trim();
+  return `${categoryId}:${imageId}:${normalized}`;
+}
+
 export function buildEvidenceIndex(
   ocrResults: OcrResultRecord[],
   identifierResults: WorkflowToolResultRecord[],
@@ -70,6 +77,9 @@ export function buildEvidenceIndex(
   images: ImageData[],
 ): EvidenceIndex {
   const rowsByCategory = emptyRows();
+  const seenIdentifiers = new Set<string>();
+  const seenProvenance = new Set<string>();
+  const seenOcrByImage = new Set<number>();
 
   for (const record of identifierResults) {
     if (record.resultStatus !== 'success') continue;
@@ -79,6 +89,9 @@ export function buildEvidenceIndex(
       if (!isIdentifierCandidate(candidate)) return;
       const categoryId = FAMILY_TO_CATEGORY[candidate.family];
       if (!categoryId) return;
+      const dedupeKey = identifierDedupeKey(categoryId, record.imageId, candidate.value);
+      if (seenIdentifiers.has(dedupeKey)) return;
+      seenIdentifiers.add(dedupeKey);
       const row: IdentifierEvidenceRow = {
         id: `id-${record.id ?? record.workflowRunId}-${index}`,
         kind: 'identifier',
@@ -96,6 +109,8 @@ export function buildEvidenceIndex(
   }
 
   for (const record of ocrResults) {
+    if (seenOcrByImage.has(record.imageId)) continue;
+    seenOcrByImage.add(record.imageId);
     const row: OcrEvidenceRow = {
       id: `ocr-${record.id ?? `${record.imageId}-${record.processedAt.getTime()}`}`,
       kind: 'ocr',
@@ -117,6 +132,10 @@ export function buildEvidenceIndex(
     const indicators = Array.isArray(payload?.indicators) ? payload.indicators : [];
     indicators.forEach((indicator, index) => {
       if (!isProvenanceIndicator(indicator)) return;
+      const code = indicator.code ?? 'Indicator';
+      const dedupeKey = `${record.imageId}:${code}:${(indicator.observedValue ?? '').trim()}`;
+      if (seenProvenance.has(dedupeKey)) return;
+      seenProvenance.add(dedupeKey);
       const row: ProvenanceEvidenceRow = {
         id: `prov-${record.id ?? record.workflowRunId}-${index}`,
         kind: 'provenance',

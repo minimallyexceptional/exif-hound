@@ -40,4 +40,28 @@ describe('buildEvidenceIndex', () => {
     expect(index.categories.find(c => c.id === 'gps-locations')?.count).toBe(1);
     expect(index.rowsByCategory['license-plates'][0].kind).toBe('identifier');
   });
+
+  it('dedupes duplicate identifier values for the same image', () => {
+    const now = new Date('2026-01-01T12:00:00Z');
+    const record = {
+      id: 1,
+      imageId: 7,
+      imageName: 'photo.jpg',
+      result: { candidates: [{ family: 'email', value: 'A@B.com', confidence: 80 }] },
+      resultStatus: 'success' as const,
+      workflowId: 'wf-a',
+      workflowRunId: 'run-a',
+      nodeId: 'ids',
+      toolVersion: '1.0.0',
+      startedAt: now,
+      finishedAt: now,
+    };
+    const index = buildEvidenceIndex(
+      [],
+      [record, { ...record, id: 2, workflowId: 'wf-b', workflowRunId: 'run-b', result: { candidates: [{ family: 'email', value: 'a@b.com', confidence: 90 }] } }],
+      [],
+      [],
+    );
+    expect(index.categories.find(c => c.id === 'emails')?.count).toBe(1);
+  });
 });
