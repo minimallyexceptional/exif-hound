@@ -1,4 +1,16 @@
-import { formatLocation, formatShortLocation, LocationData } from '../../utils/geocoding';
+import * as fileSystem from '../../utils/fileSystem';
+import {
+  formatLocation,
+  formatShortLocation,
+  getLocationFromCoordinates,
+  LocationData,
+} from '../../utils/geocoding';
+
+const mockTauriFetch = jest.fn();
+
+jest.mock('@tauri-apps/plugin-http', () => ({
+  fetch: (...args: unknown[]) => mockTauriFetch(...args),
+}));
 
 describe('geocoding utility', () => {
   describe('formatLocation', () => {
@@ -75,6 +87,60 @@ describe('geocoding utility', () => {
     it('should handle error in location data', () => {
       const result = formatShortLocation({ loading: false, error: 'Some error' });
       expect(result).toBe('Unknown');
+    });
+  });
+
+  describe('getLocationFromCoordinates', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+      mockTauriFetch.mockReset();
+      jest.restoreAllMocks();
+      jest.useRealTimers();
+    });
+
+    it('requests Nominatim with coordinates only and does not set User-Agent (WebKit forbids it)', async () => {
+      jest.spyOn(fileSystem, 'isTauriEnvironment').mockReturnValue(false);
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ address: { country: 'Testland' }, display_name: 'Test' }),
+      });
+      global.fetch = fetchMock as typeof fetch;
+
+      jest.useFakeTimers();
+      const resultPromise = getLocationFromCoordinates(12.3456, 98.7654);
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(result.country).toBe('Testland');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit?];
+      expect(url).toContain('lat=12.3456');
+      expect(url).toContain('lon=98.7654');
+      expect(url).not.toContain('email=');
+      const headers = init?.headers as Record<string, string> | undefined;
+      expect(headers?.['User-Agent']).toBeUndefined();
+    });
+
+    it('uses the Tauri HTTP plugin in a desktop webview without setting User-Agent', async () => {
+      jest.spyOn(fileSystem, 'isTauriEnvironment').mockReturnValue(true);
+      mockTauriFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ address: { country: 'TauriLand' }, display_name: 'Tauri' }),
+      });
+
+      jest.useFakeTimers();
+      const resultPromise = getLocationFromCoordinates(51.5074, -0.1278);
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(result.country).toBe('TauriLand');
+      expect(mockTauriFetch).toHaveBeenCalledTimes(1);
+      const [url, init] = mockTauriFetch.mock.calls[0] as [string, RequestInit?];
+      expect(url).toContain('nominatim.openstreetmap.org/reverse');
+      const headers = init?.headers as Record<string, string> | undefined;
+      expect(headers?.['User-Agent']).toBeUndefined();
     });
   });
 }); 

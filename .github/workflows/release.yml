@@ -1,6 +1,6 @@
 name: Release
 
-# Builds signed Exif Hound apps for Windows, Linux x86_64/ARM64, and Apple Silicon.
+# Builds signed EXIF Hound apps for Windows, Linux x86_64/ARM64, and Apple Silicon.
 # Stable releases are triggered by v<version> tags. Manual runs can target
 # the stable or internal update channel. See docs/updater.md
 
@@ -231,7 +231,7 @@ jobs:
             } >> "$GITHUB_ENV"
           fi
 
-      - name: Build Exif Hound (${{ needs.prepare.outputs.channel }})
+      - name: Build EXIF Hound (${{ needs.prepare.outputs.channel }})
         env:
           EXIFHOUND_UPDATE_CHANNEL: ${{ needs.prepare.outputs.channel }}
         shell: bash
@@ -377,11 +377,11 @@ jobs:
         run: |
           set -euo pipefail
           cat > release-body.md <<BODY
-          Installers for Exif Hound.
+          Installers for EXIF Hound.
           macOS builds are for Apple Silicon (M-series).
 
           > Existing users should manually install this release. Once installed,
-          > Exif Hound can download future signed updates directly in the app.
+          > EXIF Hound can download future signed updates directly in the app.
           > Update checks are anonymous and never include image or investigation data.
           BODY
 
@@ -400,7 +400,7 @@ jobs:
               --target "$GITHUB_SHA" \
               "${PRERELEASE_FLAG[@]}" \
               --draft \
-              --title "Exif Hound v${VERSION}" \
+              --title "EXIF Hound v${VERSION}" \
               --notes-file release-body.md
           fi
 

@@ -37,27 +37,57 @@
       "identifier": "fs:allow-remove",
       "allow": [{ "path": "**" }]
     },
-    "http:default",
-    "http:allow-fetch",
-    "http:allow-fetch-cancel",
-    "http:allow-fetch-read-body",
-    "http:allow-fetch-send",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://nominatim.openstreetmap.org/*" }
+      ]
+    },
     "updater:default",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
         {
           "url": "https://github.com/minimallyexceptional/exif-hound"
+        },
+        {
+          "url": "https://github.com/minimallyexceptional/exif-hound/*"
+        },
+        {
+          "url": "https://github.com/sponsors/minimallyexceptional"
+        },
+        {
+          "url": "https://github.com/sponsors/minimallyexceptional/*"
+        },
+        {
+          "url": "https://github.com/sponsors/*"
+        },
+        {
+          "url": "https://www.openstreetmap.org/*"
+        },
+        {
+          "url": "https://www.openstreetmap.fr/*"
+        },
+        {
+          "url": "https://www.hotosm.org/*"
+        },
+        {
+          "url": "https://opentopomap.org/*"
+        },
+        {
+          "url": "http://viewfinderpanoramas.org/*"
+        },
+        {
+          "url": "https://viewfinderpanoramas.org/*"
+        },
+        {
+          "url": "https://nominatim.openstreetmap.org/*"
+        },
+        {
+          "url": "https://minimallyexceptional.github.io/*"
         }
       ]
     },
-    "process:default",
-    {
-      "identifier": "http:default",
-      "allow": [
-        "http://localhost:3000/api/*",
-        "https://exifhound.com/api/*"
-      ]
-    }
+    "process:default"
   ]
 }

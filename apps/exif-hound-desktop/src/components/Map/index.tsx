@@ -3,6 +3,7 @@ import { MapContainer, useMap } from 'react-leaflet';
 import { ImageData } from '../../types';
 import { MapLayers } from './components/layers/MapLayers';
 import { MapControls } from './components/controls/MapControls';
+import { AttributionLinkHandler } from './components/controls/AttributionLinkHandler';
 import { ImageRoute } from './components/layers/ImageRoute';
 import { ImageCluster } from './components/layers/ImageCluster';
 import { ImageHeatmap } from './components/layers/HeatmapLayer';
@@ -153,6 +154,7 @@ const Map: React.FC<MapProps> = ({
         zoom={13}
         className={`w-full h-full ${isFullscreen ? 'fullscreen' : ''}`}
       >
+        <AttributionLinkHandler />
         <MapInteractionHandler
           selectedImage={selectedImage}
           fromReticle={fromReticle}

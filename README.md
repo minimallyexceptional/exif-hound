@@ -1,13 +1,24 @@
-# Exif Hound
+# EXIF Hound
 
 [![CI](https://github.com/minimallyexceptional/exif-hound/actions/workflows/ci.yml/badge.svg)](https://github.com/minimallyexceptional/exif-hound/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/minimallyexceptional/exif-hound)](https://github.com/minimallyexceptional/exif-hound/releases/latest)
 
+<img width="1854" height="1117" alt="image" src="https://github.com/user-attachments/assets/9cb0d7bf-27ec-4566-b576-78349a14e615" />
+
+
 Privacy-first desktop app for inspecting image EXIF metadata, mapping photo
-locations, and organizing investigations. **All processing happens locally on
-your device** — image data, metadata, filenames, and investigation data are
-never transmitted.
+locations, and organizing investigations. **EXIF analysis runs locally on your
+device** — images, metadata, filenames, and investigation data are not uploaded
+or transmitted. No account, no telemetry.
+
+The app uses the network only for:
+
+| Use | What is sent |
+| --- | --- |
+| **Map tiles** | Requests to load map imagery (OpenStreetMap by default; optional built-in styles or a custom tile server URL in settings) |
+| **Updates** | Signed update checks against the static feed on GitHub Pages; downloading an update when you choose to install one |
+| **Place names** (opt-in, off by default) | When enabled in Settings, GPS coordinates are sent to [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) for reverse geocoding after upload |
 
 ## Features
 
@@ -35,7 +46,6 @@ npm workspaces + Turborepo monorepo:
 | Path | What it is |
 | --- | --- |
 | `apps/exif-hound-desktop` | The desktop app: Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript; EXIF parsing in a Web Worker; Map, List, and Workbench views |
-| `apps/exif-hound-website` | Companion website |
 | `packages/exif-middleware` | Shared EXIF processing middleware (consumed by the desktop app via a Vite alias) |
 
 ## Development

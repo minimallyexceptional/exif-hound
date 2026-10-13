@@ -3,7 +3,7 @@ import { bootApp, closeSettings, openSettings, MOCK_UPDATE } from '../support/ap
 
 test('is silent when the automatic check finds no update', async ({ page }) => {
   await bootApp(page);
-  await expect(page.getByRole('heading', { name: 'Exif Hound' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'EXIF Hound' })).toBeVisible();
   await expect(page.getByText('Update Available')).toHaveCount(0);
 });
 
@@ -12,7 +12,7 @@ test('shows the update-available dialog when the check finds an update', async (
   await openSettings(page);
   await page.getByRole('button', { name: 'Check for Updates' }).click();
   await expect(page.getByText('Update Available')).toBeVisible();
-  await expect(page.getByRole('dialog')).toContainText('Exif Hound 9.9.9 is available.');
+  await expect(page.getByRole('dialog')).toContainText('EXIF Hound 9.9.9 is available.');
   await expect(page.getByRole('dialog')).toContainText('Automated test release notes');
   await expect(page.getByTestId('update-status')).toContainText('An update is available.');
 });

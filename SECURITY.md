@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Exif Hound processes images locally and is designed to never transmit user
+EXIF Hound processes images locally and is designed to never transmit user
 data. If you believe you have found a security vulnerability, **please do not
 open a public GitHub issue**.
 
@@ -36,9 +36,9 @@ in release notes unless they prefer to remain anonymous.
   updater); clients verify signatures against the public key compiled into the
   app before installing anything. Update manifests are served over HTTPS from
   GitHub Pages.
-- **Network access.** The only outbound traffic is the update feed, reverse
-  geocoding of coordinates the user chooses to look up (OpenStreetMap
-  Nominatim), and map tile requests.
+- **Network access.** The only outbound traffic is the update feed, map tile
+  requests, and (when the user enables it in Settings) reverse geocoding of GPS
+  coordinates via OpenStreetMap Nominatim.
 
 ## Signing key compromise
 

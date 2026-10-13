@@ -97,7 +97,7 @@ test('opening an existing project repopulates views from the database', async ({
   await entry.click();
 
   // Views repopulated from the db: both restored images, immediately ready.
-  await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'EXIF Hound', exact: true })).toBeVisible();
   for (const fixture of [FIXTURE_IMAGES.fullExif, FIXTURE_IMAGES.noGps]) {
     const item = page.locator(`[data-testid="gallery-item"][data-file-name="${fixture.name}"]`);
     await expect(item).toHaveCount(1);

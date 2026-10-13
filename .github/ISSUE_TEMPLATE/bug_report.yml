@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Exif Hound version
+      label: EXIF Hound version
       description: From Settings → About, or the release tag
       placeholder: e.g. 2.6.5
     validations:

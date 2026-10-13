@@ -59,7 +59,7 @@ export const UpdateProgressDialog: React.FC<Props> = ({ phase, progress }) => {
 
         {phase === 'installing' && (
           <p className="text-sm text-app-accent-dim">
-            This only takes a moment. EXIF HOUND will restart when the update is ready.
+            This only takes a moment. EXIF Hound will restart when the update is ready.
           </p>
         )}
       </div>

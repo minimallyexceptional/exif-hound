@@ -1,8 +1,8 @@
-# PRODUCT.md — Exif Hound
+# PRODUCT.md — EXIF Hound
 
 ## What this is
 
-Exif Hound is a cross-platform desktop application (Tauri + React) for inspecting,
+EXIF Hound is a cross-platform desktop application (Tauri + React) for inspecting,
 visualizing, and managing EXIF metadata in photos. Users import images, see what
 metadata they carry (GPS location, camera, lens, timestamps, software), view photo
 locations on an interactive map, analyze images in a node based Workbench, and export findings
@@ -20,9 +20,9 @@ command line or a cloud upload. All processing happens locally.
   dialogs and filesystem come from Tauri plugins, not browser APIs.
 - **Investigation-grade.** Workbench workflows support repeatable, local image
   analysis. Precision and accuracy of metadata matter more than flourish.
-- **Monorepo layout.** `apps/exif-hound-desktop` is the product; `apps/exif-hound-website`
-  is marketing/site; `packages/exif-middleware` holds EXIF processing. The desktop
-  app is the design center of gravity.
+- **Monorepo layout.** `apps/exif-hound-desktop` is the product;
+  `packages/exif-middleware` holds EXIF processing. The desktop app is the design
+  center of gravity.
 
 ## Surface modes
 
@@ -30,7 +30,6 @@ command line or a cloud upload. All processing happens locally.
 | --- | --- | --- |
 | Desktop app (uploader, map, list, gallery, EXIF views) | **Operate** | Fast scanability, consistent states, native-app expectations |
 | Workbench workflows | **Operate (dense)** | Clear, inspectable image-processing pipelines |
-| Website (`apps/exif-hound-website`) | **Persuade** | Earn download action |
 
 ## Non-goals
 
