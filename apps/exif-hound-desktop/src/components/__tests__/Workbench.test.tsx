@@ -6,8 +6,20 @@ import type { ProjectStore } from 'investigation-archive';
 import { serializeWorkflow, type WorkflowGraph } from 'workbench-workflow';
 import type { ImageData } from '../../types';
 import { preprocessImage } from '../../utils/preprocessImage';
+import { notify } from '../../feedback/notify';
 import { NodeFrame, type WorkbenchFlowData } from '../workbench/NodeFrame';
 import { ReactFlowProvider } from '@xyflow/react';
+
+jest.mock('../../feedback/notify', () => ({
+  notify: {
+    success: jest.fn(),
+    error: jest.fn(),
+    loading: jest.fn(),
+    action: jest.fn(),
+    dismiss: jest.fn(),
+  },
+  UPDATE_TOAST_IDS: {},
+}));
 
 jest.mock('../../utils/preprocessImage', () => ({
   preprocessImage: jest.fn(async (imageId: number, imageName: string, sourceBytes: Uint8Array) => ({
@@ -212,6 +224,7 @@ describe('Workbench workflow editor', () => {
     await expect(recognize.mock.calls[0][0].arrayBuffer()).resolves.toEqual(new Uint8Array([4, 5, 6]).buffer);
     expect(storeMocks.createWorkflowRun).toHaveBeenCalled();
     expect(storeMocks.updateWorkflowRun).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+    expect(notify.success).toHaveBeenCalledWith('Workflow finished.');
   });
 
   it('announces Image-node preprocessing progress with an accessible progress bar', () => {
@@ -347,7 +360,8 @@ describe('Workbench workflow editor', () => {
     await waitFor(() => expect(storeMocks.appendWorkflowProvenanceResult).toHaveBeenCalledWith(expect.objectContaining({
       imageId: 12, resultStatus: 'failed', error: 'Malformed local image data', workflowId: 'workflow-1', nodeId: 'provenance',
     })));
-    expect(await screen.findAllByText('Malformed local image data')).toHaveLength(2);
+    expect(await screen.findAllByText('Malformed local image data')).toHaveLength(1);
+    expect(notify.error).toHaveBeenCalledWith('Malformed local image data');
     expect(storeMocks.updateWorkflowRun).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
   });
 
@@ -381,7 +395,7 @@ describe('Workbench workflow editor', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Copy candidate' }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('alice@example.org'));
-    expect(await screen.findByText('Evidence value copied to clipboard.')).toBeInTheDocument();
+    expect(notify.success).toHaveBeenCalledWith('Evidence value copied to clipboard.');
     expect(analyze).not.toHaveBeenCalled();
   });
 
@@ -408,6 +422,6 @@ describe('Workbench workflow editor', () => {
     expect(await screen.findByText('OSINT evidence')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Copy extracted text from poster.png' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('OSINT evidence'));
-    expect(await screen.findByRole('status')).toHaveTextContent('Text copied to clipboard.');
+    expect(notify.success).toHaveBeenCalledWith('Text copied to clipboard.');
   });
 });

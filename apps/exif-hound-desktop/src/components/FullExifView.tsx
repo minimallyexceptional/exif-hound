@@ -25,6 +25,7 @@ import {
   getExpandedExifTag,
   resolveColorSpaceLabel,
 } from '../utils/exifTagDisplay';
+import { notify } from '../feedback';
 
 interface Props {
   image: ImageData;
@@ -55,6 +56,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
         next.add(key);
         return next;
       });
+      notify.success('Copied to clipboard.');
       setTimeout(() => {
         setCopiedKeys(prev => {
           const next = new Set(prev);
@@ -64,6 +66,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
       }, 1500);
     } catch (err) {
       if (__DEV__) console.error('Failed to copy text: ', err);
+      notify.error('Clipboard access is unavailable.');
     }
   };
 

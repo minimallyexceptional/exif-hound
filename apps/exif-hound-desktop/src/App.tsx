@@ -10,12 +10,13 @@ import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
-import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './components/common/Button';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
+import { notify } from './feedback';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
@@ -59,7 +60,6 @@ function App() {
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
-  const [importError, setImportError] = useState<string | null>(null);
   // Entrypoint gate: the splash screen owns the window until a project is
   // created or opened. Everything downstream is unchanged.
   const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
@@ -93,7 +93,7 @@ function App() {
       setImages(current => current.map(image => image.id === imageData.id ? { ...image, projectImageId: savedImage.id } : image));
     } catch (error) {
       if (__DEV__) console.error('Failed to persist image to project:', error);
-      setImportError(
+      notify.error(
         error instanceof Error && error.message
           ? `Project write failed: ${error.message}`
           : 'Project write failed — the image is shown but not saved to the project.'
@@ -168,6 +168,7 @@ function App() {
       )
       .catch((error: unknown) => {
         if (__DEV__) console.error('Failed to persist session state:', error);
+        notify.error('Could not save session state.');
       });
   };
 
@@ -189,7 +190,6 @@ function App() {
   };
 
   const handleImport = async (data: ImportData) => {
-    setImportError(null);
     try {
       const result = await parseImportData(data);
       setImportedData(result);
@@ -212,15 +212,16 @@ function App() {
           }
         }
       }
+      if (result.type === 'csv' && result.points) {
+        const count = result.points.length;
+        notify.success(count === 1 ? 'Imported 1 CSV point' : `Imported ${count} CSV points`);
+      } else {
+        notify.success('Imported KML overlay');
+      }
     } catch (error) {
       if (__DEV__) {
         console.error('Failed to import data:', error);
       }
-      setImportError(
-        error instanceof Error && error.message
-          ? `Failed to import location data: ${error.message}`
-          : 'Failed to import location data. Check the file format and try again.'
-      );
       throw error;
     }
   };
@@ -319,7 +320,6 @@ function App() {
     setImages(records.map(toImageData));
     setSelectedImageId(null);
     setImportedData(undefined);
-    setImportError(null);
     const restoredState = fromStoreState(state);
     setShowRoute(restoredState.showRoute);
     setViewMode(restoredState.viewMode);
@@ -336,7 +336,7 @@ function App() {
         })
         .catch((error: unknown) => {
           if (__DEV__) console.error('Failed to re-parse imported data:', error);
-          setImportError('Previously imported overlay data could not be restored.');
+          notify.error('Previously imported overlay data could not be restored.');
         });
     }
   };
@@ -435,20 +435,6 @@ function App() {
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
-            {importError && (
-              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">{importError}</div>
-                <button
-                  type="button"
-                  onClick={() => setImportError(null)}
-                  className="p-0.5 rounded hover:bg-red-500/10"
-                  aria-label="Dismiss import error"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
           </div>
           <div className="flex-1 min-h-0">
             {renderView()}
@@ -532,7 +518,7 @@ function App() {
         />
       )}
       {/*
-        Auto-update discovery + update dialogs. Fully silent unless an
+        Auto-update discovery + update toasts. Fully silent unless an
         update is found or the user initiates an action; loaded images are
         in-memory only, so any loaded content counts as unsaved work and
         the updater will confirm before restarting.

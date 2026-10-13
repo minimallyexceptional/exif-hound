@@ -39,8 +39,8 @@
     "exif-middleware": "*",
     "exifreader": "^4.46.0",
     "image-forensics-middleware": "*",
-    "investigation-archive": "*",
     "image-processing-middleware": "*",
+    "investigation-archive": "*",
     "leaflet": "^1.9.4",
     "leaflet-fullscreen": "^1.0.2",
     "leaflet.heat": "^0.2.0",
@@ -50,6 +50,7 @@
     "react-dom": "^19.3.0",
     "react-leaflet": "^5.0.0",
     "react-leaflet-cluster": "^4.1.3",
+    "sonner": "^2.0.8",
     "workbench-workflow": "^0.1.0"
   },
   "devDependencies": {

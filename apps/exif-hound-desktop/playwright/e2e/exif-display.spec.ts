@@ -48,6 +48,7 @@ test('copies EXIF content to the clipboard', async ({ page }) => {
   await exposure.getByRole('button', { name: 'Copy to clipboard' }).click({ force: true });
   await expect.poll(() => page.evaluate(() => window.__clipboardWrites)).toHaveLength(1);
   expect(await page.evaluate(() => window.__clipboardWrites[0])).toBe('1/250');
+  await expect(page.getByText('Copied to clipboard.')).toBeVisible();
 });
 
 test('shows the file size in KB', async ({ page }) => {
