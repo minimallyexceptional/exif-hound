@@ -5,6 +5,7 @@
   "version": "2.7.0",
   "type": "module",
   "scripts": {
+    "build:packages": "npm --prefix ../.. run build:packages",
     "copy:ocr-assets": "node scripts/copy-ocr-assets.cjs",
     "dev": "npm run copy:ocr-assets && vite --port 5176 --strictPort --host 127.0.0.1 --clearScreen false",
     "dev:test": "npm run copy:ocr-assets && vite --port 5276 --strictPort --host 127.0.0.1",
