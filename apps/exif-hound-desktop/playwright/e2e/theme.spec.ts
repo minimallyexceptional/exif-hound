@@ -34,7 +34,7 @@ test('persists the chosen theme across reloads', async ({ page }) => {
   await page.getByLabel('Project name').fill('Theme Case');
   await page.getByRole('button', { name: 'Choose parent folder' }).click();
   await page.getByRole('button', { name: 'Create project' }).click();
-  await expect(page.getByRole('heading', { name: 'Exif Hound' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'EXIF Hound' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 

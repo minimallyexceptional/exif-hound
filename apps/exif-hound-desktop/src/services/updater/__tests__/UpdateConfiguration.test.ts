@@ -54,7 +54,7 @@ describe('UpdateConfiguration', () => {
     });
 
     it('uses the consolidated display name', () => {
-      expect(getUpdateConfiguration('stable').appName).toBe('Exif Hound');
+      expect(getUpdateConfiguration('stable').appName).toBe('EXIF Hound');
     });
   });
 });

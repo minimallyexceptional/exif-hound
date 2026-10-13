@@ -3,7 +3,7 @@
  */
 
 // We're using simple import syntax to avoid TypeScript/ESLint issues with mocking
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import type { ExifMetadata } from 'exif-middleware';
 import type { ExifWorkerResponse } from '../../workers/exifWorker';
 
@@ -223,18 +223,28 @@ describe('useExifData hook', () => {
     // Mock location fetch error
     mockGetLocationFromCoordinates.mockRejectedValue(new Error('Location fetch failed'));
 
-    const { result } = renderHook(() => useExifData());
+    const { result } = renderHook(() => useExifData({ fetchLocation: true }));
 
     // Execute
     const exifData = await result.current.processExifData(mockFile);
 
-    // Assert (location fetch happens in the background)
-    await waitFor(() => {
-      expect(exifData.location).toEqual({
-        loading: false,
-        error: 'Failed to fetch location data'
-      });
+    // Assert
+    expect(exifData.location).toEqual({
+      loading: false,
+      error: 'Failed to fetch location data'
     });
+  });
+
+  it('should not fetch location by default', async () => {
+    const mockFile = createMockFile();
+    mockFile.arrayBuffer = jest.fn().mockResolvedValue(mockArrayBuffer);
+
+    const { result } = renderHook(() => useExifData());
+
+    const exifData = await result.current.processExifData(mockFile);
+
+    expect(mockGetLocationFromCoordinates).not.toHaveBeenCalled();
+    expect(exifData.location).toBeNull();
   });
 
   it('should call onSuccess callback with the processed data', async () => {

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+  <rect width="320" height="180" fill="#f2efe9"/>
+  <path d="M0 120 Q80 100 160 115 T320 105 V180 H0Z" fill="#aad3df"/>
+  <path d="M40 40 L120 30 L200 50 L280 35 V120 H40Z" fill="#c8d7ab"/>
+  <path d="M0 0 H320 V40 H0Z" fill="#e8e4dc"/>
+  <text x="160" y="95" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#5c5c5c">Standard</text>
+</svg>

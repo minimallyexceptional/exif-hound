@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
+import { ExifErrorBoundary } from './components/ExifErrorBoundary';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
 import ExportModal from './components/ExportModal';
@@ -491,10 +492,12 @@ function App() {
               <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
                 isExifPanelCollapsed ? 'w-0' : 'w-full'
               }`}>
-                <ExifPanel 
-                  image={selectedImage} 
-                  onShowComparison={handleShowComparison}
-                />
+                <ExifErrorBoundary key={selectedImage.id}>
+                  <ExifPanel
+                    image={selectedImage}
+                    onShowComparison={handleShowComparison}
+                  />
+                </ExifErrorBoundary>
               </div>
             </div>
           </div>

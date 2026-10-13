@@ -12,7 +12,7 @@
  *     }
  *   }
  *
- * Artifact names are checked against the consolidated "Exif Hound" product
+ * Artifact names are checked against the consolidated "EXIF Hound" product
  * name. Legacy Community/Pro artifacts are rejected so an old edition build
  * cannot accidentally enter the single-app update feed.
  */
@@ -43,14 +43,14 @@ const LEGACY_EDITION_PATTERN = /exif[ ._-]?hound[ ._-]?(?:community|pro)(?![a-z]
 
 /**
  * Normalizes artifact names so the app matcher recognizes both the staged
- * product name ("Exif Hound") and GitHub's sanitized release asset name
- * ("Exif.Hound"), plus legacy separators.
+ * product name ("EXIF Hound") and GitHub's sanitized release asset name
+ * ("EXIF.Hound"), plus legacy separators.
  */
 export function normalizeArtifactName(filename) {
   return String(filename).replace(/\.Hound/gi, ' Hound');
 }
 
-/** True when the artifact belongs to the consolidated Exif Hound app. */
+/** True when the artifact belongs to the consolidated EXIF Hound app. */
 export function artifactMatchesApp(filename) {
   const normalized = normalizeArtifactName(filename);
   return APP_NAME_PATTERN.test(normalized) && !LEGACY_EDITION_PATTERN.test(normalized);
@@ -230,7 +230,7 @@ export function validateManifest(options) {
         add(`platform ${target} artifact does not match the expected updater artifact naming: ${filename}`);
       }
       if (!artifactMatchesApp(filename)) {
-        add(`platform ${target} artifact does not belong to the consolidated Exif Hound app: ${filename}`);
+        add(`platform ${target} artifact does not belong to the consolidated EXIF Hound app: ${filename}`);
       }
     }
   }

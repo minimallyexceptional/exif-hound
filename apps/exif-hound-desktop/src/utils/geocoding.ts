@@ -2,6 +2,21 @@
  * Geocoding utility for converting coordinates to human-readable locations
  */
 
+import { isTauriEnvironment } from './fileSystem';
+
+async function fetchNominatim(url: string): Promise<Response> {
+  // Do not set User-Agent here. WebKit (Linux/macOS Tauri webviews) treats it
+  // as a forbidden header and `new Request(...)` / `fetch` can throw, which
+  // is how place-name lookup failed in release builds. The HTTP plugin sends
+  // its own User-Agent; webview fetch sends the webview's.
+  if (isTauriEnvironment()) {
+    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
+    return tauriFetch(url, { method: 'GET' });
+  }
+
+  return fetch(url);
+}
+
 // Define the location data structure
 export interface LocationData {
   country?: string;
@@ -83,15 +98,11 @@ export async function getLocationFromCoordinates(
     // Wait for rate limit before making API call
     await respectRateLimit();
     
-    // Use OpenStreetMap Nominatim for reverse geocoding
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
-    
-    const response = await fetch(url, {
-      headers: {
-        // Add a user agent as required by Nominatim usage policy
-        'User-Agent': 'Exif-Hound/1.0',
-      },
-    });
+    const url =
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}` +
+      `&zoom=18&addressdetails=1`;
+
+    const response = await fetchNominatim(url);
     
     if (!response.ok) {
       throw new Error(`Geocoding API error: ${response.status}`);

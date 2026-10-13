@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Camera, Clock, MapPin, Info, Settings2
 import { formatFileSize } from '../utils/formatters';
 import { formatShortDateTime } from '../utils/date';
 import { ImportedPoint } from '../utils/importData';
+import { formatFileType } from '../utils/formatFileType';
 
 interface Props {
   images: (ImageData | ImportedPoint)[];
@@ -52,7 +53,10 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     columns: [
       { id: 'name', label: 'Name', width: 'flex', sortField: 'name', value: (img) => img.file.name },
       { id: 'size', label: 'Size', width: 80, align: 'right', sortField: 'size', value: (img) => formatFileSize(img.file.size) },
-      { id: 'type', label: 'Type', width: 72, value: (img) => img.file.type.split('/')[1]?.toUpperCase() || '—' },
+      { id: 'type', label: 'Type', width: 72, value: (img) => {
+        const label = formatFileType(img.file.type);
+        return label === 'N/A' ? '—' : label;
+      } },
     ],
   },
   {

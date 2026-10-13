@@ -4,6 +4,7 @@ import { ImageIcon, Images, FileText, MapPin, Clock, Camera } from 'lucide-react
 import { Button } from './common/Button';
 import { formatDateTime } from '../utils/date';
 import { formatShortLocation } from '../utils/geocoding';
+import { formatFileType } from '../utils/formatFileType';
 
 interface Props {
   image: ImageData;
@@ -158,7 +159,7 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
                 <div>
                   <div className="text-app-accent-dim mb-1">Type</div>
                   <div className="text-app-accent font-medium selectable-value">
-                    {image.file.type.split('/')[1].toUpperCase()}
+                    {formatFileType(image.file.type)}
                   </div>
                 </div>
               </div>

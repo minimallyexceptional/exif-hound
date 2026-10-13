@@ -52,6 +52,10 @@ jest.mock('react-leaflet', () => ({
     getCenter: jest.fn(),
     getZoom: jest.fn(),
     fitBounds: jest.fn(),
+    getContainer: () => document.createElement('div'),
+    on: jest.fn(),
+    off: jest.fn(),
+    once: jest.fn(),
   }),
 }));
 

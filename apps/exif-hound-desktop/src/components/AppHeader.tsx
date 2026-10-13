@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, RefreshCw, Star, PanelsTopLeft } from 'lucide-react';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openExternalUrl } from '../utils/openExternalUrl';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
 import Logomark from './common/Logomark';
-import { isTauriEnvironment } from '../utils/fileSystem';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 
 type ViewMode = 'map' | 'list' | 'workbench';
 
@@ -32,14 +32,8 @@ export const AppHeader: React.FC<Props> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleStarOnGitHub = () => {
-    if (!isTauriEnvironment()) {
-      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
-      setIsMobileMenuOpen(false);
-      return;
-    }
-
-    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
-      console.error('Unable to open the Exif Hound GitHub repository:', error);
+    void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+      console.error(`Unable to open the ${APP_DISPLAY_NAME} GitHub repository:`, error);
     });
     setIsMobileMenuOpen(false);
   };
@@ -141,7 +135,7 @@ export const AppHeader: React.FC<Props> = ({
             <Logomark className="w-9 h-9" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
-                Exif Hound
+                {APP_DISPLAY_NAME}
               </h1>
               <p className="text-xs text-app-accent-dim hidden sm:block">
                 Tracking digital footprints in every image

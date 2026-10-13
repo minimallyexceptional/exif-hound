@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Sun, Map as MapIcon, Star } from 'lucide-react';
+import { X, Moon, Sun, Map as MapIcon, Star, Heart } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openExternalUrl } from '../utils/openExternalUrl';
+import previewCustomTiles from '../assets/map-previews/custom-tiles.svg';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import { MAP_STYLES } from '../constants/mapStyles';
-import { GITHUB_REPOSITORY_URL } from '../constants/github';
-import { isTauriEnvironment } from '../utils/fileSystem';
+import { GITHUB_REPOSITORY_URL, GITHUB_SPONSORS_URL } from '../constants/github';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 import { useUpdateControl } from './updater/useUpdateControl';
 import { UpdateStateName, UpdateErrorCode } from '../services/updater';
 
@@ -43,17 +44,19 @@ function renderUpdateStatus(
 
 const Settings: React.FC<Props> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
-  const { mapSettings, updateMapSettings } = useSettings();
+  const { mapSettings, updateMapSettings, privacySettings, updatePrivacySettings } = useSettings();
   const [appVersion, setAppVersion] = useState('…');
   const update = useUpdateControl();
 
   const handleStarOnGitHub = () => {
-    if (!isTauriEnvironment()) {
-      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
-      console.error('Unable to open the Exif Hound GitHub repository:', error);
+    void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+      console.error(`Unable to open the ${APP_DISPLAY_NAME} GitHub repository:`, error);
+    });
+  };
+
+  const handleSponsorOnGitHub = () => {
+    void openExternalUrl(GITHUB_SPONSORS_URL).catch((error: unknown) => {
+      console.error('Unable to open the GitHub Sponsors page:', error);
     });
   };
 
@@ -146,7 +149,11 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       }`}
                     >
                       <img
-                        src={style.preview}
+                        src={
+                          mapSettings.customTiles.enabled
+                            ? previewCustomTiles
+                            : style.preview
+                        }
                         alt={style.name}
                         className="w-full aspect-video object-cover"
                       />
@@ -199,10 +206,34 @@ const Settings: React.FC<Props> = ({ onClose }) => {
             </section>
 
             <section className="glass-panel rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-app-white mb-2">Privacy</h2>
+              <p className="text-app-accent-dim mb-6 text-sm">
+                EXIF analysis stays on your device. Network use is limited to map tiles, optional
+                place-name lookup, and update checks.
+              </p>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={privacySettings.reverseGeocoding}
+                  onChange={(e) =>
+                    updatePrivacySettings({ reverseGeocoding: e.target.checked })
+                  }
+                  className="sr-only peer"
+                  data-testid="privacy-reverse-geocoding"
+                />
+                <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
+                <span className="ml-3 text-sm font-medium text-app-white">
+                  Look up place names for GPS-tagged photos (sends coordinates to OpenStreetMap
+                  Nominatim)
+                </span>
+              </label>
+            </section>
+
+            <section className="glass-panel rounded-lg p-6">
               <h2 className="text-xl font-semibold text-app-white mb-6">About</h2>
               <div className="space-y-4 text-app-accent-dim">
                 <p>
-                  Exif Hound is a powerful tool for exploring and analyzing image metadata.
+                  {APP_DISPLAY_NAME} is a powerful tool for exploring and analyzing image metadata.
                   Built with privacy in mind, all processing happens locally in your browser.
                 </p>
                 <p data-testid="app-version">Version {appVersion}</p>
@@ -229,7 +260,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'available' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        Exif Hound {update.state.update.version} is available.
+                        {APP_DISPLAY_NAME} {update.state.update.version} is available.
                       </span>
                       <button
                         onClick={update.download}
@@ -250,7 +281,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'ready-to-install' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        Exif Hound {update.state.update.version} is ready to install.
+                        {APP_DISPLAY_NAME} {update.state.update.version} is ready to install.
                       </span>
                       <button
                         onClick={update.restart}
@@ -261,20 +292,38 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     </div>
                   )}
                   <p className="text-xs mt-4 text-app-accent-dim">
-                    EXIF HOUND does not collect telemetry or analytics when checking for updates.
+                    {APP_DISPLAY_NAME} does not collect telemetry or analytics when checking for updates.
                     Update checks retrieve a static release manifest over HTTPS and do not transmit
                     investigation data, image metadata, filenames, usage information, or persistent
                     device identifiers.
                   </p>
                   <div className="mt-4 pt-2 border-t border-app-gray-light/30">
-                    <button
-                      onClick={handleStarOnGitHub}
-                      data-testid="settings-star-on-github"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
-                    >
-                      <Star className="w-4 h-4" />
-                      Star on GitHub
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={handleStarOnGitHub}
+                        data-testid="settings-star-on-github"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
+                      >
+                        <Star className="w-4 h-4" />
+                        Star on GitHub
+                      </button>
+                      <a
+                        href={GITHUB_SPONSORS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handleSponsorOnGitHub();
+                        }}
+                        data-testid="settings-sponsor-on-github"
+                        aria-label="Sponsor minimallyexceptional"
+                        title="Sponsor minimallyexceptional"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors no-underline"
+                      >
+                        <Heart className="w-4 h-4 fill-current" aria-hidden />
+                        Sponsor
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
