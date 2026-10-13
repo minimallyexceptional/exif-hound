@@ -50,6 +50,29 @@ describe('Workbench workflow editor', () => {
     expect(screen.getByText('Start with an image')).toBeInTheDocument();
   });
 
+  it('collapses the nodes and inspector rails independently', async () => {
+    render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
+    expect(await screen.findByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
+    expect(screen.getByText('Select a node on the canvas to view its settings or output.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse nodes' }));
+    expect(screen.queryByRole('heading', { name: 'Inputs' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand nodes' })).toBeInTheDocument();
+    expect(screen.getByText('Select a node on the canvas to view its settings or output.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse inspector' }));
+    expect(screen.queryByText('Select a node on the canvas to view its settings or output.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand inspector' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand nodes' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand nodes' }));
+    expect(screen.getByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
+    expect(screen.queryByText('Select a node on the canvas to view its settings or output.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand inspector' }));
+    expect(screen.getByText('Select a node on the canvas to view its settings or output.')).toBeInTheDocument();
+  });
+
   it('exposes keyboard help and arrow-key navigation for the workflow tabs', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     const saveButton = await screen.findByRole('button', { name: 'Save reusable workflow' });
