@@ -108,7 +108,9 @@ The workflow in `.github/workflows/release.yml` performs these steps:
 7. Normalize staged asset names for GitHub release storage (GitHub replaces
    spaces in asset names with dots; the manifest must reference the stored
    names or every updater client gets a 404).
-8. Generate and validate `latest.json` from the staged files.
+8. Generate and validate `latest.json` from the staged files (including signed
+   `.deb` and `.rpm` updater entries for `linux-*-deb` / `linux-*-rpm` manifest
+   keys, in addition to AppImage keys `linux-x86_64` and `linux-aarch64`).
 9. Create a draft GitHub release, upload every file, then verify that every
    manifest URL matches a stored release asset
    (`scripts/updater/verify-release-assets.mjs`) and only then publish.

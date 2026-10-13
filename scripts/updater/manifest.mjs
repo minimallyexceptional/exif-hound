@@ -21,6 +21,14 @@ import { isValidSemver, isPrerelease } from './semver.mjs';
 
 export const CHANNELS = ['stable', 'beta', 'internal'];
 
+/** Linux manifest keys for native .deb / .rpm installs (see tauri-plugin-updater target lookup). */
+export const LINUX_PACKAGE_TARGETS = [
+  'linux-x86_64-deb',
+  'linux-x86_64-rpm',
+  'linux-aarch64-deb',
+  'linux-aarch64-rpm',
+];
+
 /** Targets the updater schema can express (superset). */
 export const SUPPORTED_TARGETS = [
   'darwin-aarch64',
@@ -29,10 +37,31 @@ export const SUPPORTED_TARGETS = [
   'windows-arm64',
   'linux-x86_64',
   'linux-aarch64',
+  ...LINUX_PACKAGE_TARGETS,
 ];
 
 /** Targets the release pipeline actually builds today. */
-export const RELEASED_TARGETS = ['darwin-aarch64', 'windows-x86_64', 'linux-x86_64', 'linux-aarch64'];
+export const RELEASED_TARGETS = [
+  'darwin-aarch64',
+  'windows-x86_64',
+  'linux-x86_64',
+  'linux-aarch64',
+  ...LINUX_PACKAGE_TARGETS,
+];
+
+/**
+ * CI staging uses one directory per CPU arch on Linux; deb/rpm updater entries
+ * read artifacts from the same folder as the AppImage.
+ */
+export function stagingDirectoryForTarget(target) {
+  if (target.endsWith('-deb') || target.endsWith('-rpm')) {
+    const base = target.replace(/-(deb|rpm)$/, '');
+    if (base.startsWith('linux-')) {
+      return base;
+    }
+  }
+  return target;
+}
 
 export function feedUrl(channel) {
   return `https://minimallyexceptional.github.io/exif-hound/${channel}/latest.json`;
@@ -80,6 +109,10 @@ export const ARTIFACT_PATTERNS = {
   'windows-arm64': /-setup\.exe$/,
   'linux-x86_64': /\.AppImage$/,
   'linux-aarch64': /\.AppImage$/,
+  'linux-x86_64-deb': /\.deb$/,
+  'linux-x86_64-rpm': /\.rpm$/,
+  'linux-aarch64-deb': /\.deb$/,
+  'linux-aarch64-rpm': /\.rpm$/,
 };
 
 /** RFC 3339 date-time (what Tauri's `pub_date` expects). */

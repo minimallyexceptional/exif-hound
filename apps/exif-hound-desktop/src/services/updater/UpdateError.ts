@@ -82,6 +82,19 @@ export function mapPluginError(
     return makeUpdateError(UpdateErrorCode.VerifyFailed, error);
   }
 
+  if (
+    operation === 'install' &&
+    (normalized.includes('invalidupdaterformat') ||
+      normalized.includes('invalid updater format') ||
+      normalized.includes('invalid updater binary format'))
+  ) {
+    return new UpdateError(
+      UpdateErrorCode.InstallFailed,
+      'This update must be installed from the package on GitHub Releases. Download the new .deb or .rpm for your system from the releases page and install it manually; your current installation is unchanged.',
+      error
+    );
+  }
+
   switch (operation) {
     case 'check':
       return makeUpdateError(UpdateErrorCode.CheckFailed, error);
