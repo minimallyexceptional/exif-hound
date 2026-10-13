@@ -82,7 +82,7 @@ export const ProjectCreateModal: React.FC<Props> = ({ onClose, onCreate }) => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Beach Shoot Analysis"
-            className="w-full px-3 py-2 rounded-lg text-sm"
+            className="app-control app-control-block !mt-0"
             autoFocus
           />
         </div>

@@ -12,6 +12,9 @@ import { mapProcessedBoxToSource, type ImageProcessingManifest } from 'image-pro
 import type { OcrResult } from 'ocr-middleware';
 import type { ImageData } from '../types';
 import { Button } from './common/Button';
+import { appControlBlockClassName } from './common/formControls';
+import { Select } from './common/Select';
+import { SidebarRailToggle } from './common/SidebarRailToggle';
 import { Tooltip } from './common/Tooltip';
 import ImageFlowNode from './workbench/ImageFlowNode';
 import OcrFlowNode from './workbench/OcrFlowNode';
@@ -46,7 +49,6 @@ const portDefaults: Record<NodeKind, { title: string; settings: WorkflowNode['se
   evidence: { title: 'Evidence Report', settings: {} },
 };
 
-const fieldClass = 'mt-2 w-full rounded-lg border border-app-gray-light bg-app-gray px-3 py-2 text-sm text-app-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent';
 
 const identifierFamilies: Array<{ id: CandidateFamily; title: string }> = [
   { id: 'email', title: 'Email addresses' },
@@ -575,22 +577,27 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   return (
     <section className="flex h-full min-h-0 flex-col bg-app-black" aria-label="Workbench">
       <header className="flex flex-none flex-wrap items-center justify-between gap-3 border-b border-app-gray-light/40 bg-app-dark px-4 py-3 sm:px-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <WorkflowIcon className="h-5 w-5 text-app-accent" aria-hidden="true" />
-          <div className="min-w-0">
-            <h1 className="text-base font-semibold text-app-white">Workbench</h1>
-            <select aria-label="Project workflow" disabled={loading} className="mt-1 max-w-56 truncate border-0 bg-transparent p-0 text-xs text-app-accent-dim focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:opacity-60" value={activeWorkflowId ?? ''} onChange={(event) => {
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <WorkflowIcon className="h-5 w-5 shrink-0 text-app-accent" aria-hidden="true" />
+          <h1 className="shrink-0 text-base font-semibold text-app-white">Workbench</h1>
+          <Select
+            compact
+            aria-label="Project workflow"
+            disabled={loading}
+            className="max-w-56 truncate disabled:cursor-wait"
+            value={activeWorkflowId ?? ''}
+            onChange={(event) => {
               const next = projectWorkflows.find((item) => item.id === event.target.value);
               if (next) void selectWorkflow(next);
-            }}>
-              {projectWorkflows.map((workflow) => <option key={workflow.id} value={workflow.id}>{workflow.name}</option>)}
-            </select>
-          </div>
+            }}
+          >
+            {projectWorkflows.map((workflow) => <option key={workflow.id} value={workflow.id}>{workflow.name}</option>)}
+          </Select>
           <Button variant="ghost" size="sm" disabled={loading || !store} onClick={() => { setNameInput(''); setDialog('new'); }} tooltip="Create a separate workflow in this project" tooltipPosition="bottom" icon={<FilePlus2 className="h-4 w-4" />}>New</Button>
         </div>
         <div className="flex items-center gap-2">
           {!isRunning && runnableIssues.length > 0 && <span className="max-w-56 truncate text-right text-xs text-app-accent-dim" aria-live="polite" title={runnableIssues[0].message}>{runnableIssues[0].message}</span>}
-          {isRunning && <div className="flex w-40 items-center gap-2" aria-live="polite">
+          {isRunning && <div className="flex w-40 items-center gap-2 pr-4" aria-live="polite">
             <div role="progressbar" aria-label="Workflow progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(overallProgress * 100)} className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-gray-light"><div className="h-full bg-app-accent transition-[width]" style={{ width: `${Math.round(overallProgress * 100)}%` }} /></div>
             <span className="w-9 text-right text-xs tabular-nums text-app-accent-dim">{Math.round(overallProgress * 100)}%</span>
           </div>}
@@ -615,14 +622,20 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
         <div id="workbench-editor-panel" role="tabpanel" aria-labelledby="workbench-editor-tab" tabIndex={0} className="flex min-h-0 flex-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent">
           <aside className={`flex min-h-0 flex-none flex-col overflow-hidden border-r border-app-gray-light/40 bg-app-dark transition-all duration-300 ease-in-out ${isNodesCollapsed ? 'w-12' : 'w-52'}`} aria-label="Workflow nodes">
             <div
-              className={`flex flex-none cursor-pointer items-center border-b border-app-gray-light/30 hover:bg-app-gray-light/30 ${isNodesCollapsed ? 'h-12 justify-center' : 'justify-between px-3 py-3'}`}
-              onClick={() => setIsNodesCollapsed((current) => !current)}
+              className={`flex flex-none items-center border-b border-app-gray-light/30 ${isNodesCollapsed ? '' : 'justify-between gap-1 px-3 py-3'}`}
             >
-              {!isNodesCollapsed && <h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2>}
-              <div className="flex items-center gap-1">
-                {!isNodesCollapsed && <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={(event) => { event.stopPropagation(); setDialog('save'); }} title="Save reusable workflow" aria-label="Save reusable workflow" tooltip="Save a reusable copy of this workflow on this machine" tooltipPosition="bottom" icon={<Save className="h-4 w-4" />} />}
-                <Button type="button" variant="ghost" className="h-8 w-8 !p-0" aria-expanded={!isNodesCollapsed} aria-label={isNodesCollapsed ? 'Expand nodes' : 'Collapse nodes'} tooltip={isNodesCollapsed ? 'Expand nodes' : 'Collapse nodes'} tooltipPosition="right" icon={isNodesCollapsed ? <ChevronRight className="h-5 w-5 text-app-white" /> : <ChevronLeft className="h-5 w-5 text-app-white" />} />
-              </div>
+              <SidebarRailToggle
+                expanded={!isNodesCollapsed}
+                onToggle={() => setIsNodesCollapsed((current) => !current)}
+                screenReaderLabel="Workflow nodes panel"
+                testId="workbench-nodes-toggle"
+                className={`flex cursor-pointer items-center hover:bg-app-gray-light/30 ${isNodesCollapsed ? 'h-12 w-full justify-center' : 'min-w-0 flex-1 justify-between'}`}
+                leading={!isNodesCollapsed ? <h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Nodes</h2> : undefined}
+                chevron={isNodesCollapsed ? <ChevronRight className="h-5 w-5 text-app-white" /> : <ChevronLeft className="h-5 w-5 text-app-white" />}
+              />
+              {!isNodesCollapsed && (
+                <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => setDialog('save')} aria-label="Save reusable workflow" tooltip="Save a reusable copy of this workflow on this machine" tooltipPosition="bottom" icon={<Save className="h-4 w-4" />} />
+              )}
             </div>
             {!isNodesCollapsed && <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-3">
             {(['Inputs', 'Transforms', 'Outputs'] as const).map((category) => {
@@ -651,33 +664,40 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
           </div>
 
           <aside className={`flex min-h-0 flex-none flex-col overflow-hidden border-l border-app-gray-light/40 bg-app-dark transition-all duration-300 ease-in-out ${isInspectorCollapsed ? 'w-12' : 'w-72'}`} aria-label="Node inspector">
-            <div
+            <SidebarRailToggle
+              expanded={!isInspectorCollapsed}
+              onToggle={() => setIsInspectorCollapsed((current) => !current)}
+              screenReaderLabel="Node inspector panel"
+              testId="workbench-inspector-toggle"
               className={`flex flex-none cursor-pointer items-center border-b border-app-gray-light/30 hover:bg-app-gray-light/30 ${isInspectorCollapsed ? 'h-12 justify-center' : 'justify-between gap-2 px-4 py-3'}`}
-              onClick={() => setIsInspectorCollapsed((current) => !current)}
-            >
-              {!isInspectorCollapsed && <div className="min-w-0"><h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Inspector</h2><p className="mt-1 truncate text-sm font-medium text-app-white">{selectedNode ? portDefaults[selectedNode.type as NodeKind].title : 'Select a node'}</p></div>}
-              <Button type="button" variant="ghost" className="h-8 w-8 shrink-0 !p-0" aria-expanded={!isInspectorCollapsed} aria-label={isInspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'} tooltip={isInspectorCollapsed ? 'Expand inspector' : 'Collapse inspector'} tooltipPosition="left" icon={isInspectorCollapsed ? <ChevronLeft className="h-5 w-5 text-app-white" /> : <ChevronRight className="h-5 w-5 text-app-white" />} />
-            </div>
+              leading={!isInspectorCollapsed ? (
+                <div className="min-w-0">
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-app-accent-dim">Inspector</h2>
+                  <p className="mt-1 truncate text-sm font-medium text-app-white">{selectedNode ? portDefaults[selectedNode.type as NodeKind].title : 'Select a node'}</p>
+                </div>
+              ) : undefined}
+              chevron={isInspectorCollapsed ? <ChevronLeft className="h-5 w-5 text-app-white" /> : <ChevronRight className="h-5 w-5 text-app-white" />}
+            />
             {!isInspectorCollapsed && <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{lastRunLabel && <p className="border-b border-app-gray-light/30 px-4 py-2 text-[11px] leading-relaxed text-app-accent-dim" title={lastRunLabel}>{lastRunLabel}</p>}{!selectedNode ? <p className="p-4 text-sm text-app-accent-dim">Select a node on the canvas to view its settings or output.</p> : selectedNode.type === 'image' ? (
               <div className="space-y-4 p-4">
                 <label className="block text-xs font-medium text-app-accent-dim">Project image
-                  <select className={fieldClass} value={typeof selectedNode.data.settings.imageId === 'number' ? selectedNode.data.settings.imageId : ''} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, imageId: event.target.value ? Number(event.target.value) : null })}>
+                  <Select value={typeof selectedNode.data.settings.imageId === 'number' ? selectedNode.data.settings.imageId : ''} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, imageId: event.target.value ? Number(event.target.value) : null })}>
                     <option value="">Choose an image…</option>
                     {images.filter((image) => image.projectImageId !== undefined && !('hasImage' in image)).map((image) => <option key={image.projectImageId} value={image.projectImageId}>{image.file.name}</option>)}
-                  </select>
+                  </Select>
                 </label>
                 {images.filter((image) => image.projectImageId !== undefined && !('hasImage' in image)).length === 0 && <p className="text-xs text-app-accent-dim">Import an image into this project to use it in a workflow.</p>}
               </div>
             ) : selectedNode.type === 'ocr' ? (
               <div className="space-y-4 p-4">
-                <label className="block text-xs font-medium text-app-accent-dim">OCR language<select className={fieldClass} value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label>
+                <label className="block text-xs font-medium text-app-accent-dim">OCR language<Select value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></Select></label>
                 <p className="text-xs leading-relaxed text-app-accent-dim">PaddleOCR runs locally as one step in the connected workflow. Each run is saved with model attribution so you can compare results for the same image.</p>
               </div>
             ) : selectedNode.type === 'provenance' ? (
               <div className="space-y-3 p-4"><p className="text-xs leading-relaxed text-app-accent-dim">Inspect embedded metadata, recorded timestamp relationships, and available JPEG/container structure facts.</p><p className="rounded-lg border border-app-gray-light/50 bg-app-gray/50 p-3 text-xs leading-relaxed text-app-accent-dim">Findings are observable indicators for review. They do not determine whether an image is authentic or manipulated.</p></div>
             ) : selectedNode.type === 'visual-identifiers' ? (
               <div className="space-y-4 p-4">
-                <label className="block text-xs font-medium text-app-accent-dim">OCR language<select className={fieldClass} value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></select></label>
+                <label className="block text-xs font-medium text-app-accent-dim">OCR language<Select value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></Select></label>
                 <fieldset><legend className="mb-2 text-xs font-medium text-app-accent-dim">Candidate patterns</legend><div className="space-y-1">{identifierFamilies.map((family) => {
                   const families = String(selectedNode.data.settings.enabledFamilies ?? defaultIdentifierFamilies).split(',');
                   const enabled = family.id === 'license-plate-like'
@@ -731,7 +751,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
         </div>
       )}
 
-      {dialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-app-modal-scrim p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDialog(null); }} onKeyDown={handleDialogKeyDown}><div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="workflow-name-title" className="w-full max-w-md rounded-xl border border-app-gray-light bg-app-gray p-5 shadow-2xl"><h2 id="workflow-name-title" className="text-base font-semibold text-app-white">{dialog === 'save' ? 'Save reusable workflow' : 'Create project workflow'}</h2><p className="mt-1 text-sm text-app-accent-dim">{dialog === 'save' ? 'This saves a portable copy in your machine-wide workflow library.' : 'Create a separate workflow in this project.'}</p><label className="mt-4 block text-xs font-medium text-app-accent-dim">Workflow name<input autoFocus value={nameInput} onChange={(event) => setNameInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void (dialog === 'save' ? saveTemplate() : createProjectWorkflow()); }} className={fieldClass} maxLength={80} /></label><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button><Button onClick={() => void (dialog === 'save' ? saveTemplate() : createProjectWorkflow())} disabled={!nameInput.trim()}>{dialog === 'save' ? 'Save workflow' : 'Create workflow'}</Button></div></div></div>}
+      {dialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-app-modal-scrim p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDialog(null); }} onKeyDown={handleDialogKeyDown}><div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="workflow-name-title" className="w-full max-w-md rounded-xl border border-app-gray-light bg-app-gray p-5 shadow-2xl"><h2 id="workflow-name-title" className="text-base font-semibold text-app-white">{dialog === 'save' ? 'Save reusable workflow' : 'Create project workflow'}</h2><p className="mt-1 text-sm text-app-accent-dim">{dialog === 'save' ? 'This saves a portable copy in your machine-wide workflow library.' : 'Create a separate workflow in this project.'}</p><label className="mt-4 block text-xs font-medium text-app-accent-dim">Workflow name<input autoFocus value={nameInput} onChange={(event) => setNameInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void (dialog === 'save' ? saveTemplate() : createProjectWorkflow()); }} className={appControlBlockClassName} maxLength={80} /></label><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setDialog(null)}>Cancel</Button><Button onClick={() => void (dialog === 'save' ? saveTemplate() : createProjectWorkflow())} disabled={!nameInput.trim()}>{dialog === 'save' ? 'Save workflow' : 'Create workflow'}</Button></div></div></div>}
     </section>
   );
 

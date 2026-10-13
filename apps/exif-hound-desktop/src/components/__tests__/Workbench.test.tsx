@@ -64,7 +64,8 @@ describe('Workbench workflow editor', () => {
     expect(screen.getByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Transforms' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Outputs' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Project workflow' })).toHaveValue('workflow-1');
+    expect(screen.getByRole('combobox', { name: 'Project workflow' })).toHaveAttribute('data-value', 'workflow-1');
+    expect(screen.getByRole('combobox', { name: 'Project workflow' })).toHaveTextContent('Starter');
     expect(screen.getByRole('button', { name: 'Run Workflow' })).toBeDisabled();
     expect(screen.getByText('Add an analysis transform to the workflow.')).toBeInTheDocument();
     expect(screen.getByText('Start with an image')).toBeInTheDocument();
@@ -75,21 +76,26 @@ describe('Workbench workflow editor', () => {
     expect(await screen.findByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
     expect(screen.getByText('Select a node on the canvas to view its settings or output.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse nodes' }));
+    const nodesToggle = screen.getByTestId('workbench-nodes-toggle');
+    expect(nodesToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(nodesToggle);
     expect(screen.queryByRole('heading', { name: 'Inputs' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand nodes' })).toBeInTheDocument();
+    expect(nodesToggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('Select a node on the canvas to view its settings or output.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse inspector' }));
+    const inspectorToggle = screen.getByTestId('workbench-inspector-toggle');
+    expect(inspectorToggle).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(inspectorToggle);
     expect(screen.queryByText('Select a node on the canvas to view its settings or output.')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand inspector' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Expand nodes' })).toBeInTheDocument();
+    expect(inspectorToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(nodesToggle).toHaveAttribute('aria-expanded', 'false');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand nodes' }));
+    fireEvent.click(nodesToggle);
     expect(screen.getByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
+    expect(nodesToggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.queryByText('Select a node on the canvas to view its settings or output.')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand inspector' }));
+    fireEvent.click(inspectorToggle);
     expect(screen.getByText('Select a node on the canvas to view its settings or output.')).toBeInTheDocument();
   });
 
@@ -167,7 +173,7 @@ describe('Workbench workflow editor', () => {
 
   it('prompts for a name and saves a machine-wide JSON workflow', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
-    fireEvent.click(await screen.findByTitle('Save reusable workflow'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save reusable workflow' }));
     fireEvent.change(screen.getByLabelText('Workflow name'), { target: { value: 'Field notes' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save workflow' }));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('save_workflow_template', expect.objectContaining({ name: 'Field notes' })));
