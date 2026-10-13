@@ -22,7 +22,8 @@ function measureTextPx(text: string, font: string): number {
   if (canvasMeasureEnabled !== true) {
     try {
       measureCanvas ??= document.createElement('canvas');
-      canvasMeasureEnabled = Boolean(measureCanvas.getContext('2d'));
+      const ctx = measureCanvas.getContext('2d');
+      canvasMeasureEnabled = Boolean(ctx);
     } catch {
       canvasMeasureEnabled = false;
     }

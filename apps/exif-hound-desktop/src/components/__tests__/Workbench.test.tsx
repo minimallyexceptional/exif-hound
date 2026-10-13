@@ -48,7 +48,16 @@ const storeMocks = {
 const store = storeMocks as unknown as ProjectStore;
 
 describe('Workbench workflow editor', () => {
-  beforeEach(() => { jest.restoreAllMocks(); jest.clearAllMocks(); });
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    storeMocks.listWorkflows.mockResolvedValue([{
+      id: 'workflow-1',
+      name: graph.name,
+      graphJson: serializeWorkflow(graph),
+      updatedAt: new Date(),
+    }]);
+  });
 
   it('asks the user to open an investigation when no project store is bound', () => {
     render(<Workbench images={[]} store={null} recognizeImage={jest.fn()} />);
@@ -61,11 +70,12 @@ describe('Workbench workflow editor', () => {
   it('shows the categorized node palette and selected workflow', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     expect(await screen.findByRole('heading', { name: 'Workbench' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Inputs' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Transforms' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Outputs' })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Project workflow' })).toHaveAttribute('data-value', 'workflow-1');
-    expect(screen.getByRole('combobox', { name: 'Project workflow' })).toHaveTextContent('Starter');
+    const workflowSelect = await screen.findByRole('combobox', { name: 'Project workflow' });
+    await waitFor(() => expect(workflowSelect).toHaveAttribute('data-value', 'workflow-1'));
+    expect(workflowSelect).toHaveTextContent('Starter');
     expect(screen.getByRole('button', { name: 'Run Workflow' })).toBeDisabled();
     expect(screen.getByText('Add an analysis transform to the workflow.')).toBeInTheDocument();
     expect(screen.getByText('Start with an image')).toBeInTheDocument();
@@ -144,7 +154,7 @@ describe('Workbench workflow editor', () => {
       ...graph,
       nodes: [{ id: 'legacy-ocr', type: 'ocr' as const, position: { x: 50, y: 60 }, settings: { language: 'eng', provider: 'tesseract' } }],
     };
-    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: graph.name, graphJson: JSON.stringify(legacyGraph), updatedAt: new Date() }]);
+    storeMocks.listWorkflows.mockResolvedValue([{ id: 'workflow-1', name: graph.name, graphJson: JSON.stringify(legacyGraph), updatedAt: new Date() }]);
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     fireEvent.click(await screen.findByTestId('flow-node-ocr'));
     expect(screen.queryByRole('combobox', { name: 'OCR provider' })).not.toBeInTheDocument();
@@ -156,7 +166,9 @@ describe('Workbench workflow editor', () => {
 
   it('adds forensic transforms and exposes explicit local detection settings', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Add Text & Identifiers node' }));
+    await screen.findByRole('combobox', { name: 'Project workflow' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add Text & Identifiers node' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Add Text & Identifiers node' }));
 
     expect(await screen.findByTestId('flow-node-visual-identifiers')).toBeInTheDocument();
     expect(screen.getByLabelText('Email addresses')).toBeChecked();
@@ -215,13 +227,15 @@ describe('Workbench workflow editor', () => {
       id: 'image-a', projectImageId: 12, url: 'blob:image',
       file: { name: 'poster.png', type: 'image/png', size: 10, lastModified: 0, arrayBuffer: async () => new ArrayBuffer(10) }, exif: {},
     } as ImageData;
-    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
+    storeMocks.listWorkflows.mockResolvedValue([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
     const recognize = jest.fn(async (_image: Blob, _language: string, onProgress: (progress: number, status?: string) => void) => {
       onProgress(0.5, 'Recognizing text');
       return { text: 'OSINT evidence', confidence: 96, words: [{ text: 'OSINT', confidence: 98, boundingBox: { x: 0.25, y: 0.25, width: 0.25, height: 0.25 } }], provider: 'paddle' as const, engineVersion: 'PP-OCRv6_small' };
     });
     render(<Workbench images={[image]} store={store} recognizeImage={recognize} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Run Workflow' }));
+    const runButton = await screen.findByRole('button', { name: 'Run Workflow' });
+    await waitFor(() => expect(runButton).toBeEnabled());
+    fireEvent.click(runButton);
     await waitFor(() => expect(storeMocks.appendWorkflowOcrResult).toHaveBeenCalledWith(expect.objectContaining({
       imageId: 12, imageName: 'poster.png', text: 'OSINT evidence', workflowId: 'workflow-1', nodeId: 'ocr-node',
       words: [expect.objectContaining({ text: 'OSINT', boundingBox: expect.objectContaining({ x: 0.3125, y: 0.2916666666666667 }) })], provider: 'paddle', engineVersion: 'PP-OCRv6_small',
@@ -300,10 +314,12 @@ describe('Workbench workflow editor', () => {
         provider: 'paddle' as const, engineVersion: 'PP-OCRv6_small',
       };
     });
-    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
+    storeMocks.listWorkflows.mockResolvedValue([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
     render(<Workbench images={[image]} store={store} recognizeImage={recognize} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Run Workflow' }));
+    const runButton = await screen.findByRole('button', { name: 'Run Workflow' });
+    await waitFor(() => expect(runButton).toBeEnabled());
+    fireEvent.click(runButton);
 
     await waitFor(() => {
       expect(storeMocks.appendWorkflowProvenanceResult).toHaveBeenCalledWith(expect.objectContaining({
@@ -359,10 +375,12 @@ describe('Workbench workflow editor', () => {
       file: { name: 'poster.png', type: 'image/png', size: 3, lastModified: 0, arrayBuffer: async () => new Uint8Array([1]).buffer }, exif: {},
     } as unknown as ImageData;
     jest.spyOn(ImageProvenanceAnalyzer.prototype, 'analyze').mockRejectedValue(new Error('Malformed local image data'));
-    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
+    storeMocks.listWorkflows.mockResolvedValue([{ id: 'workflow-1', name: runGraph.name, graphJson: serializeWorkflow(runGraph), updatedAt: new Date() }]);
     render(<Workbench images={[image]} store={store} recognizeImage={jest.fn()} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Run Workflow' }));
+    const runButton = await screen.findByRole('button', { name: 'Run Workflow' });
+    await waitFor(() => expect(runButton).toBeEnabled());
+    fireEvent.click(runButton);
 
     await waitFor(() => expect(storeMocks.appendWorkflowProvenanceResult).toHaveBeenCalledWith(expect.objectContaining({
       imageId: 12, resultStatus: 'failed', error: 'Malformed local image data', workflowId: 'workflow-1', nodeId: 'provenance',
@@ -390,7 +408,7 @@ describe('Workbench workflow editor', () => {
       candidates: [{ family: 'email', value: 'alice@example.org', confidence: 91, sourceWords: [0], boundingBox: { x: 0.1, y: 0.2, width: 0.4, height: 0.1 } }],
     };
     const analyze = jest.spyOn(ImageProvenanceAnalyzer.prototype, 'analyze');
-    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: outputGraph.name, graphJson: serializeWorkflow(outputGraph), updatedAt: new Date() }]);
+    storeMocks.listWorkflows.mockResolvedValue([{ id: 'workflow-1', name: outputGraph.name, graphJson: serializeWorkflow(outputGraph), updatedAt: new Date() }]);
     storeMocks.listWorkflowIdentifierResults.mockResolvedValueOnce([{
       id: 3, imageId: 12, imageName: 'poster.png', result, resultStatus: 'success', workflowId: 'workflow-1',
       workflowRunId: 'run-3', nodeId: 'identifiers', toolVersion: '1.0.0', startedAt: new Date(), finishedAt: new Date(),
@@ -420,7 +438,7 @@ describe('Workbench workflow editor', () => {
       ],
     };
     const result = { id: 1, imageId: 12, imageName: 'poster.png', text: 'OSINT evidence', confidence: 93, resultStatus: 'success' as const, workflowId: 'workflow-1', workflowRunId: 'run-1', nodeId: 'ocr-node', processedAt: new Date() };
-    storeMocks.listWorkflows.mockResolvedValueOnce([{ id: 'workflow-1', name: outputGraph.name, graphJson: serializeWorkflow(outputGraph), updatedAt: new Date() }]);
+    storeMocks.listWorkflows.mockResolvedValue([{ id: 'workflow-1', name: outputGraph.name, graphJson: serializeWorkflow(outputGraph), updatedAt: new Date() }]);
     storeMocks.listWorkflowOcrResults.mockResolvedValueOnce([result]);
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
@@ -430,5 +448,49 @@ describe('Workbench workflow editor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy extracted text from poster.png' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('OSINT evidence'));
     expect(notify.success).toHaveBeenCalledWith('Text copied to clipboard.');
+  });
+
+  it('runs batch workflows across all project images from an All images input', async () => {
+    const batchGraph: WorkflowGraph = {
+      formatVersion: 1,
+      name: 'Batch OCR',
+      nodes: [
+        { id: 'all', type: 'all-images', position: { x: 0, y: 0 }, settings: { active: true } },
+        { id: 'ocr-node', type: 'ocr', position: { x: 200, y: 0 }, settings: { language: 'eng' } },
+        { id: 'text-node', type: 'text', position: { x: 400, y: 0 }, settings: {} },
+      ],
+      edges: [
+        { id: 'in', source: 'all', sourcePort: 'image', target: 'ocr-node', targetPort: 'image' },
+        { id: 'out', source: 'ocr-node', sourcePort: 'text', target: 'text-node', targetPort: 'text' },
+      ],
+    };
+    const mkImage = (projectImageId: number, name: string) => ({
+      id: `image-${projectImageId}`,
+      projectImageId,
+      url: `blob:${name}`,
+      file: { name, type: 'image/png', size: 10, lastModified: 0, arrayBuffer: async () => new ArrayBuffer(10) },
+      exif: {},
+    }) as ImageData;
+    storeMocks.listWorkflows.mockResolvedValue([{
+      id: 'workflow-1',
+      name: batchGraph.name,
+      graphJson: serializeWorkflow(batchGraph),
+      updatedAt: new Date(),
+    }]);
+    const recognize = jest.fn(async () => ({
+      text: 'batch',
+      confidence: 90,
+      words: [],
+      provider: 'paddle' as const,
+      engineVersion: 'PP-OCRv6_small',
+    }));
+    render(<Workbench images={[mkImage(10, 'a.png'), mkImage(11, 'b.png')]} store={store} recognizeImage={recognize} />);
+    const batchButton = await screen.findByRole('button', { name: 'Run on 2 images' });
+    await waitFor(() => expect(batchButton).toBeEnabled());
+    fireEvent.click(batchButton);
+    await waitFor(() => expect(storeMocks.appendWorkflowOcrResult).toHaveBeenCalledTimes(2));
+    expect(storeMocks.appendWorkflowOcrResult).toHaveBeenCalledWith(expect.objectContaining({ imageId: 10, imageName: 'a.png' }));
+    expect(storeMocks.appendWorkflowOcrResult).toHaveBeenCalledWith(expect.objectContaining({ imageId: 11, imageName: 'b.png' }));
+    expect(notify.success).toHaveBeenCalledWith('Batch workflow finished (2 images).');
   });
 });

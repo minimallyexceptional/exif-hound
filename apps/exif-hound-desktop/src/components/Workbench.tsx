@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addEdge, Background, BackgroundVariant, ConnectionMode, Controls, ReactFlow, ReactFlowProvider,
-  useEdgesState, useNodesState, useReactFlow, type Connection, type Edge, type Node,
+  useEdgesState, useNodesState, useReactFlow, type Connection, type Edge,
 } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Copy, FilePlus2, FolderOpen, Play, Save, Workflow as WorkflowIcon } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord, WorkflowToolResultRecord } from 'investigation-archive';
-import { clearProjectImageSelections, createImageNodeHandler, createOcrNodeHandler, createImageProvenanceNodeHandler, createVisualIdentifierNodeHandler, getEvidenceOutputSources, getTextOutputSource, listBatchImageRoots, parseWorkflow, planSerialBatchRuns, serializeWorkflow, transformNodeTypes, normalizeConnection, validateRunnableWorkflow, WorkflowRunner, WorkflowRunQueue, type NodeKind, type OcrNodeOutput, type RunEvent, type WorkflowGraph, type WorkflowNode } from 'workbench-workflow';
-import { ImageProvenanceAnalyzer, VisualIdentifierDetector, type CandidateFamily } from 'image-forensics-middleware';
-import { mapProcessedBoxToSource, type ImageProcessingManifest } from 'image-processing-middleware';
+import type { ProjectStore, ProjectWorkflowRecord, OcrResultRecord, WorkflowRunRecord } from 'investigation-archive';
+import { clearProjectImageSelections, parseWorkflow, serializeWorkflow, normalizeConnection, WorkflowRunQueue, WorkflowRunner, type NodeKind, type WorkflowNode } from 'workbench-workflow';
 import type { OcrResult } from 'ocr-middleware';
 import type { ImageData } from '../types';
 import { Button } from './common/Button';
@@ -25,10 +23,25 @@ import TextFlowNode from './workbench/TextFlowNode';
 import EvidenceFlowNode from './workbench/EvidenceFlowNode';
 import type { WorkbenchFlowData } from './workbench/NodeFrame';
 import { WorkbenchEligibleImageCountContext } from './workbench/WorkbenchEligibleImageCountContext';
-import { preprocessImage } from '../utils/preprocessImage';
 import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from './workbench/flowHandles';
 import { portEdgeStyle } from './workbench/portStyle';
 import { notify } from '../feedback';
+import {
+  IDENTIFIER_FAMILY_OPTIONS,
+  WORKBENCH_PORT_DEFAULTS,
+} from '../services/workbench/workbenchCatalog';
+import { formatOcrCoordinates } from '../services/workbench/workbenchOcrHelpers';
+import {
+  WorkbenchGraphMapper,
+  createEmptyWorkflowGraph,
+  createWorkflowNodeId,
+  type WorkbenchCanvasNode,
+} from '../services/workbench/WorkbenchGraphMapper';
+import { WorkbenchInspectorService, type WorkbenchEvidenceEntry } from '../services/workbench/WorkbenchInspectorService';
+import { WorkbenchProjectService } from '../services/workbench/WorkbenchProjectService';
+import { WorkbenchRunPlanner } from '../services/workbench/WorkbenchRunPlanner';
+import { WorkbenchRunService } from '../services/workbench/WorkbenchRunService';
+import { VisualIdentifierSettingsResolver } from '../services/workbench/VisualIdentifierSettingsResolver';
 
 interface Template { name: string; content: string }
 interface Props {
@@ -37,100 +50,24 @@ interface Props {
   recognizeImage: (image: Blob, language: string, onProgress: (progress: number, status?: string) => void) => Promise<OcrResult>;
 }
 
-type CanvasNode = Node<WorkbenchFlowData, NodeKind>;
+type CanvasNode = WorkbenchCanvasNode;
 const nodeTypes = {
   image: ImageFlowNode, 'all-images': AllImagesFlowNode, ocr: OcrFlowNode, provenance: ProvenanceFlowNode,
   'visual-identifiers': VisualIdentifiersFlowNode, text: TextFlowNode, evidence: EvidenceFlowNode,
 };
-const portDefaults: Record<NodeKind, { title: string; settings: WorkflowNode['settings'] }> = {
-  image: { title: 'Image', settings: { imageId: null } },
-  'all-images': { title: 'All images', settings: { active: true } },
-  ocr: { title: 'OCR', settings: { language: 'eng' } },
-  provenance: { title: 'Image Provenance', settings: {} },
-  'visual-identifiers': { title: 'Text & Identifiers', settings: { language: 'eng', enabledFamilies: 'email,url-domain,phone-like,coordinate-pair,license-plate-like', licensePlateProfile: 'us-general' } },
-  text: { title: 'Text output', settings: {} },
-  evidence: { title: 'Evidence Report', settings: {} },
-};
+const portDefaults = WORKBENCH_PORT_DEFAULTS;
 
+const workbenchGraphMapper = new WorkbenchGraphMapper();
+const workbenchRunPlanner = new WorkbenchRunPlanner();
+const workbenchIdentifierSettings = new VisualIdentifierSettingsResolver();
+const sharedWorkflowRunner = new WorkflowRunner();
+const sharedWorkflowBatchQueue = new WorkflowRunQueue();
 
-const identifierFamilies: Array<{ id: CandidateFamily; title: string }> = [
-  { id: 'email', title: 'Email addresses' },
-  { id: 'url-domain', title: 'URLs and domains' },
-  { id: 'phone-like', title: 'Phone-like numbers' },
-  { id: 'coordinate-pair', title: 'Coordinate pairs' },
-  { id: 'license-plate-like', title: 'License plates' },
-];
-
-const defaultIdentifierFamilies = 'email,url-domain,phone-like,coordinate-pair,license-plate-like';
-
-interface EvidenceEntry { sourceNode: WorkflowNode; record: WorkflowToolResultRecord }
 interface EvidencePayload {
   facts?: unknown;
   indicators?: Array<{ code?: string; message?: string; observedValue?: string }>;
   text?: string;
   candidates?: Array<{ family: string; value: string; confidence: number; boundingBox: unknown }>;
-}
-
-function makeId(): string {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function hasOcrBoundingBox(value: unknown): value is OcrResult['words'][number] {
-  if (!value || typeof value !== 'object') return false;
-  const word = value as { text?: unknown; confidence?: unknown; boundingBox?: unknown };
-  if (typeof word.text !== 'string' || typeof word.confidence !== 'number' || !word.boundingBox || typeof word.boundingBox !== 'object') return false;
-  const box = word.boundingBox as Record<string, unknown>;
-  return ['x', 'y', 'width', 'height'].every(key => typeof box[key] === 'number' && Number.isFinite(box[key]));
-}
-
-function formatOcrCoordinates(value: unknown): string {
-  if (!value || typeof value !== 'object') return 'Coordinates unavailable';
-  const box = value as Record<string, unknown>;
-  const values = [box.x, box.y, box.width, box.height];
-  if (!values.every(item => typeof item === 'number' && Number.isFinite(item))) return 'Coordinates unavailable';
-  const [x, y, width, height] = values as number[];
-  return `${x.toFixed(3)}, ${y.toFixed(3)} · ${width.toFixed(3)}×${height.toFixed(3)}`;
-}
-
-async function readImageBytes(image: ImageData): Promise<Uint8Array> {
-  const file = image.file as unknown as Blob;
-  if (typeof file.arrayBuffer !== 'function') throw new Error('The selected project image bytes are unavailable.');
-  return new Uint8Array(await file.arrayBuffer());
-}
-
-function eligibleProjectImages(images: ImageData[]): ImageData[] {
-  return images.filter((image) => image.projectImageId !== undefined && !('hasImage' in image));
-}
-
-function toCanvas(graph: WorkflowGraph, images: ImageData[], states: Record<string, WorkbenchFlowData['state']> = {}): { nodes: CanvasNode[]; edges: Edge[] } {
-  return {
-    nodes: graph.nodes.map((node) => {
-      const imageId = node.settings.imageId;
-      const image = node.type === 'image' && typeof imageId === 'number'
-        ? images.find((item) => item.projectImageId === imageId && !('hasImage' in item))
-        : undefined;
-      return {
-        id: node.id, type: node.type, position: node.position,
-        data: { settings: node.settings, image, state: states[node.id] ?? 'idle' },
-      } as CanvasNode;
-    }),
-    edges: graph.edges.map((edge) => ({ id: edge.id, source: edge.source, sourceHandle: sourceHandleId(edge.sourcePort), target: edge.target, targetHandle: targetHandleId(edge.targetPort), animated: false, style: portEdgeStyle(edge.sourcePort) })),
-  };
-}
-
-function toGraph(id: string, name: string, nodes: CanvasNode[], edges: Edge[]): WorkflowGraph {
-  return {
-    formatVersion: 1,
-    name,
-    nodes: nodes.map((node) => ({
-      id: node.id, type: node.type as NodeKind, position: { x: node.position.x, y: node.position.y },
-      settings: { ...node.data.settings },
-    })),
-    edges: edges.map((edge) => ({
-      id: edge.id, source: edge.source, sourcePort: portFromHandle(edge.sourceHandle),
-      target: edge.target, targetPort: portFromHandle(edge.targetHandle),
-    })),
-  };
 }
 
 const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) => {
@@ -146,7 +83,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [openingTemplate, setOpeningTemplate] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [resultEntries, setResultEntries] = useState<OcrResultRecord[]>([]);
-  const [evidenceEntries, setEvidenceEntries] = useState<EvidenceEntry[]>([]);
+  const [evidenceEntries, setEvidenceEntries] = useState<WorkbenchEvidenceEntry[]>([]);
   const [runHistory, setRunHistory] = useState<WorkflowRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isNodesCollapsed, setIsNodesCollapsed] = useState(false);
@@ -157,14 +94,29 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const [runProgress, setRunProgress] = useState({ completed: 0, total: 0, current: 0, nodeId: '' });
   const [batchRunProgress, setBatchRunProgress] = useState({ index: 0, total: 0 });
   const [runStates, setRunStates] = useState<Record<string, WorkbenchFlowData['state']>>({});
-  const runner = useRef(new WorkflowRunner());
-  const batchQueue = useRef(new WorkflowRunQueue());
   const dialogRef = useRef<HTMLDivElement>(null);
-  const runProgressRef = useRef({ completed: 0, total: 0, current: 0, nodeId: '' });
-  const stepStartedAt = useRef<Record<string, Date>>({});
-  const preparedPackets = useRef(new Map<number, Awaited<ReturnType<typeof preprocessImage>>>());
-  const provenanceAnalyzer = useRef(new ImageProvenanceAnalyzer());
   const initialized = useRef(false);
+
+  const projectService = useMemo(
+    () => (store ? new WorkbenchProjectService(store) : null),
+    [store],
+  );
+  const inspectorService = useMemo(
+    () => (store ? new WorkbenchInspectorService(store) : null),
+    [store],
+  );
+  const runService = useMemo(
+    () => (store
+      ? new WorkbenchRunService({
+        store,
+        images,
+        recognizeImage,
+        runner: sharedWorkflowRunner,
+        batchQueue: sharedWorkflowBatchQueue,
+      })
+      : null),
+    [store, images, recognizeImage],
+  );
 
   useEffect(() => {
     let active = true;
@@ -177,30 +129,24 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   useEffect(() => {
     let active = true;
     initialized.current = false;
-    if (!store) return;
-    void store.listWorkflows().then(async (workflows) => {
+    if (!store || !projectService) return;
+    void projectService.bootstrapProjectWorkflows().then(({ active: chosen, workflows }) => {
       if (!active) return;
-      if (!workflows.length) {
-        const id = makeId();
-        const graph: WorkflowGraph = { formatVersion: 1, name: 'Untitled workflow', nodes: [], edges: [] };
-        const record = { id, name: graph.name, graphJson: serializeWorkflow(graph), updatedAt: new Date() };
-        await store.saveWorkflow(record);
-        if (!active) return;
-        workflows = [record];
-      }
       setProjectWorkflows(workflows);
-      const chosen = workflows[0];
-      const graph = parseWorkflow(chosen.graphJson);
+      const graph = projectService.parseWorkflowRecord(chosen);
       setActiveWorkflowId(chosen.id);
       setWorkflowName(chosen.name);
-      const canvas = toCanvas(graph, images);
+      const canvas = workbenchGraphMapper.toCanvas(graph, images);
       setNodes(canvas.nodes);
       setEdges(canvas.edges);
       if (canvas.nodes.length) window.requestAnimationFrame(() => { void reactFlow.fitView({ padding: 0.22, maxZoom: 1 }); });
       initialized.current = true;
       setLoading(false);
     }).catch((cause: unknown) => {
-      if (active) { notify.error(cause instanceof Error ? cause.message : 'Could not load project workflows.'); setLoading(false); }
+      if (active) {
+        notify.error(WorkbenchProjectService.errorMessage(cause, 'Could not load project workflows.'));
+        setLoading(false);
+      }
     });
     return () => { active = false; };
     // The image list is resolved into node previews after graph restore below.
@@ -211,7 +157,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     if (!initialized.current || !activeWorkflowId || !store) return;
     const timer = window.setTimeout(() => {
       try {
-        const graph = toGraph(activeWorkflowId, workflowName, nodes, edges);
+        const graph = workbenchGraphMapper.toGraph(activeWorkflowId, workflowName, nodes, edges);
         void store.saveWorkflow({ id: activeWorkflowId, name: workflowName, graphJson: serializeWorkflow(graph), updatedAt: new Date() })
           .then(() => setProjectWorkflows((current) => current.map((item) => item.id === activeWorkflowId ? { ...item, name: workflowName, graphJson: serializeWorkflow(graph), updatedAt: new Date() } : item)))
           .catch((cause: unknown) => notify.error(cause instanceof Error ? cause.message : 'Could not save workflow changes.'));
@@ -223,13 +169,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   }, [nodes, edges, workflowName, activeWorkflowId, store]);
 
   useEffect(() => {
-    setNodes((current) => current.map((node) => {
-      const imageId = node.data.settings.imageId;
-      const image = node.type === 'image' && typeof imageId === 'number'
-        ? images.find((item) => item.projectImageId === imageId && !('hasImage' in item))
-        : undefined;
-      return node.data.image === image ? node : { ...node, data: { ...node.data, image } };
-    }));
+    setNodes((current) => workbenchGraphMapper.attachImagesToNodes(current, images));
   }, [images, setNodes]);
 
   useEffect(() => {
@@ -240,24 +180,19 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   }, [runStates, setNodes]);
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
-  const currentGraph = useMemo(() => activeWorkflowId ? toGraph(activeWorkflowId, workflowName, nodes, edges) : null,
-    [activeWorkflowId, workflowName, nodes, edges]);
-  const projectImageIds = useMemo(
-    () => eligibleProjectImages(images).map((image) => image.projectImageId as number),
-    [images],
+  const currentGraph = useMemo(
+    () => (activeWorkflowId ? workbenchGraphMapper.toGraph(activeWorkflowId, workflowName, nodes, edges) : null),
+    [activeWorkflowId, workflowName, nodes, edges],
   );
+  const projectImageIds = useMemo(() => WorkbenchGraphMapper.projectImageIds(images), [images]);
   const batchJobCount = useMemo(
-    () => (currentGraph ? planSerialBatchRuns(currentGraph, projectImageIds).jobs.length : 0),
+    () => (currentGraph ? workbenchRunPlanner.batchJobCount(currentGraph, projectImageIds) : 0),
     [currentGraph, projectImageIds],
   );
-  const runnableIssues = useMemo(() => {
-    if (!currentGraph) return [];
-    const issues = validateRunnableWorkflow(currentGraph);
-    if (listBatchImageRoots(currentGraph).length > 0 && projectImageIds.length === 0) {
-      return [...issues, { message: 'Import an image into this project to run this batch workflow.' }];
-    }
-    return issues;
-  }, [currentGraph, projectImageIds]);
+  const runnableIssues = useMemo(
+    () => (currentGraph ? workbenchRunPlanner.runnableIssues(currentGraph, projectImageIds) : []),
+    [currentGraph, projectImageIds],
+  );
 
   const flushCurrentWorkflow = useCallback(async () => {
     if (!store || !activeWorkflowId || !currentGraph) return;
@@ -270,7 +205,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       const graph = parseWorkflow(record.graphJson);
       setWorkflowName(record.name);
       setActiveWorkflowId(record.id);
-      const canvas = toCanvas(graph, images);
+      const canvas = workbenchGraphMapper.toCanvas(graph, images);
       setNodes(canvas.nodes);
       setEdges(canvas.edges);
       if (canvas.nodes.length) window.requestAnimationFrame(() => { void reactFlow.fitView({ padding: 0.22, maxZoom: 1 }); });
@@ -279,13 +214,15 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
       setResultEntries([]);
       setEvidenceEntries([]);
       setSelectedNodeId(null);
-    } catch (cause) { notify.error(cause instanceof Error ? cause.message : 'The project workflow is invalid.'); }
+    } catch (cause) {
+      notify.error(WorkbenchProjectService.errorMessage(cause, 'The project workflow is invalid.'));
+    }
   }, [flushCurrentWorkflow, images, reactFlow, setEdges, setNodes]);
 
   const addNode = useCallback((type: NodeKind, position?: { x: number; y: number }) => {
     const rightmostNode = nodes.reduce((rightmost, node) => Math.max(rightmost, node.position.x + 400), 80);
     const node: CanvasNode = {
-      id: makeId(), type, position: position ?? { x: rightmostNode, y: nodes[0]?.position.y ?? 100 },
+      id: createWorkflowNodeId(), type, position: position ?? { x: rightmostNode, y: nodes[0]?.position.y ?? 100 },
       data: { settings: { ...portDefaults[type].settings }, state: 'idle' },
     };
     setNodes((current) => [...current, node]);
@@ -296,7 +233,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   const handleConnect = useCallback((connection: Connection) => {
     if (!currentGraph || !connection.source || !connection.target || connection.source === connection.target) return;
     const edge = normalizeConnection(currentGraph, {
-      id: makeId(), source: connection.source, sourcePort: portFromHandle(connection.sourceHandle),
+      id: createWorkflowNodeId(), source: connection.source, sourcePort: portFromHandle(connection.sourceHandle),
       target: connection.target, targetPort: portFromHandle(connection.targetHandle),
     });
     if ('message' in edge) { notify.error(edge.message); return; }
@@ -340,7 +277,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
     try {
       const graph = clearProjectImageSelections(parseWorkflow(template.content));
       await flushCurrentWorkflow();
-      const id = makeId();
+      const id = createWorkflowNodeId();
       const record = { id, name: template.name, graphJson: serializeWorkflow(graph), updatedAt: new Date() };
       await store.saveWorkflow(record);
       setProjectWorkflows((current) => [...current, record]);
@@ -351,260 +288,60 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   };
 
   const runWorkflow = async () => {
-    if (!currentGraph || !store || !activeWorkflowId || isRunning || batchQueue.current.isProcessing) return;
+    if (!currentGraph || !store || !activeWorkflowId || !runService || isRunning || runService.isBatchProcessing) return;
     if (runnableIssues.length) { notify.error(runnableIssues[0].message); return; }
 
-    const countPipelineNodes = (graph: WorkflowGraph) => {
-      const pipelineNodeIds = new Set<string>();
-      for (const transform of graph.nodes.filter((node) => transformNodeTypes.includes(node.type))) {
-        pipelineNodeIds.add(transform.id);
-        const imageEdge = graph.edges.find((edge) => edge.target === transform.id && edge.targetPort === 'image');
-        if (imageEdge) pipelineNodeIds.add(imageEdge.source);
-      }
-      return pipelineNodeIds.size;
-    };
-
-    const { jobs: batchJobs } = planSerialBatchRuns(currentGraph, projectImageIds);
-    const batchImageNameRef = { current: '' };
-
-    const runGraphOnce = async (graph: WorkflowGraph, runId: string, startedAt: Date) => {
-      const total = countPipelineNodes(graph);
-      const run: WorkflowRunRecord = {
-        id: runId, workflowId: activeWorkflowId, status: 'running', startedAt, finishedAt: null,
-        currentNodeId: null, completedNodes: 0, totalNodes: total, error: null,
-      };
-      stepStartedAt.current = {};
-      runProgressRef.current = { completed: 0, total, current: 0, nodeId: '' };
-      setRunProgress(runProgressRef.current);
-      setRunStates({});
-      await store.createWorkflowRun(run);
-      try {
-        await runner.current.run(graph, {
-        handlers: {
-          image: createImageNodeHandler(async (imageId) => {
-            const image = images.find((item) => item.projectImageId === imageId && !('hasImage' in item));
-            if (!image || image.projectImageId === undefined) throw new Error('The selected project image is unavailable.');
-            return { imageId, imageName: image.file.name, payload: image, sourceBytes: await readImageBytes(image) };
-          }, async (image, reportProgress) => {
-            let packet = preparedPackets.current.get(image.imageId);
-            if (!packet) {
-              packet = await preprocessImage(image.imageId, image.imageName, image.sourceBytes, reportProgress);
-              preparedPackets.current.set(image.imageId, packet);
-            }
-            return { processedBytes: packet.processedBytes, manifest: packet.manifest };
-          }),
-          ocr: createOcrNodeHandler(async (imageInput, language, reportProgress) => {
-            const recognized = await recognizeImage(new Blob([imageInput.processedBytes.slice().buffer as ArrayBuffer], { type: 'image/png' }), language, (progress, status) => {
-              setRunProgress((current) => ({ ...current, current: progress }));
-              reportProgress(progress, status);
-            });
-            const manifest = imageInput.preprocessing as ImageProcessingManifest;
-            return {
-              ...recognized,
-              words: recognized.words.filter(hasOcrBoundingBox).map(word => ({
-                ...word,
-                boundingBox: mapProcessedBoxToSource(
-                  word.boundingBox, manifest.processedWidth, manifest.processedHeight,
-                  manifest.sourceWidth, manifest.sourceHeight, manifest.processedToSource,
-                ),
-              })),
-            };
-          }),
-          provenance: createImageProvenanceNodeHandler(async (imageInput, _settings, reportProgress) => {
-            const image = imageInput.payload as ImageData;
-            const bytes = imageInput.sourceBytes;
-            reportProgress(0.1, 'Reading local image metadata');
-            const result = await provenanceAnalyzer.current.analyze({
-              imageId: imageInput.imageId, imageName: imageInput.imageName, bytes, metadata: image.exif as Record<string, unknown>,
-            });
-            reportProgress(1, 'Provenance indicators ready');
-            return result;
-          }),
-          'visual-identifiers': createVisualIdentifierNodeHandler(async (imageInput, settings, reportProgress) => {
-            const bytes = imageInput.processedBytes;
-            const detector = new VisualIdentifierDetector({
-              recognize: async (localBytes, options) => {
-                const recognized = await recognizeImage(new Blob([localBytes.slice().buffer as ArrayBuffer], { type: 'image/png' }), String(options?.languages ?? 'eng'), (progress, status) => {
-                  setRunProgress(current => ({ ...current, current: progress }));
-                  options?.onProgress?.({ progress, status: status ?? '' });
-                });
-                return { ...recognized, words: recognized.words ?? [] };
-              },
-            });
-            const result = await detector.detect({
-              imageId: imageInput.imageId, imageName: imageInput.imageName, bytes,
-              settings: {
-                language: String(settings.language ?? 'eng'),
-                enabledFamilies: String(settings.enabledFamilies ?? defaultIdentifierFamilies),
-                licensePlateProfile: settings.licensePlateProfile === 'off' || settings.licensePlateProfile === ''
-                  ? null
-                  : settings.licensePlateProfile === 'us-general'
-                    || String(settings.enabledFamilies ?? defaultIdentifierFamilies).split(',').includes('license-plate-like')
-                    || settings.licensePlateProfile == null
-                    ? 'us-general'
-                    : null,
-              },
-            }, reportProgress);
-            const manifest = imageInput.preprocessing as ImageProcessingManifest;
-            const sourceBox = (box: { x: number; y: number; width: number; height: number }) => {
-              const values = [box?.x, box?.y, box?.width, box?.height, manifest?.processedWidth, manifest?.processedHeight, manifest?.sourceWidth, manifest?.sourceHeight];
-              if (!values.every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0)) {
-                return { x: 0, y: 0, width: 0, height: 0 };
-              }
-              const mapped = mapProcessedBoxToSource(
-                box, manifest.processedWidth, manifest.processedHeight, manifest.sourceWidth, manifest.sourceHeight, manifest.processedToSource,
-              );
-              const mappedValues = [mapped.x, mapped.y, mapped.width, mapped.height];
-              if (!mappedValues.every(value => Number.isFinite(value))) return { x: 0, y: 0, width: 0, height: 0 };
-              return mapped;
-            };
-            return {
-              ...result,
-              words: result.words.map(word => ({ ...word, boundingBox: sourceBox(word.boundingBox) })),
-              candidates: result.candidates.map(candidate => ({ ...candidate, boundingBox: sourceBox(candidate.boundingBox) })),
-            };
-          }),
-        },
-        persistResult: async (node, result) => {
-          const finishedAt = new Date();
-          if (node.type === 'ocr') {
-          const value = result.data as OcrNodeOutput;
-          const packet = preparedPackets.current.get(value.imageId);
-          await store.appendWorkflowOcrResult({
-              ...value, processedAt: finishedAt, resultStatus: value.text.trim() ? 'success' : 'no-text',
-              workflowId: activeWorkflowId, workflowRunId: runId, nodeId: node.id,
-              preprocessingManifest: packet?.manifest,
-            });
-            return;
-          }
-          if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
-          const value = result.data as { imageId: number; imageName: string; toolVersion: string };
-          const packet = preparedPackets.current.get(value.imageId);
-          const record: WorkflowToolResultRecord = {
-            imageId: value.imageId, imageName: value.imageName, result: result.data, resultStatus: 'success',
-            workflowId: activeWorkflowId, workflowRunId: runId, nodeId: node.id, toolVersion: value.toolVersion,
-            startedAt: stepStartedAt.current[node.id] ?? startedAt, finishedAt,
-            preprocessingManifest: packet?.manifest,
-          };
-          if (node.type === 'provenance') await store.appendWorkflowProvenanceResult(record);
-          else await store.appendWorkflowIdentifierResult(record);
-        },
-        persistFailure: async (node, errorMessage) => {
-          if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
-          const imageEdge = graph.edges.find(edge => edge.target === node.id && edge.targetPort === 'image');
-          const imageNode = imageEdge && graph.nodes.find(candidate => candidate.id === imageEdge.source);
-          const imageId = imageNode?.settings.imageId;
-          const image = typeof imageId === 'number' ? images.find(candidate => candidate.projectImageId === imageId) : undefined;
-          if (!image || image.projectImageId === undefined) return;
-          const packet = preparedPackets.current.get(image.projectImageId);
-          const record: WorkflowToolResultRecord = {
-            imageId: image.projectImageId, imageName: image.file.name, result: {}, resultStatus: 'failed',
-            workflowId: activeWorkflowId, workflowRunId: runId, nodeId: node.id, toolVersion: '1.0.0',
-            startedAt: stepStartedAt.current[node.id] ?? new Date(), finishedAt: new Date(), error: errorMessage,
-            preprocessingManifest: packet?.manifest,
-          };
-          if (node.type === 'provenance') await store.appendWorkflowProvenanceResult(record);
-          else await store.appendWorkflowIdentifierResult(record);
-        },
-        onEvent: async (event: RunEvent) => {
-          if (event.type === 'node-started') {
-            stepStartedAt.current[event.nodeId] = new Date();
-            runProgressRef.current = { completed: event.completed, total: event.total, current: 0, nodeId: event.nodeId };
-            setRunProgress(runProgressRef.current);
-            setRunStates((current) => ({ ...current, [event.nodeId]: 'running' }));
-            await store.updateWorkflowRun({ ...run, currentNodeId: event.nodeId, completedNodes: event.completed });
-          } else if (event.type === 'node-completed') {
-            setRunStates((current) => ({ ...current, [event.nodeId]: 'completed' }));
-            runProgressRef.current = { completed: event.completed, total: event.total, current: 0, nodeId: '' };
-            setRunProgress(runProgressRef.current);
-            await store.updateWorkflowRun({ ...run, currentNodeId: null, completedNodes: event.completed });
-          } else if (event.type === 'node-progress') {
-            runProgressRef.current = { ...runProgressRef.current, nodeId: event.nodeId, current: event.progress };
-            setRunProgress((current) => ({ ...current, nodeId: event.nodeId, current: event.progress }));
-            setNodes((current) => current.map((node) => node.id === event.nodeId
-              ? { ...node, data: { ...node.data, state: 'running', progress: event.progress, status: event.status } }
-              : node));
-          } else if (event.type === 'failed') {
-            setRunStates((current) => ({ ...current, [event.nodeId]: 'failed' }));
-            setNodes((current) => current.map((node) => node.id === event.nodeId
-              ? { ...node, data: { ...node.data, state: 'failed', status: event.error } }
-              : node));
-            runProgressRef.current = { completed: event.completed, total: event.total, current: 0, nodeId: event.nodeId };
-            setRunProgress(runProgressRef.current);
-          }
-        },
-      });
-        await store.updateWorkflowRun({ ...run, status: 'completed', finishedAt: new Date(), completedNodes: total });
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : String(cause);
-        await store.updateWorkflowRun({
-          ...run, status: 'failed', finishedAt: new Date(),
-          currentNodeId: runProgressRef.current.nodeId || null,
-          completedNodes: runProgressRef.current.completed, error: message,
-        });
-        throw cause;
-      }
-    };
-
+    const batchJobs = workbenchRunPlanner.planBatchJobs(currentGraph, projectImageIds).jobs;
     setIsRunning(true);
-    preparedPackets.current.clear();
+    setRunStates({});
     setBatchRunProgress({ index: 0, total: batchJobs.length });
-    try {
-      if (!batchJobs.length) {
-        await runGraphOnce(currentGraph, makeId(), new Date());
-        notify.success('Workflow finished.');
-      } else {
-        notify.success(`Running workflow on ${batchJobs.length} images…`);
-        batchQueue.current.enqueue(batchJobs);
-        let completedImages = 0;
-        await batchQueue.current.process(async (job) => {
-          const image = images.find((item) => item.projectImageId === job.imageId && !('hasImage' in item));
-          batchImageNameRef.current = image?.file.name ?? `Image ${job.imageId}`;
-          setBatchRunProgress({ index: completedImages + 1, total: batchJobs.length });
-          preparedPackets.current.clear();
-          await runGraphOnce(job.graph, makeId(), new Date());
-          completedImages += 1;
-        });
-        notify.success(`Batch workflow finished (${batchJobs.length} images).`);
-      }
-      setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
-      if (selectedNode?.type === 'text') await loadOutputResults(selectedNode.id, currentGraph);
-      if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
-      if (batchJobs.length) {
-        notify.error(batchImageNameRef.current
-          ? `Workflow failed on ${batchImageNameRef.current}: ${message}`
+    if (batchJobs.length) notify.success(`Running workflow on ${batchJobs.length} images…`);
+
+    const outcome = await runService.execute(
+      activeWorkflowId,
+      currentGraph,
+      projectImageIds,
+      {
+        onRunProgress: (progress) => setRunProgress(progress),
+        onRunState: (nodeId, state) => setRunStates((current) => ({ ...current, [nodeId]: state })),
+        onNodePatch: (nodeId, patch) => setNodes((current) => current.map((node) => (node.id === nodeId
+          ? { ...node, data: { ...node.data, ...patch } }
+          : node))),
+        onBatchProgress: (index, total) => setBatchRunProgress({ index, total }),
+      },
+    );
+
+    if (!outcome.error) {
+      if (outcome.batchSize === 0) notify.success('Workflow finished.');
+      else notify.success(`Batch workflow finished (${outcome.batchSize} images).`);
+    } else {
+      const message = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
+      if (outcome.batchSize > 0) {
+        notify.error(outcome.failedImageName
+          ? `Workflow failed on ${outcome.failedImageName}: ${message}`
           : `Batch workflow failed: ${message}`);
       } else {
         notify.error(message);
       }
-      setRunHistory(await store.listWorkflowRuns(activeWorkflowId));
-      if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
-    } finally {
-      preparedPackets.current.clear();
-      setIsRunning(false);
-      setBatchRunProgress({ index: 0, total: 0 });
     }
+
+    if (inspectorService) {
+      setRunHistory(await inspectorService.listRunHistory(activeWorkflowId));
+    }
+    if (selectedNode?.type === 'text') await loadOutputResults(selectedNode.id, currentGraph);
+    if (selectedNode?.type === 'evidence') await loadEvidenceResults(selectedNode.id, currentGraph);
+    setIsRunning(false);
+    setBatchRunProgress({ index: 0, total: 0 });
   };
 
   const loadOutputResults = async (textNodeId: string, graph = currentGraph) => {
-    if (!store || !activeWorkflowId || !graph) return;
-    const source = getTextOutputSource(graph, textNodeId);
-    if (!source) { setResultEntries([]); return; }
-    setResultEntries(await store.listWorkflowOcrResults(activeWorkflowId, source.id));
+    if (!inspectorService || !activeWorkflowId || !graph) return;
+    setResultEntries(await inspectorService.listTextResults(activeWorkflowId, graph, textNodeId));
   };
 
   const loadEvidenceResults = async (evidenceNodeId: string, graph = currentGraph) => {
-    if (!store || !activeWorkflowId || !graph) return;
-    const sources = getEvidenceOutputSources(graph, evidenceNodeId);
-    const records = await Promise.all(sources.map(async source => {
-      const rows = source.type === 'provenance'
-        ? await store.listWorkflowProvenanceResults(activeWorkflowId, source.id)
-        : await store.listWorkflowIdentifierResults(activeWorkflowId, source.id);
-      return rows.map(record => ({ sourceNode: source, record }));
-    }));
-    setEvidenceEntries(records.flat().sort((left, right) => right.record.finishedAt.getTime() - left.record.finishedAt.getTime()));
+    if (!inspectorService || !activeWorkflowId || !graph) return;
+    setEvidenceEntries(await inspectorService.listEvidenceEntries(activeWorkflowId, graph, evidenceNodeId));
   };
 
   const copyEvidenceValue = async (value: string) => {
@@ -637,10 +374,7 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
   };
 
   const overallProgress = runProgress.total ? Math.min(1, (runProgress.completed + runProgress.current) / runProgress.total) : 0;
-  const lastRun = runHistory[0];
-  const lastRunLabel = lastRun
-    ? `Last run: ${lastRun.status}${lastRun.finishedAt ? ` · ${lastRun.finishedAt.toLocaleString()}` : ` · started ${lastRun.startedAt.toLocaleString()}`}`
-    : null;
+  const lastRunLabel = WorkbenchInspectorService.lastRunLabel(runHistory[0]);
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-app-black" aria-label="Workbench">
@@ -783,19 +517,14 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
             ) : selectedNode.type === 'visual-identifiers' ? (
               <div className="space-y-4 p-4">
                 <label className="block text-xs font-medium text-app-accent-dim">OCR language<Select value={String(selectedNode.data.settings.language ?? 'eng')} onChange={(event) => updateSettings(selectedNode.id, { ...selectedNode.data.settings, language: event.target.value })}><option value="eng">English</option></Select></label>
-                <fieldset><legend className="mb-2 text-xs font-medium text-app-accent-dim">Candidate patterns</legend><div className="space-y-1">{identifierFamilies.map((family) => {
-                  const families = String(selectedNode.data.settings.enabledFamilies ?? defaultIdentifierFamilies).split(',');
-                  const enabled = family.id === 'license-plate-like'
-                    ? selectedNode.data.settings.licensePlateProfile !== 'off'
-                    : families.includes(family.id);
+                <fieldset><legend className="mb-2 text-xs font-medium text-app-accent-dim">Candidate patterns</legend><div className="space-y-1">{IDENTIFIER_FAMILY_OPTIONS.map((family) => {
+                  const enabled = workbenchIdentifierSettings.isFamilyEnabled(selectedNode.data.settings, family.id);
                   return <label key={family.id} className="flex min-h-8 cursor-pointer items-center gap-2 rounded-lg px-1 text-sm text-app-white hover:bg-app-gray"><input type="checkbox" className="h-4 w-4 shrink-0 rounded border-app-gray-light accent-app-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent" checked={enabled} onChange={(event) => {
-                    const current = new Set(String(selectedNode.data.settings.enabledFamilies ?? defaultIdentifierFamilies).split(',').filter(Boolean));
-                    if (event.target.checked) current.add(family.id); else current.delete(family.id);
-                    updateSettings(selectedNode.id, {
-                      ...selectedNode.data.settings,
-                      enabledFamilies: Array.from(current).join(','),
-                      licensePlateProfile: current.has('license-plate-like') ? 'us-general' : 'off',
-                    });
+                    updateSettings(selectedNode.id, workbenchIdentifierSettings.toggleFamily(
+                      selectedNode.data.settings,
+                      family.id,
+                      event.target.checked,
+                    ) as WorkflowNode['settings']);
                   }} />{family.title}</label>;
                 })}</div></fieldset>
                 <p className="text-xs leading-relaxed text-app-accent-dim">Matches are pattern candidates with source coordinates, not identity claims. OCR uses local image bytes.</p>
@@ -842,8 +571,8 @@ const WorkbenchContent: React.FC<Props> = ({ images, store, recognizeImage }) =>
 
   async function createProjectWorkflow() {
     if (!store || !nameInput.trim()) return;
-    const id = makeId();
-    const graph: WorkflowGraph = { formatVersion: 1, name: nameInput.trim(), nodes: [], edges: [] };
+    const id = createWorkflowNodeId();
+    const graph = createEmptyWorkflowGraph(nameInput.trim());
     const record = { id, name: graph.name, graphJson: serializeWorkflow(graph), updatedAt: new Date() };
     try {
       await flushCurrentWorkflow();

@@ -9,6 +9,24 @@ if (typeof ResizeObserver === 'undefined') {
   } as unknown as typeof ResizeObserver;
 }
 
+// jsdom has no layout; render all virtual rows so grid integration tests see cell text.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: (options: { count: number; estimateSize?: () => number }) => {
+    const rowHeight = options.estimateSize?.() ?? 48;
+    const count = options.count ?? 0;
+    return {
+      getTotalSize: () => count * rowHeight,
+      getVirtualItems: () => Array.from({ length: count }, (_, index) => ({
+        key: String(index),
+        index,
+        start: index * rowHeight,
+        size: rowHeight,
+      })),
+      measureElement: () => {},
+    };
+  },
+}));
+
 // Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
 // Kept false in tests to mirror production behavior and silence dev logging.
 (globalThis as typeof globalThis & { __DEV__?: boolean }).__DEV__ = false;
