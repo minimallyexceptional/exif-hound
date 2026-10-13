@@ -9,8 +9,8 @@ test('is silent when the automatic check finds no update', async ({ page }) => {
 
 test('shows the update-available dialog when the check finds an update', async ({ page }) => {
   await bootApp(page, { commands: { 'plugin:updater|check': MOCK_UPDATE } });
-  await page.getByRole('button', { name: 'Help menu' }).click();
-  await page.locator('#help-menu').getByText('Check for Updates').click();
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Check for Updates' }).click();
   await expect(page.getByText('Update Available')).toBeVisible();
   await expect(page.getByRole('dialog')).toContainText('Exif Hound 9.9.9 is available.');
   await expect(page.getByRole('dialog')).toContainText('Automated test release notes');
@@ -19,8 +19,8 @@ test('shows the update-available dialog when the check finds an update', async (
 
 test('dismisses the update with Later without downloading', async ({ page }) => {
   await bootApp(page, { commands: { 'plugin:updater|check': MOCK_UPDATE } });
-  await page.getByRole('button', { name: 'Help menu' }).click();
-  await page.locator('#help-menu').getByText('Check for Updates').click();
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Check for Updates' }).click();
   await expect(page.getByText('Update Available')).toBeVisible();
   const calls = await page.evaluate(() => window.__tauriMock.calls);
   expect(calls).not.toContain('plugin:updater|download');
