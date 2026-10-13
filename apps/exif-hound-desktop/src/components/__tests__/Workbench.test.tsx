@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import Workbench from '../Workbench';
 import { invoke } from '@tauri-apps/api/core';
 import type { ProjectStore } from 'investigation-archive';
@@ -37,6 +37,14 @@ const store = storeMocks as unknown as ProjectStore;
 
 describe('Workbench workflow editor', () => {
   beforeEach(() => { jest.restoreAllMocks(); jest.clearAllMocks(); });
+
+  it('asks the user to open an investigation when no project store is bound', () => {
+    render(<Workbench images={[]} store={null} recognizeImage={jest.fn()} />);
+    expect(screen.getByRole('heading', { name: 'Workbench' })).toBeInTheDocument();
+    expect(screen.getByText('Open an investigation first')).toBeInTheDocument();
+    expect(screen.queryByText('Loading project workflow…')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Inputs' })).not.toBeInTheDocument();
+  });
 
   it('shows the categorized node palette and selected workflow', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
@@ -84,6 +92,28 @@ describe('Workbench workflow editor', () => {
     expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'workbench-library-panel');
   });
 
+  it('exposes image bypass and data handles on transform nodes', async () => {
+    render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Add OCR node' }));
+    const ocr = await screen.findByTestId('flow-node-ocr');
+    expect(ocr.className).toContain('w-[320px]');
+    expect(ocr.querySelectorAll('[data-port-type="image"]')).toHaveLength(2);
+    expect(ocr.querySelector('[data-port-type="text"]')).toHaveClass('!h-[18px]', '!w-[18px]');
+    expect(within(ocr).getAllByText('Image')).toHaveLength(2);
+    expect(within(ocr).getByText('Text')).toBeInTheDocument();
+    expect(ocr).not.toHaveTextContent('Data');
+    expect(ocr).not.toHaveTextContent('Extract text');
+    expect(ocr).not.toHaveTextContent('Pass the image onward');
+    fireEvent.click(screen.getByRole('button', { name: 'Add Image Provenance node' }));
+    expect(within(screen.getByTestId('flow-node-provenance')).getByText('Evidence')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Text & Identifiers node' }));
+    expect(within(screen.getByTestId('flow-node-visual-identifiers')).getByText('Evidence')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Text output node' }));
+    expect(within(screen.getByTestId('flow-node-text')).getByText('Text')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Evidence Report node' }));
+    expect(within(screen.getByTestId('flow-node-evidence')).getByText('Evidence')).toBeInTheDocument();
+  });
+
   it('adds an image node and exposes project image settings in the inspector', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Add Image node' }));
@@ -119,6 +149,7 @@ describe('Workbench workflow editor', () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
     fireEvent.click(await screen.findByRole('tab', { name: 'Saved workflows' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Saved workflows' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
   it('prompts for a name and saves a machine-wide JSON workflow', async () => {
@@ -193,6 +224,22 @@ describe('Workbench workflow editor', () => {
     const progress = screen.getByRole('progressbar', { name: 'Image progress' });
     expect(progress).toHaveAttribute('aria-valuenow', '52');
     expect(screen.getByText('Measuring image quality').parentElement?.parentElement).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('wraps long node failure messages instead of overflowing the card', () => {
+    const data: WorkbenchFlowData = {
+      settings: {},
+      state: 'failed',
+      status: 'The selected project image bytes are unavailable because the file was removed from this investigation.',
+    };
+    const props = {
+      id: 'ocr-node', data, selected: false, type: 'ocr', isConnectable: true,
+      positionAbsoluteX: 0, positionAbsoluteY: 0, dragging: false, zIndex: 1,
+      width: 250, height: 200, dragHandle: null, sourcePosition: null, targetPosition: null,
+    } as unknown as React.ComponentProps<typeof NodeFrame>;
+    render(<ReactFlowProvider><NodeFrame {...props} type="ocr" input="image" output="text" /></ReactFlowProvider>);
+    const message = screen.getByText(/file was removed from this investigation/);
+    expect(message).toHaveClass('break-words');
   });
 
   it('runs forensic transforms through middleware adapters and persists separate tool results', async () => {

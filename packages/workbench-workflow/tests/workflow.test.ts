@@ -4,6 +4,7 @@ import {
   clearProjectImageSelections,
   parseWorkflow,
   serializeWorkflow,
+  normalizeConnection,
   validateConnection,
   validateRunnableWorkflow,
   WorkflowGraph,
@@ -101,6 +102,73 @@ describe('workflow graph', () => {
 
     expect(validateRunnableWorkflow(forensic)).toEqual([]);
     expect(parseWorkflow(serializeWorkflow(forensic))).toEqual(forensic);
+  });
+
+  it('accepts an image chain from one transform bypass into the next', () => {
+    const chained: WorkflowGraph = {
+      formatVersion: 1,
+      name: 'Chained review',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 9 } },
+        { id: 'ocr', type: 'ocr', position: { x: 1, y: 0 }, settings: { language: 'eng' } },
+        { id: 'provenance', type: 'provenance', position: { x: 2, y: 0 }, settings: {} },
+        { id: 'text', type: 'text', position: { x: 3, y: 0 }, settings: {} },
+        { id: 'evidence', type: 'evidence', position: { x: 3, y: 1 }, settings: {} },
+      ],
+      edges: [
+        { id: 'image-ocr', source: 'image', sourcePort: 'image', target: 'ocr', targetPort: 'image' },
+        { id: 'ocr-image', source: 'ocr', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'ocr-text', source: 'ocr', sourcePort: 'text', target: 'text', targetPort: 'text' },
+        { id: 'provenance-evidence', source: 'provenance', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+      ],
+    };
+
+    expect(validateConnection(chained, chained.edges[1])).toBeNull();
+    expect(validateRunnableWorkflow(chained)).toEqual([]);
+  });
+
+  it('infers a missing text target port so OCR can connect to Text output', () => {
+    const open = { ...graph, edges: [graph.edges[0]] };
+    const result = normalizeConnection(open, {
+      id: 'ocr-text', source: 'ocr', sourcePort: 'text', target: 'text', targetPort: '',
+    });
+    expect(result).toEqual(expect.objectContaining({ source: 'ocr', sourcePort: 'text', target: 'text', targetPort: 'text' }));
+  });
+
+  it('flips a connection started from a Text input handle', () => {
+    const open = { ...graph, edges: [graph.edges[0]] };
+    const result = normalizeConnection(open, {
+      id: 'reversed', source: 'text', sourcePort: 'text', target: 'ocr', targetPort: 'text',
+    });
+    expect(result).toEqual(expect.objectContaining({ source: 'ocr', sourcePort: 'text', target: 'text', targetPort: 'text' }));
+  });
+
+  it('accepts the image-bypass chain with OCR text routed to Text output', () => {
+    const canvas: WorkflowGraph = {
+      formatVersion: 1,
+      name: 'Bypass plus text',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 9 } },
+        { id: 'ocr', type: 'ocr', position: { x: 1, y: 0 }, settings: { language: 'eng' } },
+        { id: 'identifiers', type: 'visual-identifiers', position: { x: 2, y: 0 }, settings: {} },
+        { id: 'text', type: 'text', position: { x: 1, y: 1 }, settings: {} },
+        { id: 'evidence', type: 'evidence', position: { x: 3, y: 0 }, settings: {} },
+      ],
+      edges: [
+        { id: 'image-ocr', source: 'image', sourcePort: 'image', target: 'ocr', targetPort: 'image' },
+        { id: 'ocr-image', source: 'ocr', sourcePort: 'image', target: 'identifiers', targetPort: 'image' },
+        { id: 'ocr-text', source: 'ocr', sourcePort: 'text', target: 'text', targetPort: 'text' },
+        { id: 'id-evidence', source: 'identifiers', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+      ],
+    };
+    expect(validateConnection(canvas, canvas.edges[2])).toBeNull();
+    expect(validateRunnableWorkflow(canvas)).toEqual([]);
+  });
+
+  it('rejects connecting a transform data output to another transform', () => {
+    expect(validateConnection(graph, {
+      id: 'bad-data', source: 'ocr', sourcePort: 'text', target: 'ocr', targetPort: 'image',
+    })).toEqual(expect.objectContaining({ message: expect.stringContaining('matching data types') }));
   });
 
   it('rejects a forensic transform without an Evidence Report output', () => {

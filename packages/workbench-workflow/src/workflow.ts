@@ -23,9 +23,9 @@ export interface WorkflowGraph {
 
 const ports: Record<NodeKind, { inputs: PortType[]; outputs: PortType[] }> = {
   image: { inputs: [], outputs: ['image'] },
-  ocr: { inputs: ['image'], outputs: ['text'] },
-  provenance: { inputs: ['image'], outputs: ['evidence'] },
-  'visual-identifiers': { inputs: ['image'], outputs: ['evidence'] },
+  ocr: { inputs: ['image'], outputs: ['image', 'text'] },
+  provenance: { inputs: ['image'], outputs: ['image', 'evidence'] },
+  'visual-identifiers': { inputs: ['image'], outputs: ['image', 'evidence'] },
   text: { inputs: ['text'], outputs: [] },
   evidence: { inputs: ['evidence'], outputs: [] },
 };
@@ -33,6 +33,36 @@ const ports: Record<NodeKind, { inputs: PortType[]; outputs: PortType[] }> = {
 export const transformNodeTypes: readonly NodeKind[] = ['ocr', 'provenance', 'visual-identifiers'];
 
 export interface ValidationIssue { message: string; nodeId?: string; edgeId?: string }
+
+function inferPorts(graph: WorkflowGraph, edge: WorkflowEdge): WorkflowEdge {
+  const source = graph.nodes.find((node) => node.id === edge.source);
+  const target = graph.nodes.find((node) => node.id === edge.target);
+  if (!source || !target) return edge;
+  const outputs = ports[source.type].outputs;
+  const inputs = ports[target.type].inputs;
+  let sourcePort = edge.sourcePort;
+  let targetPort = edge.targetPort;
+  if (!targetPort) {
+    targetPort = sourcePort && inputs.includes(sourcePort as PortType) ? sourcePort : inputs.length === 1 ? inputs[0] : targetPort;
+  }
+  if (!sourcePort) {
+    sourcePort = targetPort && outputs.includes(targetPort as PortType) ? targetPort : outputs.length === 1 ? outputs[0] : sourcePort;
+  }
+  return { ...edge, sourcePort, targetPort };
+}
+
+function flipEdge(edge: WorkflowEdge): WorkflowEdge {
+  return { ...edge, source: edge.target, sourcePort: edge.targetPort, target: edge.source, targetPort: edge.sourcePort };
+}
+
+export function normalizeConnection(graph: WorkflowGraph, edge: WorkflowEdge): WorkflowEdge | ValidationIssue {
+  const forward = inferPorts(graph, edge);
+  const forwardIssue = validateConnection(graph, forward);
+  if (!forwardIssue) return forward;
+  const backward = inferPorts(graph, flipEdge(edge));
+  const backwardIssue = validateConnection(graph, backward);
+  return backwardIssue ? forwardIssue : backward;
+}
 
 export function validateConnection(graph: WorkflowGraph, edge: WorkflowEdge): ValidationIssue | null {
   const source = graph.nodes.find((node) => node.id === edge.source);
@@ -74,10 +104,9 @@ export function validateRunnableWorkflow(graph: WorkflowGraph): ValidationIssue[
   const transforms = graph.nodes.filter((node) => transformNodeTypes.includes(node.type));
   if (!transforms.length) return [{ message: 'Add an analysis transform to the workflow.' }];
   for (const node of transforms) {
-    const input = graph.edges.find((edge) => edge.target === node.id && edge.targetPort === 'image');
     const outputType = node.type === 'ocr' ? 'text' : 'evidence';
     const output = graph.edges.find((edge) => edge.source === node.id && edge.sourcePort === outputType);
-    const image = input && graph.nodes.find((candidate) => candidate.id === input.source);
+    const image = resolveImageRoot(graph, node.id);
     const resultNode = output && graph.nodes.find((candidate) => candidate.id === output.target);
     if (!image || image.type !== 'image') issues.push({ message: 'Connect an Image node to every analysis transform.', nodeId: node.id });
     else if (typeof image.settings.imageId !== 'number') issues.push({ message: 'Choose a project image for every connected Image node.', nodeId: image.id });
@@ -121,6 +150,17 @@ export function parseWorkflow(json: string): WorkflowGraph {
   const issues = validateGraph(normalized);
   if (issues.length) throw new Error(issues[0].message);
   return normalized;
+}
+
+function resolveImageRoot(graph: WorkflowGraph, nodeId: string, seen = new Set<string>()): WorkflowNode | null {
+  if (seen.has(nodeId)) return null;
+  seen.add(nodeId);
+  const node = graph.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node) return null;
+  if (node.type === 'image') return node;
+  const inbound = graph.edges.find((edge) => edge.target === nodeId && edge.targetPort === 'image');
+  if (!inbound) return null;
+  return resolveImageRoot(graph, inbound.source, seen);
 }
 
 function normalizeOcrNodeSettings(graph: WorkflowGraph): WorkflowGraph {
