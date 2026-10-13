@@ -1,8 +1,27 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import fs from 'fs';
+import { contentTypeForOcrAsset, resolvePublicOcrPath } from './src/utils/ocrPublicAsset';
+
+function servePublicOcrAssets(): Plugin {
+  const ocrRoot = path.resolve(__dirname, 'public/ocr');
+  return {
+    name: 'serve-public-ocr-assets',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const file = resolvePublicOcrPath(req.url ?? '', ocrRoot);
+        if (!file) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', contentTypeForOcrAsset(file));
+        fs.createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
 
 const isDev = process.env.TAURI_DEBUG === 'true';
 
@@ -23,7 +42,7 @@ if (updateChannel !== 'stable' && updateChannel !== 'beta' && updateChannel !== 
 }
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [servePublicOcrAssets(), react(), tailwindcss()],
   define: {
     // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
     // (ts-jest/Jest 30 treat files containing import.meta as ESM).
