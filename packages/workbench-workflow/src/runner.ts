@@ -1,6 +1,6 @@
 import { transformNodeTypes, validateRunnableWorkflow, WorkflowGraph, WorkflowNode } from './workflow';
 
-export interface NodeResult { data: unknown; status?: 'success' | 'no-text' }
+export interface NodeResult { data: unknown; status?: 'success' | 'no-text'; outputs?: Record<string, unknown> }
 export interface NodeContext {
   inputs: Map<string, unknown>;
   reportProgress: (progress: number, status?: string) => void;
@@ -53,7 +53,8 @@ export class WorkflowRunner {
         await options.onEvent?.({ type: 'node-started', nodeId: node.id, completed, total: executable.length });
         const inputs = new Map<string, unknown>();
         for (const edge of graph.edges.filter((item) => item.target === node.id)) {
-          const value = outputs.get(edge.source)?.data;
+          const source = outputs.get(edge.source);
+          const value = source?.outputs?.[edge.sourcePort] ?? source?.data;
           if (value === undefined) throw new Error(`No input is available for node ${node.id}.`);
           inputs.set(edge.targetPort, value);
         }

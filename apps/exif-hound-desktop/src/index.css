@@ -32,6 +32,9 @@
     --app-danger: #fca5a5;
     --app-danger-bg: #450a0a;
     --app-modal-scrim: rgba(0, 0, 0, 0.55);
+    --port-image: #7dd3fc;
+    --port-text: #fbbf24;
+    --port-evidence: #c4b5fd;
   }
 
   :root[data-theme="light"] {
@@ -48,6 +51,9 @@
     --app-danger: #b91c1c;
     --app-danger-bg: #fee2e2;
     --app-modal-scrim: rgba(0, 0, 0, 0.55);
+    --port-image: #0369a1;
+    --port-text: #b45309;
+    --port-evidence: #6d28d9;
   }
 
   body {
@@ -227,15 +233,22 @@ a:focus-visible,
 }
 
 /* Input styles with better contrast */
-input {
+input,
+select {
   background-color: var(--app-gray);
   color: var(--app-white);
   border: 1px solid var(--app-gray-light);
 }
 
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--app-accent);
+}
+
+select:focus-visible {
+  outline: 2px solid var(--app-accent-dim);
+  outline-offset: 2px;
 }
 
 /* Export modal shadow lift */
@@ -273,7 +286,30 @@ input:focus {
   --xy-handle-background-color: var(--app-accent);
   --xy-handle-border-color: var(--app-gray);
   --xy-controls-button-background-color: var(--app-gray);
+  --xy-controls-button-background-color-hover: var(--app-gray-light);
   --xy-controls-button-color: var(--app-white);
   --xy-controls-button-border-color: var(--app-gray-light);
   --xy-minimap-background-color: var(--app-gray);
+}
+
+.react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--app-gray-light);
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+.react-flow__controls-button {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-bottom-color: var(--app-gray-light);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--app-gray-light);
+}
+
+.react-flow__controls-button:focus-visible {
+  outline: 2px solid var(--app-accent-dim);
+  outline-offset: 2px;
 }
