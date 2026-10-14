@@ -34,7 +34,8 @@ npm run tauri:dev                             # desktop app in dev mode
 npm run tauri:build                           # desktop release build (current host platform only; no cross-compile)
 npm run lint                                  # eslint across workspaces
 npm run typecheck                             # tsc across workspaces (desktop uses tsconfig.typecheck.json)
-npm test --workspace=exif-hound-desktop       # Jest unit tests (jest.config.cjs)
+npm test                                      # Jest across all workspaces (packages + desktop)
+npm test --workspace=exif-hound-desktop       # desktop only (jest.config.cjs; use --runInBand locally if flaky)
 npm run test:e2e                              # Playwright E2E suite (desktop workspace)
 npm run build:packages && npm run build:apps  # build everything
 ```

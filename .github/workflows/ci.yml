@@ -54,8 +54,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck --workspace=exif-hound-desktop
 
-      - name: Run all tests
-        run: npm run test --workspace=exif-hound-desktop
+      - name: Run all tests (packages + desktop)
+        run: npm test
 
       - name: Run release-tooling tests (manifest generation/validation)
         run: npm run test:scripts

@@ -1,4 +1,5 @@
 import {
+  configureReverseGeocodingProvider,
   formatLocation,
   formatShortLocation,
   getLocationFromCoordinates,
@@ -97,6 +98,21 @@ describe('geocoding utility', () => {
       expect(url).toContain('nominatim.openstreetmap.org/reverse');
       const headers = init?.headers as Record<string, string> | undefined;
       expect(headers?.['User-Agent']).toBeUndefined();
+    });
+  });
+
+  describe('configureReverseGeocodingProvider', () => {
+    afterEach(() => {
+      configureReverseGeocodingProvider(null);
+    });
+
+    it('uses a configured provider instead of Nominatim', async () => {
+      configureReverseGeocodingProvider({
+        reverse: async () => ({ formatted: 'Configured stub', loading: false }),
+      });
+      await expect(getLocationFromCoordinates(88.123, -177.456)).resolves.toMatchObject({
+        formatted: 'Configured stub',
+      });
     });
   });
 });

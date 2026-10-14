@@ -16,6 +16,7 @@
     "dev:packages": "turbo run dev --filter=\"./packages/*\" --parallel",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "test": "npm test --workspaces --if-present",
     "tauri:dev": "turbo run tauri:dev --filter=exif-hound-desktop",
     "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop",
     "test:scripts": "node --test 'scripts/updater/__tests__/*.test.mjs' 'scripts/release/__tests__/*.test.mjs'",

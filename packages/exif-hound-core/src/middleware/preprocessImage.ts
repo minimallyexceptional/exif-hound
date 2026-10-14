@@ -143,6 +143,11 @@ export function configureImageProcessingMiddleware(middleware: ImageProcessingMi
   configuredMiddleware = middleware;
 }
 
+/** Test hook: restore default image-processing middleware binding. */
+export function __resetImageProcessingMiddlewareForTests(): void {
+  configuredMiddleware = null;
+}
+
 function resolveMiddleware(): ImageProcessingMiddleware {
   return configuredMiddleware ?? defaultMiddleware;
 }

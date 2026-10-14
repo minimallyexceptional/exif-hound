@@ -4,4 +4,5 @@ set -e
 npm run lint --workspace=exif-hound-desktop
 npm run typecheck --workspace=exif-hound-desktop
 npm test --workspace=exif-hound-desktop -- --runInBand
+npm test --workspace=exif-middleware --workspace=exif-hound-core --workspace=image-forensics-middleware --workspace=image-processing-middleware --workspace=investigation-archive --workspace=ocr-middleware --workspace=workbench-workflow
 npm run build --workspace=exif-hound-desktop
