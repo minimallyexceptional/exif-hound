@@ -30,11 +30,8 @@ export const ProjectImage: React.FC<Props> = ({
 }) => {
   const onRemoteLoaded = useRemoteImageLoaded();
   const remote = pendingRemoteUrl(image);
-  const [displayUrl, setDisplayUrl] = useState(remote ? '' : image.url);
-
-  useEffect(() => {
-    setDisplayUrl(remote ? '' : image.url);
-  }, [image.url, remote]);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const displayUrl = remote ? (loadedUrl ?? '') : image.url;
 
   if (remote) {
     return (
@@ -42,7 +39,7 @@ export const ProjectImage: React.FC<Props> = ({
         remoteUrl={remote}
         className={className}
         onLoaded={(objectUrl, blob) => {
-          setDisplayUrl(objectUrl);
+          setLoadedUrl(objectUrl);
           onRemoteLoaded?.(image.id, image.projectImageId, objectUrl, blob);
         }}
       />
