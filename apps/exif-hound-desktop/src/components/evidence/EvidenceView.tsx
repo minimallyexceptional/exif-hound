@@ -3,7 +3,7 @@ import { ArrowLeft, RefreshCw, Shield } from 'lucide-react';
 import type { ProjectStore } from 'exif-hound-core';
 import type { ImageData } from '../../types';
 import { useSettings } from '../../context/SettingsContext';
-import { EvidenceHubService, getLocationFromCoordinates } from 'exif-hound-core';
+import { EvidenceHubService, getLocationFromCoordinates, projectEvidenceRevision } from 'exif-hound-core';
 import type { EvidenceCategoryId, EvidenceIndex, GpsPlaceNamePatch } from 'exif-hound-core';
 import { EvidenceBentoGrid } from './EvidenceBentoGrid';
 import { EvidenceCategoryTable } from './EvidenceCategoryTable';
@@ -42,13 +42,15 @@ const EvidenceView: React.FC<Props> = ({
     [store, images, resolvePlaceNames],
   );
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (options?: { silent?: boolean }) => {
     if (!hubService) {
       setIndex(null);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!options?.silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const { index: nextIndex, patches } = await hubService.loadIndex();
@@ -56,7 +58,9 @@ const EvidenceView: React.FC<Props> = ({
       if (patches.length > 0) onImagesPatched?.(patches);
     } catch (cause) {
       setError(EvidenceHubService.loadErrorMessage(cause));
-      setIndex(null);
+      if (!options?.silent) {
+        setIndex(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -64,6 +68,20 @@ const EvidenceView: React.FC<Props> = ({
 
   useEffect(() => {
     void reload();
+  }, [reload]);
+
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = projectEvidenceRevision.subscribe(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void reload({ silent: true });
+      }, 400);
+    });
+    return () => {
+      unsubscribe();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
   }, [reload]);
 
   const totalItems = useMemo(

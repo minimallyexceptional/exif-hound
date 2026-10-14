@@ -1,4 +1,5 @@
 export { EvidenceHubService } from './EvidenceHubService';
+export { EvidenceDataRevision, projectEvidenceRevision } from './EvidenceDataRevision';
 export { EvidenceRepository } from './EvidenceRepository';
 export { EvidenceIndexBuilder } from './EvidenceIndexBuilder';
 export { EvidenceCategoryColumnModel } from './EvidenceCategoryColumnModel';
@@ -13,6 +14,7 @@ export {
 } from './resolveGpsPlaceNames';
 
 import { EvidenceHubService } from './EvidenceHubService';
+import { projectEvidenceRevision } from './EvidenceDataRevision';
 import { EvidenceRepository } from './EvidenceRepository';
 import { EvidenceIndexBuilder } from './EvidenceIndexBuilder';
 import { EvidenceCategoryColumnModel } from './EvidenceCategoryColumnModel';
@@ -21,6 +23,7 @@ import { buildEvidenceIndex } from './buildEvidenceIndex';
 
 export class EvidenceNamespace {
   readonly hub = EvidenceHubService;
+  readonly revision = projectEvidenceRevision;
   readonly repository = EvidenceRepository;
   readonly indexBuilder = EvidenceIndexBuilder;
   readonly columnModel = EvidenceCategoryColumnModel;

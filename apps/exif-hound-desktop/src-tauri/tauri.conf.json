@@ -17,7 +17,8 @@
         "height": 800,
         "resizable": true,
         "fullscreen": false,
-        "theme": "Dark"
+        "theme": "Dark",
+        "userAgent": "EXIF-Hound/2.7.0 (+https://github.com/minimallyexceptional/exif-hound; desktop)"
       }
     ],
     "security": {

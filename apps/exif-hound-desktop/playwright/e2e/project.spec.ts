@@ -132,9 +132,9 @@ test('Workbench opens the node editor and can save a machine-wide workflow templ
   await page.getByRole('tab', { name: 'Saved workflows' }).click();
   await expect(page.getByRole('heading', { name: 'Saved workflows' })).toBeVisible();
   await page.getByRole('tab', { name: 'Editor' }).click();
-  await page.getByRole('button', { name: 'Save reusable workflow' }).click();
-  await page.getByLabel('Workflow name').fill('Evidence starter');
   await page.getByRole('button', { name: 'Save workflow' }).click();
+  await page.getByLabel('Workflow name').fill('Evidence starter');
+  await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(async () => page.evaluate(() => window.__tauriMock.calls.includes('save_workflow_template'))).toBe(true);
 });
 

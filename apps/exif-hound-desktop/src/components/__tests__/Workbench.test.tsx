@@ -116,7 +116,7 @@ describe('Workbench workflow editor', () => {
 
   it('exposes keyboard help and arrow-key navigation for the workflow tabs', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
-    const saveButton = await screen.findByRole('button', { name: 'Save reusable workflow' });
+    const saveButton = await screen.findByRole('button', { name: 'Save workflow' });
     fireEvent.focus(saveButton);
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Save a reusable copy of this workflow on this machine');
     const editorTab = screen.getByRole('tab', { name: 'Editor' });
@@ -190,9 +190,9 @@ describe('Workbench workflow editor', () => {
 
   it('prompts for a name and saves a machine-wide JSON workflow', async () => {
     render(<Workbench images={[]} store={store} recognizeImage={jest.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Save reusable workflow' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save workflow' }));
     fireEvent.change(screen.getByLabelText('Workflow name'), { target: { value: 'Field notes' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save workflow' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('save_workflow_template', expect.objectContaining({ name: 'Field notes' })));
     const payload = (invoke as jest.Mock).mock.calls.find((call) => call[0] === 'save_workflow_template')?.[1];
     expect(JSON.parse(payload.content)).toMatchObject({ formatVersion: 1, name: 'Field notes' });

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import EvidenceView from '../EvidenceView';
 import type { ProjectStore } from 'exif-hound-core';
 import type { ImageData } from '../../../types';
-import { getLocationFromCoordinates } from 'exif-hound-core';
+import { getLocationFromCoordinates, projectEvidenceRevision } from 'exif-hound-core';
 
 const settings = { privacySettings: { reverseGeocoding: false } };
 jest.mock('../../../context/SettingsContext', () => ({
@@ -44,6 +44,7 @@ const gpsImage: ImageData = {
 describe('EvidenceView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    projectEvidenceRevision.resetForTests();
     settings.privacySettings.reverseGeocoding = false;
     mockLookup.mockResolvedValue({ formatted: 'London', loading: false });
     storeMocks.listProjectOcrResults.mockResolvedValue([]);
@@ -130,6 +131,30 @@ describe('EvidenceView', () => {
     fireEvent.click(dataRow!);
     expect(onSelectImage).toHaveBeenCalledWith(image);
     expect(onNavigateToMap).toHaveBeenCalled();
+  });
+
+  it('reloads evidence when workflow results are persisted', async () => {
+    jest.useFakeTimers();
+    const processedAt = new Date('2026-01-01T12:00:00Z');
+    storeMocks.listProjectOcrResults
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        id: 1,
+        imageId: 42,
+        imageName: 'target.jpg',
+        text: 'live update',
+        confidence: 90,
+        processedAt,
+        resultStatus: 'success',
+        workflowId: 'wf',
+        workflowRunId: 'run',
+      }]);
+    render(<EvidenceView images={[image]} store={store} onSelectImage={jest.fn()} />);
+    await screen.findByRole('button', { name: /OCR text, 0 items/i });
+    projectEvidenceRevision.bump();
+    jest.advanceTimersByTime(400);
+    expect(await screen.findByRole('button', { name: /OCR text, 1 item/i })).toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it('reloads evidence when refresh is clicked', async () => {

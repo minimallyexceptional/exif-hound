@@ -20,6 +20,7 @@ import { WorkbenchGraphMapper, createWorkflowNodeId } from './WorkbenchGraphMapp
 import { hasOcrBoundingBox } from './workbenchOcrHelpers';
 import { VisualIdentifierSettingsResolver } from './VisualIdentifierSettingsResolver';
 import { WorkbenchRunPlanner } from './WorkbenchRunPlanner';
+import { projectEvidenceRevision } from '../evidence/EvidenceDataRevision';
 
 export interface WorkbenchRunProgressSnapshot {
   completed: number;
@@ -274,6 +275,7 @@ export class WorkbenchRunService {
               nodeId: node.id,
               preprocessingManifest: packet?.manifest,
             });
+            projectEvidenceRevision.bump();
             return;
           }
           if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
@@ -294,6 +296,7 @@ export class WorkbenchRunService {
           };
           if (node.type === 'provenance') await this.options.store.appendWorkflowProvenanceResult(record);
           else await this.options.store.appendWorkflowIdentifierResult(record);
+          projectEvidenceRevision.bump();
         },
         persistFailure: async (node, errorMessage) => {
           if (node.type !== 'provenance' && node.type !== 'visual-identifiers') return;
@@ -321,6 +324,7 @@ export class WorkbenchRunService {
           };
           if (node.type === 'provenance') await this.options.store.appendWorkflowProvenanceResult(record);
           else await this.options.store.appendWorkflowIdentifierResult(record);
+          projectEvidenceRevision.bump();
         },
         onEvent: async (event: RunEvent) => {
           if (event.type === 'node-started') {

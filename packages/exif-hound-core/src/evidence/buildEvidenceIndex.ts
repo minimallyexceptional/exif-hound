@@ -9,6 +9,7 @@ import type {
   OcrEvidenceRow,
   ProvenanceEvidenceRow,
 } from './evidenceTypes';
+import { parseEvidenceConfidence, shouldIncludeEvidenceConfidence } from './evidenceTableFormatters';
 
 const CATEGORY_ORDER: EvidenceCategoryId[] = [
   'license-plates',
@@ -70,6 +71,11 @@ function identifierDedupeKey(categoryId: EvidenceCategoryId, imageId: number, va
   return `${categoryId}:${imageId}:${normalized}`;
 }
 
+function identifierConfidenceScore(confidence: number | null): number {
+  if (confidence == null || !Number.isFinite(confidence)) return -1;
+  return confidence;
+}
+
 export function buildEvidenceIndex(
   ocrResults: OcrResultRecord[],
   identifierResults: WorkflowToolResultRecord[],
@@ -77,7 +83,7 @@ export function buildEvidenceIndex(
   images: ImageData[],
 ): EvidenceIndex {
   const rowsByCategory = emptyRows();
-  const seenIdentifiers = new Set<string>();
+  const bestIdentifierByKey = new Map<string, IdentifierEvidenceRow>();
   const seenProvenance = new Set<string>();
   const seenOcrByImage = new Set<number>();
 
@@ -87,35 +93,48 @@ export function buildEvidenceIndex(
     const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
     candidates.forEach((candidate, index) => {
       if (!isIdentifierCandidate(candidate)) return;
+      const confidence = parseEvidenceConfidence(candidate.confidence);
+      if (!shouldIncludeEvidenceConfidence(confidence)) return;
       const categoryId = FAMILY_TO_CATEGORY[candidate.family];
       if (!categoryId) return;
       const dedupeKey = identifierDedupeKey(categoryId, record.imageId, candidate.value);
-      if (seenIdentifiers.has(dedupeKey)) return;
-      seenIdentifiers.add(dedupeKey);
       const row: IdentifierEvidenceRow = {
         id: `id-${record.id ?? record.workflowRunId}-${index}`,
         kind: 'identifier',
         family: candidate.family,
         value: candidate.value,
-        confidence: typeof candidate.confidence === 'number' ? candidate.confidence : null,
+        confidence,
         imageId: record.imageId,
         imageName: record.imageName,
         detectedAt: record.finishedAt ?? null,
         workflowId: record.workflowId,
         workflowRunId: record.workflowRunId,
       };
-      rowsByCategory[categoryId].push(row);
+      const previous = bestIdentifierByKey.get(dedupeKey);
+      if (
+        !previous
+        || identifierConfidenceScore(row.confidence) > identifierConfidenceScore(previous.confidence)
+      ) {
+        bestIdentifierByKey.set(dedupeKey, row);
+      }
     });
+  }
+
+  for (const row of bestIdentifierByKey.values()) {
+    const categoryId = FAMILY_TO_CATEGORY[row.family];
+    if (categoryId) rowsByCategory[categoryId].push(row);
   }
 
   for (const record of ocrResults) {
     if (seenOcrByImage.has(record.imageId)) continue;
+    const confidence = parseEvidenceConfidence(record.confidence);
+    if (!shouldIncludeEvidenceConfidence(confidence)) continue;
     seenOcrByImage.add(record.imageId);
     const row: OcrEvidenceRow = {
       id: `ocr-${record.id ?? `${record.imageId}-${record.processedAt.getTime()}`}`,
       kind: 'ocr',
       text: record.text,
-      confidence: record.confidence,
+      confidence,
       resultStatus: record.resultStatus ?? null,
       imageId: record.imageId,
       imageName: record.imageName ?? `Image ${record.imageId}`,

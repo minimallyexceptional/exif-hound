@@ -63,6 +63,8 @@ describe('buildEvidenceIndex', () => {
       [],
     );
     expect(index.categories.find(c => c.id === 'emails')?.count).toBe(1);
+    const emailRow = index.rowsByCategory.emails[0];
+    expect(emailRow.kind === 'identifier' && emailRow.confidence).toBe(90);
   });
 
   it('maps all identifier families and skips invalid or failed records', () => {
@@ -110,6 +112,111 @@ describe('buildEvidenceIndex', () => {
     expect(phoneRow.kind === 'identifier' && phoneRow.confidence).toBe(70);
     const urlRow = index.rowsByCategory['urls'][0];
     expect(urlRow.kind === 'identifier' && urlRow.confidence).toBeNull();
+  });
+
+  it('prefers higher-confidence identifier rows when deduping the same value', () => {
+    const now = new Date('2026-01-01T12:00:00Z');
+    const toolBase = {
+      imageId: 7,
+      imageName: 'photo.jpg',
+      resultStatus: 'success' as const,
+      workflowId: 'wf',
+      workflowRunId: 'run',
+      nodeId: 'ids',
+      toolVersion: '1.0.0',
+      startedAt: now,
+      finishedAt: now,
+    };
+    const index = buildEvidenceIndex(
+      [],
+      [
+        {
+          id: 1,
+          ...toolBase,
+          result: { candidates: [{ family: 'license-plate-like', value: 'ABC123', confidence: 0 }] },
+        },
+        {
+          id: 2,
+          ...toolBase,
+          workflowRunId: 'run-b',
+          result: { candidates: [{ family: 'license-plate-like', value: 'ABC123', confidence: 72 }] },
+        },
+      ],
+      [],
+      [],
+    );
+    expect(index.categories.find(c => c.id === 'license-plates')?.count).toBe(1);
+    const row = index.rowsByCategory['license-plates'][0];
+    expect(row.kind === 'identifier' && row.confidence).toBe(72);
+  });
+
+  it('excludes identifier and OCR rows with 0% confidence', () => {
+    const now = new Date('2026-01-01T12:00:00Z');
+    const index = buildEvidenceIndex(
+      [
+        { id: 1, imageId: 5, imageName: 'a.png', text: 'empty ocr', confidence: 0, processedAt: now, resultStatus: 'success' },
+        { id: 2, imageId: 6, imageName: 'b.png', text: 'visible', confidence: 55, processedAt: now, resultStatus: 'success' },
+      ],
+      [{
+        id: 1,
+        imageId: 7,
+        imageName: 'photo.jpg',
+        result: {
+          candidates: [
+            { family: 'email', value: 'zero@example.com', confidence: 0 },
+            { family: 'email', value: 'real@example.com', confidence: 42 },
+          ],
+        },
+        resultStatus: 'success',
+        workflowId: 'wf',
+        workflowRunId: 'run',
+        nodeId: 'ids',
+        toolVersion: '1.0.0',
+        startedAt: now,
+        finishedAt: now,
+      }],
+      [],
+      [],
+    );
+    expect(index.categories.find(c => c.id === 'emails')?.count).toBe(1);
+    expect(index.rowsByCategory.emails[0].kind).toBe('identifier');
+    if (index.rowsByCategory.emails[0].kind === 'identifier') {
+      expect(index.rowsByCategory.emails[0].value).toBe('real@example.com');
+    }
+    expect(index.categories.find(c => c.id === 'ocr-text')?.count).toBe(1);
+    const ocrRow = index.rowsByCategory['ocr-text'][0];
+    expect(ocrRow.kind === 'ocr' && ocrRow.text).toBe('visible');
+  });
+
+  it('excludes values that round to 0% and string-encoded zero confidence', () => {
+    const now = new Date('2026-01-01T12:00:00Z');
+    const index = buildEvidenceIndex(
+      [],
+      [{
+        id: 1,
+        imageId: 7,
+        imageName: 'photo.jpg',
+        result: {
+          candidates: [
+            { family: 'license-plate-like', value: 'LOW1', confidence: 0.4 },
+            { family: 'license-plate-like', value: 'LOW2', confidence: '0' },
+            { family: 'license-plate-like', value: 'OK1', confidence: 1 },
+          ],
+        },
+        resultStatus: 'success',
+        workflowId: 'wf',
+        workflowRunId: 'run',
+        nodeId: 'ids',
+        toolVersion: '1.0.0',
+        startedAt: now,
+        finishedAt: now,
+      }],
+      [],
+      [],
+    );
+    expect(index.categories.find(c => c.id === 'license-plates')?.count).toBe(1);
+    expect(index.rowsByCategory['license-plates'][0].kind === 'identifier'
+      && index.rowsByCategory['license-plates'][0].value).toBe('OK1');
   });
 
   it('keeps one OCR row per image and skips duplicate list entries', () => {

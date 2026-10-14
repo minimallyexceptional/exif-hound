@@ -5,22 +5,55 @@ import path from 'path';
 import fs from 'fs';
 import { contentTypeForOcrAsset, resolvePublicOcrPath } from './src/utils/ocrPublicAsset';
 
-/** Full reload when workspace core dist changes (avoids 504 Outdated Optimize Dep in Tauri WebView). */
-function reloadOnCoreDistChange(): Plugin {
-  const coreDistDir = path.join(packagesDir, 'exif-hound-core/dist');
+const packagesDir = path.resolve(__dirname, '../../packages');
+
+const WORKSPACE_PACKAGE_DIST_DIRS = [
+  'exif-hound-core/dist',
+  'exif-middleware/dist',
+  'image-processing-middleware/dist',
+].map((segment) => path.join(packagesDir, segment));
+
+function isReloadableDistOutput(file: string): boolean {
+  return /\.(?:[cm]?js)$/.test(file);
+}
+
+function distDirForFile(file: string): string | undefined {
+  return WORKSPACE_PACKAGE_DIST_DIRS.find((dir) => file === dir || file.startsWith(`${dir}${path.sep}`));
+}
+
+/** Full reload when aliased workspace package dist changes (avoids 504 Outdated Optimize Dep). */
+function reloadOnWorkspaceDistChange(): Plugin {
+  let acceptingEvents = false;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   return {
-    name: 'reload-on-core-dist-change',
+    name: 'reload-on-workspace-dist-change',
     configureServer(server) {
-      server.watcher.add(path.join(coreDistDir, '**/*'));
-      const reload = (file: string) => {
-        if (!file.startsWith(coreDistDir)) return;
-        // Drop stale pre-bundles so the next load does not 504 on old ?v= hashes.
-        const viteCache = path.join(__dirname, 'node_modules', '.vite', 'deps');
-        fs.rmSync(viteCache, { recursive: true, force: true });
-        server.ws.send({ type: 'full-reload' });
+      for (const dir of WORKSPACE_PACKAGE_DIST_DIRS) {
+        server.watcher.add(dir);
+      }
+
+      server.httpServer?.once('listening', () => {
+        // Chokidar emits "add" for every existing dist file when the directory is
+        // registered — reloading then wipes optimizeDeps and breaks HMR/WebSocket setup.
+        setTimeout(() => {
+          acceptingEvents = true;
+        }, 750);
+      });
+
+      const scheduleReload = (file: string) => {
+        if (!acceptingEvents || !distDirForFile(file) || !isReloadableDistOutput(file)) return;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          const viteCache = path.join(__dirname, 'node_modules', '.vite');
+          fs.rmSync(viteCache, { recursive: true, force: true });
+          server.ws.send({ type: 'full-reload' });
+        }, 200);
       };
-      server.watcher.on('change', reload);
-      server.watcher.on('add', reload);
+
+      server.watcher.on('change', scheduleReload);
+      server.watcher.on('add', scheduleReload);
     },
   };
 }
@@ -45,9 +78,6 @@ function servePublicOcrAssets(): Plugin {
 
 const isDev = process.env.TAURI_DEBUG === 'true';
 
-// Get the absolute path to the packages directory
-const packagesDir = path.resolve(__dirname, '../../packages');
-
 // App version is sourced from tauri.conf.json — the single authoritative
 // version for the release pipeline (CI reads it there too).
 const appVersion = JSON.parse(
@@ -62,7 +92,7 @@ if (updateChannel !== 'stable' && updateChannel !== 'beta' && updateChannel !== 
 }
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [reloadOnCoreDistChange(), servePublicOcrAssets(), react(), tailwindcss()],
+  plugins: [reloadOnWorkspaceDistChange(), servePublicOcrAssets(), react(), tailwindcss()],
   define: {
     // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
     // (ts-jest/Jest 30 treat files containing import.meta as ESM).

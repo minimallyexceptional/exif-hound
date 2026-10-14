@@ -38,8 +38,8 @@ function createProxiedTileLayer(
 }
 
 /**
- * Fetches custom raster tiles through the Tauri host so CSP img-src stays
- * limited to known map providers; only the configured tile host is registered in Rust.
+ * Fetches custom raster tiles through the Tauri host (OSM-compliant User-Agent).
+ * Built-in styles load directly in the webview; only the configured custom host is registered in Rust.
  */
 export function ProxiedTileLayer({ url, attribution, subdomains = [] }: Props) {
   const map = useMap();

@@ -230,7 +230,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                 </p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>
-                    <span className="text-app-white">Map tiles</span> — Built-in styles load from OpenStreetMap-family hosts in the webview. Custom tile servers are fetched through the desktop host for the hostname you configure (your IP is visible to that provider).
+                    <span className="text-app-white">Map tiles</span> — Built-in styles load in the webview with an app User-Agent. Custom tile servers are fetched through the desktop host for the hostname you configure (your IP is visible to that provider).
                   </li>
                   <li>
                     <span className="text-app-white">Place names</span> — Optional reverse geocoding sends GPS coordinates to OpenStreetMap Nominatim via the desktop host when enabled below.

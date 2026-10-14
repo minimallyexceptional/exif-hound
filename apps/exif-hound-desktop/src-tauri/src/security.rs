@@ -29,8 +29,31 @@ fn parse_https_url(url: &str) -> Result<Url, String> {
     Ok(parsed)
 }
 
+fn app_user_agent() -> String {
+    format!(
+        "EXIF-Hound/{} (+https://github.com/minimallyexceptional/exif-hound; desktop)",
+        env!("EXIFHOUND_APP_VERSION")
+    )
+}
+
+static HTTP_CLIENT: Lazy<Result<reqwest::blocking::Client, String>> = Lazy::new(|| {
+    reqwest::blocking::Client::builder()
+        .user_agent(app_user_agent())
+        .build()
+        .map_err(|error| error.to_string())
+});
+
+fn http_client() -> Result<&'static reqwest::blocking::Client, String> {
+    HTTP_CLIENT
+        .as_ref()
+        .map_err(|error| error.clone())
+}
+
 fn fetch_https(url: &str) -> Result<Vec<u8>, String> {
-    let response = reqwest::blocking::get(url).map_err(|error| error.to_string())?;
+    let response = http_client()?
+        .get(url)
+        .send()
+        .map_err(|error| error.to_string())?;
     if !response.status().is_success() {
         return Err(format!("HTTP request failed ({})", response.status()));
     }
@@ -38,6 +61,15 @@ fn fetch_https(url: &str) -> Result<Vec<u8>, String> {
         .bytes()
         .map(|bytes| bytes.to_vec())
         .map_err(|error| error.to_string())
+}
+
+fn is_builtin_tile_host(host: &str) -> bool {
+    host == "tile.openstreetmap.org"
+        || host.ends_with(".tile.openstreetmap.org")
+        || host == "tile.openstreetmap.fr"
+        || host.ends_with(".tile.openstreetmap.fr")
+        || host == "tile.opentopomap.org"
+        || host.ends_with(".tile.opentopomap.org")
 }
 
 pub fn register_trusted_project_roots(roots: Vec<String>) -> Result<(), String> {
@@ -114,15 +146,30 @@ pub fn fetch_remote_image_bytes(url: &str) -> Result<Vec<u8>, String> {
 pub fn fetch_map_tile_bytes(url: &str) -> Result<Vec<u8>, String> {
     let parsed = parse_https_url(url)?;
     let host = normalize_host(parsed.host_str().unwrap_or(""));
-    let allowed = STATE
-        .lock()
-        .map_err(|_| "Security state lock poisoned.".to_string())?
-        .custom_tile_hosts
-        .contains(&host);
+    let allowed = is_builtin_tile_host(&host)
+        || STATE
+            .lock()
+            .map_err(|_| "Security state lock poisoned.".to_string())?
+            .custom_tile_hosts
+            .contains(&host);
     if !allowed {
-        return Err(format!("Custom map tiles from {host} are not enabled."));
+        return Err(format!("Map tiles from {host} are not enabled."));
     }
     fetch_https(url)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_builtin_tile_host;
+
+    #[test]
+    fn builtin_tile_hosts_include_osm_and_opentopo_subdomains() {
+        assert!(is_builtin_tile_host("tile.openstreetmap.org"));
+        assert!(is_builtin_tile_host("a.tile.openstreetmap.org"));
+        assert!(is_builtin_tile_host("c.tile.openstreetmap.fr"));
+        assert!(is_builtin_tile_host("b.tile.opentopomap.org"));
+        assert!(!is_builtin_tile_host("tiles.example.org"));
+    }
 }
 
 pub fn fetch_nominatim_bytes(url: &str) -> Result<Vec<u8>, String> {
