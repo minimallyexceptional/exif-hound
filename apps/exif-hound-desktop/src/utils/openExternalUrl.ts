@@ -1,5 +1,5 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { isTauriEnvironment } from './fileSystem';
+import { isTauriEnvironment } from 'exif-hound-core';
 
 /**
  * Open an http(s) URL in the system browser (Tauri) or a new tab (browser dev).

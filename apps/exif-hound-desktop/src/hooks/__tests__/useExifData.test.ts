@@ -14,13 +14,8 @@ jest.mock('exif-hound-core', () => ({
   getLocationFromCoordinates: jest.fn(),
 }));
 
-jest.mock('../../utils/diagnostics', () => ({
-  fixCoordinates: jest.fn((lat, lng) => [lat, lng])
-}));
-
 // Get references to mocked functions
 const mockExtractExifData = jest.requireMock('exif-hound-core').extractExifData;
-const mockFixCoordinates = jest.requireMock('../../utils/diagnostics').fixCoordinates;
 const mockGetLocationFromCoordinates = jest.requireMock('exif-hound-core').getLocationFromCoordinates;
 
 // After all mocks are set up, import the component under test
@@ -113,20 +108,6 @@ describe('useExifData hook', () => {
     expect(exifData.imageWidth).toBe(6000);
     expect(exifData.imageHeight).toBe(4000);
     expect(exifData.error).toBeNull();
-  });
-
-  it('should apply coordinate fixes', async () => {
-    // Setup
-    const mockFile = createMockFile();
-    mockFile.arrayBuffer = jest.fn().mockResolvedValue(mockArrayBuffer);
-
-    const { result } = renderHook(() => useExifData());
-
-    // Execute
-    await result.current.processExifData(mockFile);
-
-    // Assert
-    expect(mockFixCoordinates).toHaveBeenCalledWith(37.7749, -122.4194);
   });
 
   it('should not fetch location by default', async () => {

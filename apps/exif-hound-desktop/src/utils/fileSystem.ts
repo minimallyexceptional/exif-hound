@@ -40,34 +40,6 @@ declare global {
 export const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Check if we're running in a Tauri environment
- */
-export function isTauriEnvironment(): boolean {
-  try {
-    if (typeof window === 'undefined') return false;
-
-    // Tauri v2 always injects __TAURI_INTERNALS__ into its webview (the npm
-    // APIs are built on it) — the reliable signal. window.__TAURI__ only
-    // exists when app.withGlobalTauri is enabled, which this app does not
-    // use, and __TAURI_IPC__ is a legacy global. See the identical check in
-    // services/updater/UpdateBackend.ts.
-    const win = window as unknown as {
-      __TAURI_INTERNALS__?: unknown;
-      __TAURI_IPC__?: unknown;
-      __TAURI__?: unknown;
-    };
-    return !!(
-      win.__TAURI_INTERNALS__ ??
-      win.__TAURI_IPC__ ??
-      win.__TAURI__
-    );
-  } catch (e) {
-    console.error('[FileSystem] Error checking Tauri environment:', e);
-    return false;
-  }
-}
-
-/**
  * Get MIME type from filename
  */
 function getMimeType(filename: string): string {

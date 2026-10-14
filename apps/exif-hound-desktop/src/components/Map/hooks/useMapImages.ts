@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import { ImageData } from '../../../types';
-import { fixCoordinates } from '../../../utils/diagnostics';
-
 // Efficient coordinate validation using simple numeric bounds
 const isValidCoordinate = (lat: number, lng: number): boolean => {
   return !isNaN(lat) && !isNaN(lng) && 
@@ -19,19 +17,7 @@ export const useMapImages = (images: ImageData[]) => {
       const lat = Number(img.exif.latitude);
       const lng = Number(img.exif.longitude);
       
-      // Use efficient numeric bounds check instead of geolib
-      if (!isValidCoordinate(lat, lng)) return false;
-      
-      // Apply hemisphere correction if needed
-      const [correctedLat, correctedLng] = fixCoordinates(lat, lng);
-      
-      // Update the image with corrected coordinates
-      if (correctedLat !== lat || correctedLng !== lng) {
-        img.exif.latitude = correctedLat;
-        img.exif.longitude = correctedLng;
-      }
-      
-      return true;
+      return isValidCoordinate(lat, lng);
     });
   }, [images]);
 

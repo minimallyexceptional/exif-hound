@@ -3,8 +3,6 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet.heat';
 import { ImageData } from '../../../../types';
-import { fixCoordinates } from '../../../../utils/diagnostics';
-
 interface HeatmapProps {
   images: ImageData[];
 }
@@ -14,9 +12,11 @@ export const ImageHeatmap: React.FC<HeatmapProps> = ({ images }) => {
 
   useEffect(() => {
     const points = images
-      .map(image => {
-        const coords = fixCoordinates(image.exif.latitude ?? null, image.exif.longitude ?? null);
-        return coords ? [coords[0], coords[1], 1] : null;
+      .map((image) => {
+        const lat = image.exif.latitude;
+        const lng = image.exif.longitude;
+        if (lat == null || lng == null) return null;
+        return [lat, lng, 1] as [number, number, number];
       })
       .filter((point): point is [number, number, number] => point !== null);
 

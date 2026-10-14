@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import L from 'leaflet';
 import { ImageData } from '../../../../types';
-import { fixCoordinates } from '../../../../utils/diagnostics';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Marker, Circle, useMap } from 'react-leaflet';
 import { ImagePopup } from './ImagePopup';
@@ -41,9 +40,10 @@ export const ImageCluster: React.FC<ImageClusterProps> = ({
   const validMarkers = useMemo(() => {
     return images
       .map(image => {
-        const coords = fixCoordinates(image.exif.latitude ?? null, image.exif.longitude ?? null);
-        if (!coords) return null;
-        return { image, coords };
+        const lat = image.exif.latitude;
+        const lng = image.exif.longitude;
+        if (lat == null || lng == null) return null;
+        return { image, coords: [lat, lng] as [number, number] };
       })
       .filter((item): item is { image: ImageData | ImportedPoint; coords: [number, number] } => item !== null);
   }, [images]);

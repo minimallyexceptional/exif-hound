@@ -1,17 +1,17 @@
 import React from 'react';
 import { Polyline } from 'react-leaflet';
 import { ImageData } from '../../../../types';
-import { fixCoordinates } from '../../../../utils/diagnostics';
-
 interface ImageRouteProps {
   images: ImageData[];
 }
 
 export const ImageRoute: React.FC<ImageRouteProps> = ({ images }) => {
   const routePoints = images
-    .map(image => {
-      const coords = fixCoordinates(image.exif.latitude ?? null, image.exif.longitude ?? null);
-      return coords;
+    .map((image) => {
+      const lat = image.exif.latitude;
+      const lng = image.exif.longitude;
+      if (lat == null || lng == null) return null;
+      return [lat, lng] as [number, number];
     })
     .filter((coord): coord is [number, number] => coord !== null);
 

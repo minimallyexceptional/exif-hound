@@ -20,8 +20,6 @@ const pattern = new RegExp(
 
 const allowFiles = new Set([
   path.normalize('apps/exif-hound-desktop/src/core/archiveDbProvider.ts'),
-  path.normalize('apps/exif-hound-desktop/src/workers/exifWorker.ts'),
-  path.normalize('apps/exif-hound-desktop/src/workers/imageProcessingWorker.ts'),
 ]);
 
 function* walk(dir) {

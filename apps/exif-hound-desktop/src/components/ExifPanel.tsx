@@ -1,5 +1,7 @@
 import React, { useState, Suspense, lazy } from 'react';
+import type { ExpandedTags } from 'exif-hound-core';
 import { ImageData } from '../types';
+import { useCore } from '../core/CoreContext';
 import { ExifDetailsView } from './ExifDetailsView';
 import { Panel } from './common/Panel';
 
@@ -12,8 +14,9 @@ interface Props {
 }
 
 export default function ExifPanel({ image, onShowComparison }: Props) {
+  const core = useCore();
   const [showFullExif, setShowFullExif] = useState(false);
-  const [rawExif, setRawExif] = useState<import('exifreader').ExpandedTags | null>(null);
+  const [rawExif, setRawExif] = useState<ExpandedTags | null>(null);
 
   const handleViewFullExif = async () => {
     if (!rawExif) {
@@ -21,10 +24,8 @@ export default function ExifPanel({ image, onShowComparison }: Props) {
         return;
       }
       try {
-        // Dynamically import ExifReader when needed
-        const ExifReaderModule = await import('exifreader');
-        const ExifReader = ExifReaderModule.default;
-        const tags = await ExifReader.load(image.file, { expanded: true });
+        const buffer = await image.file.arrayBuffer();
+        const tags = await core.middleware.exif.loadExifReaderTags(buffer, { expanded: true });
         if (__DEV__) {
           console.log('Full EXIF tags:', tags);
         }

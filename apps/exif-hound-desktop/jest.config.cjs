@@ -47,30 +47,6 @@ module.exports = {
       functions: 90,
       lines: 90
     },
-    'src/utils/diagnostics.ts': {
-      statements: 95,
-      branches: 95,
-      functions: 95,
-      lines: 95
-    },
-    'src/utils/exif.ts': {
-      statements: 95,
-      branches: 95,
-      functions: 95,
-      lines: 95
-    },
-    'src/utils/file.ts': {
-      statements: 95,
-      branches: 95,
-      functions: 95,
-      lines: 95
-    },
-    'src/utils/formatters.ts': {
-      statements: 95,
-      branches: 95,
-      functions: 95,
-      lines: 95
-    },
     'src/components/evidence/EvidenceView.tsx': {
       statements: 95,
       branches: 88,

@@ -175,7 +175,6 @@ export default defineConfig({
         manualChunks: {
           // Vendor libraries
           'vendor-leaflet': ['leaflet', 'react-leaflet', 'react-leaflet-cluster'],
-          'vendor-exif': ['exifreader'],
           // React and core libraries
           'vendor-react': ['react', 'react-dom'],
         },

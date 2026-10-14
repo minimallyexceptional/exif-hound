@@ -1,9 +1,13 @@
 import { ExifData } from '../types';
 import { ExifMetadata } from 'exif-hound-core';
-import { fixCoordinates } from '../utils/diagnostics';
 import exifWorkerUrl from 'exif-hound-core/workers/exif?worker&url';
 import { convertMetadataToExifData, getLocationFromCoordinates } from 'exif-hound-core';
 import type { ExifWorkerMessage, ExifWorkerResponse } from 'exif-hound-core/workers/exif';
+
+const passthroughCoordinates = (
+  lat: number | null,
+  lng: number | null,
+): [number | null, number | null] => [lat, lng];
 
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
@@ -80,7 +84,7 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       const metadata = await parseExifWithWorker(buffer);
 
       // Convert the metadata format to our app's ExifData format
-      const exifData = convertMetadataToExifData(metadata, fixCoordinates);
+      const exifData = convertMetadataToExifData(metadata, passthroughCoordinates);
 
       if (
         options.fetchLocation === true &&
@@ -114,7 +118,7 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       options.onError?.(errorMessage);
 
       // Return empty ExifData with error message
-      return convertMetadataToExifData({}, fixCoordinates, errorMessage);
+      return convertMetadataToExifData({}, passthroughCoordinates, errorMessage);
     }
   };
 

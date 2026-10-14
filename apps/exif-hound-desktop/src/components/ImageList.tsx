@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { ImageData } from '../types';
 import { Camera, Clock, MapPin, Info, Settings2, RotateCcw } from 'lucide-react';
 import { VirtualDataGrid } from './common/VirtualDataGrid';
-import { formatFileSize } from '../utils/formatters';
+import { formatFileSize } from 'exif-hound-core';
 import { formatShortDateTime } from '../utils/date';
 import type { ImportedPoint } from 'exif-hound-core';
 import { ProjectImage } from './ProjectImage';
@@ -56,7 +56,7 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     defaultEnabled: true,
     columns: [
       { id: 'name', label: 'Name', width: 'flex', sortField: 'name', value: (img) => img.file.name },
-      { id: 'size', label: 'Size', width: 80, align: 'right', sortField: 'size', value: (img) => formatFileSize(img.file.size) },
+      { id: 'size', label: 'Size', width: 80, align: 'right', sortField: 'size', value: (img) => formatFileSize(img.file.size, 1) },
       { id: 'type', label: 'Type', width: 72, value: (img) => {
         const label = formatFileType(img.file.type);
         return label === 'N/A' ? '—' : label;

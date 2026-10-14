@@ -1,4 +1,4 @@
-import { isTauriEnvironment } from '../../utils/fileSystem';
+import { isTauriEnvironment } from 'exif-hound-core';
 
 describe('isTauriEnvironment', () => {
   const originalInternals = (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;

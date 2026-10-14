@@ -25,7 +25,10 @@ export class ExifMiddlewareFacade {
   }
 
   /** Load raw EXIF tags (e.g. embedded thumbnail) without exposing exifreader to the app. */
-  async loadExifReaderTags(buffer: ArrayBuffer) {
+  async loadExifReaderTags(buffer: ArrayBuffer, options?: { expanded?: boolean }) {
+    if (options?.expanded) {
+      return ExifReader.load(buffer, { expanded: true });
+    }
     return ExifReader.load(buffer);
   }
 }
