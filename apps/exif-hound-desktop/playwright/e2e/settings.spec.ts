@@ -48,6 +48,10 @@ test('reports up to date after a manual update check', async ({ page }) => {
   await expect(page.getByTestId('update-status')).toContainText("You're up to date.");
 });
 
+test('keeps automatic updates on so users opt out', async ({ page }) => {
+  await expect(page.getByTestId('automatic-update-checks')).toBeChecked();
+});
+
 test('shows GitHub star and sponsor actions side by side in About', async ({ page }) => {
   const star = page.getByTestId('settings-star-on-github');
   const sponsor = page.getByTestId('settings-sponsor-on-github');

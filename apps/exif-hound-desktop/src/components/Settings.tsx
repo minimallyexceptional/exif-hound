@@ -236,7 +236,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     <span className="text-app-white">Place names</span> — Optional reverse geocoding sends GPS coordinates to OpenStreetMap Nominatim via the desktop host when enabled below.
                   </li>
                   <li>
-                    <span className="text-app-white">Update checks</span> — Optional automatic or manual checks fetch{' '}
+                    <span className="text-app-white">Update checks</span> — Automatic unless you turn them off below. Checks fetch{' '}
                     <span className="selectable-value font-mono text-xs">{updateConfig.feedUrl}</span> over HTTPS (no investigation data is sent).
                   </li>
                   <li>
@@ -265,12 +265,13 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       checked={appPreferences.automaticUpdateChecks}
                       onChange={(e) => updateAppPreferences({ automaticUpdateChecks: e.target.checked })}
                       className="sr-only peer"
+                      data-testid="automatic-update-checks"
                     />
                     <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
-                    <span className="ml-3 text-sm font-medium text-app-white">Automatic update checks</span>
+                    <span className="ml-3 text-sm font-medium text-app-white">Automatic updates</span>
                   </label>
                   <p className="mt-2 text-xs">
-                    When enabled, {APP_DISPLAY_NAME} checks for updates about 10 seconds after launch and every 12 hours while the app stays open. Manual checks in About always work.
+                    On by default. {APP_DISPLAY_NAME} checks about 10 seconds after launch (including the splash screen) and every 12 hours while open, then downloads a found update. Restart remains your choice. Uncheck to opt out; manual checks in About always work.
                   </p>
                 </div>
                 {allowedRemoteHosts.length > 0 && (

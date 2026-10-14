@@ -446,6 +446,13 @@ function App() {
     }
   };
 
+  const updater = (
+    <UpdateNotification
+      hasUnsavedWork={() => images.length > 0}
+      enableAutomaticChecks={appPreferences.automaticUpdateChecks}
+    />
+  );
+
   if (sessionState === 'splash') {
     return (
       <>
@@ -462,6 +469,7 @@ function App() {
             onCreate={handleCreateProject}
           />
         )}
+        {updater}
       </>
     );
   }
@@ -595,10 +603,7 @@ function App() {
         in-memory only, so any loaded content counts as unsaved work and
         the updater will confirm before restarting.
       */}
-      <UpdateNotification
-        hasUnsavedWork={() => images.length > 0}
-        enableAutomaticChecks={appPreferences.automaticUpdateChecks}
-      />
+      {updater}
     </div>
     </RemoteImageProvider>
   );

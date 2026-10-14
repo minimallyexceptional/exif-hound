@@ -128,7 +128,7 @@ export class UpdateService {
         this.transition(silent ? 'idle' : 'current');
         return 'current';
       }
-      this.transition('available', { update });
+      this.transition('available', { update, silentDiscovery: silent });
       return 'available';
     } catch (error) {
       return this.handleCheckError(mapPluginError(error, 'check'), silent, false);

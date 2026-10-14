@@ -93,6 +93,29 @@ describe('UpdateNotification', () => {
     expect(notify.loading).not.toHaveBeenCalled();
   });
 
+  it('automatically downloads an update found by a silent check', async () => {
+    const backend = new FakeUpdaterBackend();
+    backend.nextCheck = UPDATE_2_7_0;
+    const service = new UpdateService({ backend });
+    await service.check({ silent: true });
+
+    render(
+      <UpdateNotification
+        hasUnsavedWork={() => false}
+        service={service}
+        enableAutomaticChecks
+      />
+    );
+
+    await waitFor(() => expect(service.getState().name).toBe('ready-to-install'));
+    expect(notify.action).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'update-ready',
+        actionLabel: 'Restart & Update',
+      }),
+    );
+  });
+
   it('Install starts the download', async () => {
     const { service } = await renderInState(async service => {
       await service.check({ silent: true });

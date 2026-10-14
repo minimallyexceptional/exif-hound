@@ -23,7 +23,18 @@ describe('UpdateService', () => {
     const { service, backend } = makeService();
     backend.nextCheck = UPDATE_2_7_0;
     await expect(service.check({ silent: true })).resolves.toBe('available');
-    expect(service.getState()).toMatchObject({ name: 'available', update: UPDATE_2_7_0 });
+    expect(service.getState()).toMatchObject({
+      name: 'available',
+      update: UPDATE_2_7_0,
+      silentDiscovery: true,
+    });
+  });
+
+  it('manual check that finds an update is not marked as silent discovery', async () => {
+    const { service, backend } = makeService();
+    backend.nextCheck = UPDATE_2_7_0;
+    await expect(service.check({ silent: false })).resolves.toBe('available');
+    expect(service.getState().silentDiscovery).toBe(false);
   });
 
   it('automatic check failures are silent: back to idle, app keeps working', async () => {

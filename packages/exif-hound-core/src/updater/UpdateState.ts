@@ -39,6 +39,8 @@ export interface UpdateState {
   name: UpdateStateName;
   /** Info about the discovered update (available / downloading / ready). */
   update?: UpdateInfo;
+  /** True when AVAILABLE came from a silent/automatic check (opt-out download). */
+  silentDiscovery?: boolean;
   /** Download progress while DOWNLOADING. */
   progress?: DownloadProgress;
   /** Present only when state is ERROR. `visible` marks user-initiated failures. */

@@ -37,6 +37,14 @@ async function renderSettings() {
   return utils;
 }
 
+describe('Settings automatic updates', () => {
+  it('enables automatic update checks by default so users opt out', async () => {
+    await renderSettings();
+    const toggle = screen.getByTestId('automatic-update-checks');
+    expect(toggle).toBeChecked();
+  });
+});
+
 describe('Settings About GitHub actions', () => {
   beforeEach(() => {
     jest.mocked(openExternalUrl).mockClear();

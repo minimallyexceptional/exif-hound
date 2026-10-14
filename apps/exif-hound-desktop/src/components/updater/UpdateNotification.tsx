@@ -74,6 +74,10 @@ export const UpdateNotification: React.FC<Props> = ({
 
   useEffect(() => {
     if (state.name === 'available' && update && !dismissed) {
+      if (enableAutomaticChecks && state.silentDiscovery) {
+        void service.download().catch(() => undefined);
+        return;
+      }
       dismissOtherUpdaterToasts(UPDATE_TOAST_IDS.available);
       const notes = update.notes
         ? update.notes.split('\n').map(line => line.trim()).filter(Boolean).join(' ')
@@ -132,7 +136,7 @@ export const UpdateNotification: React.FC<Props> = ({
     if (state.name === 'idle' || dismissed) {
       for (const id of UPDATER_TOAST_IDS) notify.dismiss(id);
     }
-  }, [appName, dismissed, hasUnsavedWork, service, state, update]);
+  }, [appName, dismissed, enableAutomaticChecks, hasUnsavedWork, service, state, update]);
 
   if (!confirmUnsaved) return null;
 
