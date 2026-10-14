@@ -18,7 +18,7 @@ The app uses the network only for:
 | --- | --- |
 | **Map tiles** | Requests to load map imagery (OpenStreetMap by default; optional built-in styles or a custom tile server URL in settings) |
 | **Updates** | Signed update checks against the static feed on GitHub Pages; downloading an update when you choose to install one |
-| **Place names** (opt-in, off by default) | When enabled in Settings, GPS coordinates are sent to [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) for reverse geocoding after upload |
+| **Place names** (opt-in, off by default) | When enabled in Settings, GPS coordinates are sent to [OpenStreetMap Nominatim](https://nominatim.openstreetmap.org/) for reverse geocoding after upload and when compiling Evidence |
 
 ## Features
 

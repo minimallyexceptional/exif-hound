@@ -1,4 +1,5 @@
 export {
+  applyPersistedExif,
   serializeExif,
   toImageData,
   toStoreImage,

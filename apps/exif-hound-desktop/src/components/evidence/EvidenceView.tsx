@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, RefreshCw, Shield } from 'lucide-react';
 import type { ProjectStore } from 'exif-hound-core';
 import type { ImageData } from '../../types';
-import { EvidenceHubService } from 'exif-hound-core';
-import type { EvidenceCategoryId, EvidenceIndex } from 'exif-hound-core';
+import { useSettings } from '../../context/SettingsContext';
+import { EvidenceHubService, getLocationFromCoordinates } from 'exif-hound-core';
+import type { EvidenceCategoryId, EvidenceIndex, GpsPlaceNamePatch } from 'exif-hound-core';
 import { EvidenceBentoGrid } from './EvidenceBentoGrid';
 import { EvidenceCategoryTable } from './EvidenceCategoryTable';
 import { Button } from '../common/Button';
@@ -13,17 +14,32 @@ interface Props {
   store: ProjectStore | null;
   onSelectImage: (image: ImageData) => void;
   onNavigateToMap?: () => void;
+  onImagesPatched?: (patches: GpsPlaceNamePatch[]) => void;
 }
 
-const EvidenceView: React.FC<Props> = ({ images, store, onSelectImage, onNavigateToMap }) => {
+const EvidenceView: React.FC<Props> = ({
+  images,
+  store,
+  onSelectImage,
+  onNavigateToMap,
+  onImagesPatched,
+}) => {
+  const { privacySettings } = useSettings();
+  const resolvePlaceNames = privacySettings.reverseGeocoding;
   const [index, setIndex] = useState<EvidenceIndex | null>(null);
   const [loading, setLoading] = useState(true);
   const [categoryId, setCategoryId] = useState<EvidenceCategoryId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const hubService = useMemo(
-    () => (store ? new EvidenceHubService(store, images) : null),
-    [store, images],
+    () =>
+      store
+        ? new EvidenceHubService(store, images, {
+            resolvePlaceNames,
+            lookupPlaceName: getLocationFromCoordinates,
+          })
+        : null,
+    [store, images, resolvePlaceNames],
   );
 
   const reload = useCallback(async () => {
@@ -35,14 +51,16 @@ const EvidenceView: React.FC<Props> = ({ images, store, onSelectImage, onNavigat
     setLoading(true);
     setError(null);
     try {
-      setIndex(await hubService.loadIndex());
+      const { index: nextIndex, patches } = await hubService.loadIndex();
+      setIndex(nextIndex);
+      if (patches.length > 0) onImagesPatched?.(patches);
     } catch (cause) {
       setError(EvidenceHubService.loadErrorMessage(cause));
       setIndex(null);
     } finally {
       setLoading(false);
     }
-  }, [hubService]);
+  }, [hubService, onImagesPatched]);
 
   useEffect(() => {
     void reload();

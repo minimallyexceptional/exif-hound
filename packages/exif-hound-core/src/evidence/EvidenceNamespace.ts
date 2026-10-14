@@ -6,6 +6,11 @@ export { loadProjectEvidenceData } from './loadProjectEvidence';
 export { buildEvidenceIndex } from './buildEvidenceIndex';
 export * from './evidenceTypes';
 export * from './evidenceTableFormatters';
+export {
+  applyGpsPlaceNamePatches,
+  resolveMissingGpsPlaceNames,
+  type GpsPlaceNamePatch,
+} from './resolveGpsPlaceNames';
 
 import { EvidenceHubService } from './EvidenceHubService';
 import { EvidenceRepository } from './EvidenceRepository';
