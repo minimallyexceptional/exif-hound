@@ -39,6 +39,14 @@ Useful commands (run from the repo root):
 | `npm run tauri:build` | Local production build (current platform) |
 | `npm run scan:forbidden-desktop-apis` | Fails if legacy desktop shell APIs sneak back in |
 
+## Git commits
+
+- Do not add `Co-authored-by: Cursor` or `Made-with: Cursor` trailers to commit
+  messages. A `commit-msg` hook strips those lines if an editor injects them.
+- In **Cursor Settings → Git & Pull Requests**, turn off **Commit Attribution**
+  (and PR attribution if you use agent PRs). CLI: set
+  `attribution.attributeCommitsToAgent` to `false` in `~/.cursor/cli-config.json`.
+
 ## Repository rules
 
 These are enforced by convention and, where possible, by CI:

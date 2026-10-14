@@ -90,6 +90,7 @@ Root **`npm test`** runs Jest for **all workspaces** that define a `test` script
 - **Lint + typecheck** for desktop: `npm run lint --workspace=exif-hound-desktop`, `npm run typecheck --workspace=exif-hound-desktop`.
 - **Deterministic tests** — no real network in unit tests; mock Tauri, Nominatim, and tiles in Playwright (see below).
 - Do **not** delete or skip tests to green CI. Do **not** bypass Husky except in rare emergencies (`--no-verify` + immediate follow-up fix).
+- **Commits:** use a plain subject/body only — no `Co-authored-by: Cursor` or `Made-with: Cursor` (`.husky/commit-msg` strips them if injected).
 
 ### Pre-commit (Husky)
 

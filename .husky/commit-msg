@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# Remove Cursor-injected commit trailers (repo policy: no agent co-author lines).
+set -e
+
+msg_file="$1"
+if [ -z "$msg_file" ] || [ ! -f "$msg_file" ]; then
+  exit 0
+fi
+
+node "$(dirname "$0")/../scripts/strip-cursor-commit-trailers.mjs" "$msg_file"
