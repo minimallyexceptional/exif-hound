@@ -6,6 +6,7 @@ All notable changes to the EXIF Hound desktop app are documented in this file.
 
 ### Changed
 
+- **EXIF sidebar:** The details rail keeps the image preview and Compare action at the top, then shows the full scrollable EXIF list. Location, Date Taken, Camera Details, and File Details stay first; remaining tags follow. There is no View All click-through.
 - **Updates:** Automatic updates are on by default (opt-out). Checks run on the splash screen, and a silently discovered update downloads without an extra Install click. Restart is still explicit. Uncheck Settings → Privacy to disable.
 - **Upload EXIF:** After an image is saved to the project, the session uses EXIF reloaded from `data.db` instead of the in-memory extract. Selection and blob URLs stay the same.
 

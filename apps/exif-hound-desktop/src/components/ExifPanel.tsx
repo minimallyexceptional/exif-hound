@@ -1,12 +1,10 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ExpandedTags } from 'exif-hound-core';
 import { ImageData } from '../types';
 import { useCore } from '../core/CoreContext';
 import { ExifDetailsView } from './ExifDetailsView';
+import FullExifView from './FullExifView';
 import { Panel } from './common/Panel';
-
-// Lazy load FullExifView to reduce initial bundle size
-const FullExifView = lazy(() => import('./FullExifView'));
 
 interface Props {
   image: ImageData;
@@ -15,50 +13,50 @@ interface Props {
 
 export default function ExifPanel({ image, onShowComparison }: Props) {
   const core = useCore();
-  const [showFullExif, setShowFullExif] = useState(false);
-  const [rawExif, setRawExif] = useState<ExpandedTags | null>(null);
+  const [loaded, setLoaded] = useState<{ id: string; tags: ExpandedTags } | null>(null);
 
-  const handleViewFullExif = async () => {
-    if (!rawExif) {
-      if (!(image.file instanceof File)) {
-        return;
-      }
-      try {
-        const buffer = await image.file.arrayBuffer();
-        const tags = await core.middleware.exif.loadExifReaderTags(buffer, { expanded: true });
-        if (__DEV__) {
-          console.log('Full EXIF tags:', tags);
+  useEffect(() => {
+    let cancelled = false;
+    const id = image.id;
+    const file = image.file;
+
+    void (async () => {
+      let tags: ExpandedTags = {};
+      if (file instanceof File) {
+        try {
+          const buffer = await file.arrayBuffer();
+          tags = await core.middleware.exif.loadExifReaderTags(buffer, { expanded: true }) ?? {};
+        } catch (error) {
+          if (__DEV__) {
+            console.error('Error loading EXIF data:', error);
+          }
         }
-        setRawExif(tags);
-      } catch (error) {
-        if (__DEV__) {
-          console.error('Error loading EXIF data:', error);
-        }
-        return;
       }
-    }
-    setShowFullExif(true);
-  };
+      if (!cancelled) setLoaded({ id, tags });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [core, image]);
+
+  const rawExif = loaded?.id === image.id ? loaded.tags : null;
 
   return (
     <Panel className="h-full">
-      {showFullExif && rawExif ? (
-        <Suspense fallback={<div className="flex items-center justify-center h-full">
-          <div className="text-app-white">Loading EXIF viewer...</div>
-        </div>}>
-          <FullExifView
-            image={image}
-            rawExif={rawExif}
-            onBack={() => setShowFullExif(false)}
-          />
-        </Suspense>
-      ) : (
-        <ExifDetailsView
-          image={image}
-          onViewFullExif={handleViewFullExif}
-          onShowComparison={onShowComparison}
-        />
-      )}
+      <div className="h-full flex flex-col bg-app-gray">
+        <ExifDetailsView image={image} onShowComparison={onShowComparison} />
+        <div
+          data-testid="exif-tag-list"
+          className="flex-1 min-h-0 overflow-y-auto"
+        >
+          {rawExif ? (
+            <FullExifView image={image} rawExif={rawExif} />
+          ) : (
+            <p className="p-4 text-sm text-app-accent-dim">Loading EXIF…</p>
+          )}
+        </div>
+      </div>
     </Panel>
   );
 }
