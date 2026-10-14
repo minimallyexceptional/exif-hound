@@ -50,7 +50,7 @@ interface Props {
 const ImageUploader: React.FC<Props> = ({ onImageUpload, inputId = 'fileInput', hideDropZone = false }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingCount, setProcessingCount] = useState(0);
-  const { processExifData } = useExifData({ fetchLocation: false }); // Don't await location in initial processing
+  const { processExifData } = useExifData();
 
   // Create concurrency limiter for EXIF processing
   const concurrencyLimiter = useCallback(() => new ConcurrencyLimiter(3), []);

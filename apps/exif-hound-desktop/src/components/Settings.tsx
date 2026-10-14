@@ -4,6 +4,7 @@ import { getVersion } from '@tauri-apps/api/app';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
+import { getUpdateConfiguration } from '../services/updater';
 import { MAP_STYLES } from '../constants/mapStyles';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
 import { isTauriEnvironment } from '../utils/fileSystem';
@@ -43,7 +44,8 @@ function renderUpdateStatus(
 
 const Settings: React.FC<Props> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
-  const { mapSettings, updateMapSettings } = useSettings();
+  const { mapSettings, updateMapSettings, appPreferences, updateAppPreferences } = useSettings();
+  const updateConfig = getUpdateConfiguration();
   const [appVersion, setAppVersion] = useState('…');
   const update = useUpdateControl();
 
@@ -199,11 +201,47 @@ const Settings: React.FC<Props> = ({ onClose }) => {
             </section>
 
             <section className="glass-panel rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-app-white mb-6">Privacy</h2>
+              <div className="space-y-4 text-app-accent-dim text-sm">
+                <p>
+                  Local-first: no image data leaves your device unless you use an optional network feature below.
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>
+                    <span className="text-app-white">Map tiles</span> — Leaflet loads raster tiles from OpenStreetMap-family hosts or a custom HTTPS tile server you configure in Map Settings (your IP is visible to that tile provider).
+                  </li>
+                  <li>
+                    <span className="text-app-white">Update checks</span> — Optional automatic or manual checks fetch{' '}
+                    <span className="selectable-value font-mono text-xs">{updateConfig.feedUrl}</span> over HTTPS (no investigation data is sent).
+                  </li>
+                  <li>
+                    <span className="text-app-white">Remote images</span> — CSV imports may list HTTPS image URLs; nothing is downloaded until you opt in per host.
+                  </li>
+                </ul>
+                <div className="pt-2 border-t border-app-gray-light/30">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appPreferences.automaticUpdateChecks}
+                      onChange={(e) => updateAppPreferences({ automaticUpdateChecks: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
+                    <span className="ml-3 text-sm font-medium text-app-white">Automatic update checks</span>
+                  </label>
+                  <p className="mt-2 text-xs">
+                    When enabled, Exif Hound checks for updates about 10 seconds after launch and every 12 hours while the app stays open. Manual checks in About always work.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="glass-panel rounded-lg p-6">
               <h2 className="text-xl font-semibold text-app-white mb-6">About</h2>
               <div className="space-y-4 text-app-accent-dim">
                 <p>
                   Exif Hound is a powerful tool for exploring and analyzing image metadata.
-                  Built with privacy in mind, all processing happens locally in your browser.
+                  Local-first: no image data leaves your device. Optional network features: map tiles, update checks, and remote images you choose to load.
                 </p>
                 <p data-testid="app-version">Version {appVersion}</p>
 

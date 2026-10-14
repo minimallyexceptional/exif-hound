@@ -1,6 +1,7 @@
 import { ImageData } from '../types';
 import L from 'leaflet';
 import { kml as kmlToGeoJSON } from '@tmcw/togeojson';
+import { isAllowedRemoteImageUrl } from './remoteImages';
 
 const KML_NAMESPACE = 'http://www.opengis.net/kml/2.2';
 const KML_NAMESPACES = new Set([
@@ -115,6 +116,8 @@ function parseKmlToLayer(text: string): L.GeoJSON {
 
 export interface ImportedPoint extends ImageData {
   hasImage: boolean;
+  /** HTTPS URL from import metadata; not fetched until the investigator opts in. */
+  pendingRemoteUrl?: string;
 }
 
 export interface ImportedData {
@@ -156,12 +159,14 @@ export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Pr
             return;
           }
           
-          const imageUrl = row['url'] || row['image url'];
+          const rawUrl = (row['url'] || row['image url'] || '').trim();
+          const imageUrl = rawUrl && isAllowedRemoteImageUrl(rawUrl) ? rawUrl : '';
           
           validImages.push({
             id: Math.random().toString(36).substr(2, 9),
-            url: imageUrl || '',
-            hasImage: !!imageUrl,
+            url: '',
+            pendingRemoteUrl: imageUrl || undefined,
+            hasImage: false,
             file: {
               name: row['file name'] || `Imported Point ${index + 1}`,
               type: row['file type'] || '',
