@@ -4,6 +4,10 @@ All notable changes to the EXIF Hound desktop app are documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- **Linux updates:** In-app updates work for `.deb` and `.rpm` installs. The release feed publishes signed `linux-*-deb` and `linux-*-rpm` manifest entries, and mismatched updater formats surface a clear GitHub Releases fallback message.
+
 ### Changed
 
 - **Upload EXIF:** After an image is saved to the project, the session uses EXIF reloaded from `data.db` instead of the in-memory extract. Selection and blob URLs stay the same.

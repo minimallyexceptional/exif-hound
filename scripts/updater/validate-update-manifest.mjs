@@ -28,6 +28,7 @@ import {
   RELEASED_TARGETS,
   ARTIFACT_PATTERNS,
   artifactFilename,
+  stagingDirectoryForTarget,
   validateManifest,
 } from './manifest.mjs';
 import { isValidSemver } from './semver.mjs';
@@ -93,7 +94,7 @@ if (values['staging-dir']) {
       result.errors.push(`platform ${target} url does not contain a safe artifact filename`);
       continue;
     }
-    const artifactPath = path.join(stagingDir, target, filename);
+    const artifactPath = path.join(stagingDir, stagingDirectoryForTarget(target), filename);
     if (!fs.existsSync(artifactPath)) {
       result.errors.push(`artifact missing from staging: ${artifactPath}`);
       continue;

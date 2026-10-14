@@ -8,7 +8,8 @@
  *   staging/
  *     darwin-aarch64/  EXIF Hound.app.tar.gz (+ .sig, .dmg)
  *     windows-x86_64/  EXIF Hound_2.7.0_x64-setup.exe (+ .sig, .msi)
- *     linux-x86_64/    EXIF Hound_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm)
+ *     linux-x86_64/    EXIF Hound_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm, .deb.sig, .rpm.sig)
+ *                      Manifest also emits linux-x86_64-deb / linux-x86_64-rpm keys.
  *
  * The manifest references GitHub Release download URLs — binaries are hosted
  * there while clients fetch the small manifest from the project's GitHub
@@ -30,7 +31,9 @@ import {
   CHANNELS,
   RELEASED_TARGETS,
   ARTIFACT_PATTERNS,
+  artifactMatchesApp,
   buildManifest,
+  stagingDirectoryForTarget,
   validateManifest,
 } from './manifest.mjs';
 import { isValidSemver } from './semver.mjs';
@@ -85,7 +88,8 @@ const pubDate = values['pub-date'] ?? new Date().toISOString();
 
 const platforms = {};
 for (const target of targets) {
-  const dir = path.join(stagingDir, target);
+  const stagingTarget = stagingDirectoryForTarget(target);
+  const dir = path.join(stagingDir, stagingTarget);
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
     fail(`missing staging directory for target "${target}": ${dir}`);
   }
@@ -93,7 +97,7 @@ for (const target of targets) {
   const pattern = ARTIFACT_PATTERNS[target];
   const artifacts = fs
     .readdirSync(dir)
-    .filter(name => pattern.test(name));
+    .filter(name => pattern.test(name) && artifactMatchesApp(name));
   if (artifacts.length === 0) {
     fail(`no updater artifact found in ${dir} (expected pattern ${pattern})`);
   }

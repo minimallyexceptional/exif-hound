@@ -264,7 +264,8 @@ jobs:
               \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \
                  -o -name '*.exe' -o -name '*.msi' -o -name '*.exe.sig' -o -name '*.msi.sig' \
                  -o -name '*.AppImage' -o -name '*.AppImage.sig' \
-                 -o -name '*.deb' -o -name '*.rpm' \) -print0
+                 -o -name '*.deb' -o -name '*.deb.sig' \
+                 -o -name '*.rpm' -o -name '*.rpm.sig' \) -print0
           )
           ls -la "staging/${{ matrix.updater_target }}"
 
@@ -275,7 +276,15 @@ jobs:
           case "$RUNNER_OS" in
             macOS)   PATTERN='*.app.tar.gz.sig' ;;
             Windows) PATTERN='*-setup.exe.sig' ;;
-            Linux)   PATTERN='*.AppImage.sig' ;;
+            Linux)
+              for PATTERN in '*.AppImage.sig' '*.deb.sig' '*.rpm.sig'; do
+                compgen -G "staging/${{ matrix.updater_target }}/$PATTERN" >/dev/null || {
+                  echo "::error::Missing updater signature $PATTERN for ${{ matrix.updater_target }}"
+                  exit 1
+                }
+              done
+              exit 0
+              ;;
           esac
           compgen -G "staging/${{ matrix.updater_target }}/$PATTERN" >/dev/null || {
             echo "::error::Missing updater signature $PATTERN for ${{ matrix.updater_target }}"

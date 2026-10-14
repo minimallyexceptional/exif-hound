@@ -33,6 +33,13 @@ describe('UpdateError mapping', () => {
     expect(error.userMessage).toContain('installation of EXIF Hound is unchanged');
   });
 
+  it('maps InvalidUpdaterFormat on install to a GitHub Releases package hint', () => {
+    const error = mapPluginError(new Error('invalid updater binary format'), 'install');
+    expect(error.code).toBe(UpdateErrorCode.InstallFailed);
+    expect(error.userMessage).toContain('GitHub Releases');
+    expect(error.userMessage).toContain('.deb or .rpm');
+  });
+
   it('distinguishes relaunch failures after a successful installation', () => {
     const error = mapPluginError(new Error('relaunch failed'), 'relaunch');
     expect(error.code).toBe(UpdateErrorCode.RelaunchFailed);
