@@ -7,13 +7,10 @@
     "strict": true,
     "skipLibCheck": true,
     "declaration": true,
-    "composite": true,
+    "composite": false,
     "outDir": "./dist",
     "baseUrl": "."
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../shared-utils" }
-  ]
+  "exclude": ["node_modules", "dist"]
 } 

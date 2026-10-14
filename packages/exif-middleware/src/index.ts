@@ -3,7 +3,19 @@
  * Utility functions for processing EXIF metadata
  */
 
-import ExifReader from 'exifreader';
+import {
+  defaultExifTagLoader,
+  type ExifTagLoader,
+  ExifReaderTagLoader,
+  type ExifReaderTags,
+} from './exifTagLoader';
+
+export {
+  defaultExifTagLoader,
+  ExifReaderTagLoader,
+  type ExifTagLoader,
+  type ExifReaderTags,
+} from './exifTagLoader';
 
 /**
  * Format a file size in bytes to a human-readable string
@@ -187,9 +199,28 @@ function parseGpsCoordinate(coordinateTag: GpsTag, referenceTag: GpsTag, axis: '
  * @param buffer The image buffer
  * @returns Processed EXIF metadata
  */
-export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata> {
+export interface ExtractExifDataOptions {
+  tagLoader?: ExifTagLoader;
+}
+
+export function loadExifReaderTags(
+  buffer: ArrayBuffer,
+  options?: { expanded?: boolean; tagLoader?: ExifTagLoader },
+): ExifReaderTags {
+  const loader = options?.tagLoader ?? defaultExifTagLoader;
+  if (options?.expanded) {
+    return loader.loadExpanded(buffer);
+  }
+  return loader.loadFlat(buffer);
+}
+
+export async function extractExifData(
+  buffer: ArrayBuffer,
+  options?: ExtractExifDataOptions,
+): Promise<ExifMetadata> {
+  const tagLoader = options?.tagLoader ?? defaultExifTagLoader;
   try {
-    const tags = ExifReader.load(buffer);
+    const tags = tagLoader.loadFlat(buffer);
     
     // Log all raw GPS data for debugging
     console.log('EXIF RAW GPS Data:', {
@@ -230,7 +261,7 @@ export async function extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata
       : undefined;
 
     try {
-      const expanded = ExifReader.load(buffer, { expanded: true });
+      const expanded = tagLoader.loadExpanded(buffer);
       if (typeof expanded.gps?.Latitude === 'number' && Number.isFinite(expanded.gps.Latitude)) {
         latitude = expanded.gps.Latitude;
       }
@@ -335,4 +366,37 @@ export function formatExifMetadata(metadata: ExifMetadata): Record<string, strin
   }
   
   return formatted;
+}
+
+export interface ExifMiddlewareOptions {
+  tagLoader?: ExifTagLoader;
+}
+
+/** Injectable EXIF middleware (symmetric with OcrMiddleware / ImageProcessingMiddleware). */
+export class ExifMiddleware {
+  private readonly tagLoader: ExifTagLoader;
+
+  constructor(options: ExifMiddlewareOptions = {}) {
+    this.tagLoader = options.tagLoader ?? defaultExifTagLoader;
+  }
+
+  extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata> {
+    return extractExifData(buffer, { tagLoader: this.tagLoader });
+  }
+
+  loadExifReaderTags(buffer: ArrayBuffer, options?: { expanded?: boolean }): ExifReaderTags {
+    return loadExifReaderTags(buffer, { ...options, tagLoader: this.tagLoader });
+  }
+
+  formatExifMetadata(metadata: ExifMetadata): Record<string, string> {
+    return formatExifMetadata(metadata);
+  }
+
+  formatFileSize(bytes: number, decimals?: number): string {
+    return formatFileSize(bytes, decimals);
+  }
+
+  formatDate(date: Date): string {
+    return formatDate(date);
+  }
 }

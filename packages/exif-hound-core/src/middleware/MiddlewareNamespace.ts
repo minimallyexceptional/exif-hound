@@ -1,11 +1,27 @@
-import { ExifMiddlewareFacade } from './ExifMiddlewareFacade';
+import { ExifMiddlewareFacade, type ExifMiddlewareOptions } from './ExifMiddlewareFacade';
 import * as ocr from './OcrMiddlewareFacade';
-import * as imageProcessing from './ImageProcessingMiddlewareFacade';
-import * as imageForensics from './ImageForensicsMiddlewareFacade';
+import { ImageProcessingFacade } from './ImageProcessingFacade';
+import {
+  ImageForensicsMiddlewareFacade,
+  type ImageForensicsMiddlewareOptions,
+} from './ImageForensicsMiddlewareFacade';
+import type { ImageProcessingMiddleware } from 'image-processing-middleware';
+
+export interface MiddlewareNamespaceOptions {
+  exif?: ExifMiddlewareOptions;
+  imageProcessing?: ImageProcessingMiddleware;
+  forensics?: ImageForensicsMiddlewareOptions;
+}
 
 export class MiddlewareNamespace {
-  readonly exif = new ExifMiddlewareFacade();
+  readonly exif: ExifMiddlewareFacade;
+  readonly imageProcessing: ImageProcessingFacade;
+  readonly imageForensics: ImageForensicsMiddlewareFacade;
   readonly ocr = ocr;
-  readonly imageProcessing = imageProcessing;
-  readonly imageForensics = imageForensics;
+
+  constructor(options: MiddlewareNamespaceOptions = {}) {
+    this.exif = new ExifMiddlewareFacade(options.exif);
+    this.imageProcessing = new ImageProcessingFacade(options.imageProcessing);
+    this.imageForensics = new ImageForensicsMiddlewareFacade(options.forensics);
+  }
 }

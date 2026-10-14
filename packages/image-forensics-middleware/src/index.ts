@@ -1,5 +1,7 @@
 export { ImageProvenanceAnalyzer } from './ImageProvenanceAnalyzer';
-export { ExifReaderMetadataReader, LocalImageStructureReader } from './LocalImageReaders';
+export { ImageForensicsMiddleware } from './ImageForensicsMiddleware';
+export type { ImageForensicsMiddlewareOptions } from './ImageForensicsMiddleware';
+export { ExifReaderMetadataReader, ExifTagLoaderMetadataReader, LocalImageStructureReader } from './LocalImageReaders';
 export { VisualIdentifierDetector } from './VisualIdentifierDetector';
 export type {
   CandidateFamily,

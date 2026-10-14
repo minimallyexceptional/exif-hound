@@ -1,7 +1,7 @@
 # E2E image fixtures
 
-Binary fixtures used by the Cypress suite. **Do not hand-edit** — regenerate
-with the script from the workspace root:
+Binary fixtures used by the Playwright E2E suite. **Do not hand-edit** — regenerate
+from `apps/exif-hound-desktop`:
 
 ```bash
 node scripts/generate-e2e-fixtures.mjs

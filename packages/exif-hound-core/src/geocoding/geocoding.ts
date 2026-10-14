@@ -26,8 +26,17 @@ async function fetchNominatim(url: string): Promise<Response> {
 }
 
 import type { LocationData } from '../types/location';
+import {
+  configureReverseGeocodingProvider,
+  getReverseGeocodingProvider,
+  type ReverseGeocodingProvider,
+} from './reverseGeocodingProvider';
 
 export type { LocationData };
+export {
+  configureReverseGeocodingProvider,
+  type ReverseGeocodingProvider,
+} from './reverseGeocodingProvider';
 
 // Cache for storing previously retrieved location data
 interface LocationCache {
@@ -79,9 +88,13 @@ async function respectRateLimit(): Promise<void> {
  * @param longitude Longitude coordinate
  * @returns Location data including country, city, etc.
  */
-export async function getLocationFromCoordinates(
-  latitude: number, 
-  longitude: number
+const nominatimReverseGeocodingProvider: ReverseGeocodingProvider = {
+  reverse: (latitude, longitude) => reverseGeocodeWithNominatim(latitude, longitude),
+};
+
+async function reverseGeocodeWithNominatim(
+  latitude: number,
+  longitude: number,
 ): Promise<LocationData> {
   // Check cache first
   const cacheKey = createCacheKey(latitude, longitude);
@@ -133,6 +146,14 @@ export async function getLocationFromCoordinates(
       error: 'Failed to retrieve location information'
     };
   }
+}
+
+export async function getLocationFromCoordinates(
+  latitude: number,
+  longitude: number,
+): Promise<LocationData> {
+  const provider = getReverseGeocodingProvider() ?? nominatimReverseGeocodingProvider;
+  return provider.reverse(latitude, longitude);
 }
 
 /**

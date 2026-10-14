@@ -1,4 +1,5 @@
-export { ExifHoundCore } from './ExifHoundCore';
+export { ExifHoundCore, type ExifHoundCoreOptions } from './ExifHoundCore';
+export { MiddlewareNamespace, type MiddlewareNamespaceOptions } from './middleware/MiddlewareNamespace';
 export { createDesktopCore, getCore, resetCoreForTests } from './desktop';
 export type { DesktopCoreOptions } from './desktop';
 export * from './types';
@@ -14,7 +15,16 @@ export {
 } from './project/ProjectSessionService';
 export * from './project/ProjectSessionFacade';
 export * from './middleware/ExifMiddlewareFacade';
-export { extractExifData, formatExifMetadata, formatFileSize, formatDate, type ExifMetadata } from 'exif-middleware';
+export {
+  ExifMiddleware,
+  extractExifData,
+  formatExifMetadata,
+  formatFileSize,
+  formatDate,
+  type ExifMetadata,
+  type ExifMiddlewareOptions,
+  type ExifTagLoader,
+} from 'exif-middleware';
 export type { ExpandedTags } from 'exifreader';
 export * from './middleware/OcrMiddlewareFacade';
 export * from './middleware/ImageProcessingMiddlewareFacade';
@@ -32,7 +42,15 @@ export { convertMetadataToExifData } from './middleware/exifUtils';
 export type { WorkbenchFlowData } from './types/workbenchFlow';
 export type { WorkbenchEvidenceEntry } from './workbench/WorkbenchInspectorService';
 export * from './geocoding/GeocodingFacade';
-export { __setIsTauriEnvironmentForTests } from './geocoding/geocoding';
+export {
+  getLocationFromCoordinates,
+  formatLocation,
+  formatShortLocation,
+  configureReverseGeocodingProvider,
+  __setIsTauriEnvironmentForTests,
+  type LocationData,
+  type ReverseGeocodingProvider,
+} from './geocoding/geocoding';
 export * from './updater/UpdaterNamespace';
 export * from './updater/index';
 export { FakeUpdaterBackend, UPDATE_2_7_0 } from './updater/__tests__/FakeUpdaterBackend';

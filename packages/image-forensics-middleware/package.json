@@ -14,7 +14,7 @@
     "test": "jest --config jest.config.cjs"
   },
   "dependencies": {
-    "exifreader": "^4.46.0",
+    "exif-middleware": "*",
     "ocr-middleware": "*"
   },
   "devDependencies": {

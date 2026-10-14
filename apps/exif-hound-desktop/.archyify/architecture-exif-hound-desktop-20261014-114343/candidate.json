@@ -1,0 +1,510 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "EXIF Hound Desktop Runtime",
+    "subtitle": "Middleware adapter ports · swappable npm/WASM providers",
+    "locale": "en",
+    "output": ".archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/minimallyexceptional/exif-hound.git",
+      "provider": "github",
+      "revision": "44974668371b37c899b7c24c7f4fe11c93f93da9"
+    }
+  },
+  "components": [
+    {
+      "id": "investigator",
+      "type": "external",
+      "label": "Investigator",
+      "sublabel": "desktop user",
+      "pos": [40, 200],
+      "size": [118, 58]
+    },
+    {
+      "id": "react-shell",
+      "type": "frontend",
+      "label": "React App Shell",
+      "sublabel": "providers + App.tsx",
+      "pos": [280, 200],
+      "size": [140, 64],
+      "sources": [
+        { "path": "apps/exif-hound-desktop/src/main.tsx", "line": 1, "end_line": 28 },
+        { "path": "apps/exif-hound-desktop/src/App.tsx", "line": 382, "end_line": 431 },
+        { "path": "apps/exif-hound-desktop/src/hooks/useExifData.ts", "line": 3, "end_line": 28 }
+      ]
+    },
+    {
+      "id": "web-workers",
+      "type": "backend",
+      "label": "Core worker scripts",
+      "sublabel": "exif-hound-core/workers/*",
+      "pos": [340, 80],
+      "size": [152, 62],
+      "sources": [
+        { "path": "packages/exif-hound-core/src/workers/exif.ts", "line": 1, "end_line": 30 },
+        { "path": "packages/exif-hound-core/src/workers/image-processing.ts", "line": 1, "end_line": 25 },
+        { "path": "packages/exif-hound-core/src/middleware/preprocessImage.ts", "line": 18, "end_line": 29 }
+      ]
+    },
+    {
+      "id": "map-ui",
+      "type": "frontend",
+      "label": "Map (Leaflet)",
+      "sublabel": "markers + tiles",
+      "pos": [500, 200],
+      "size": [128, 60],
+      "sources": [
+        { "path": "apps/exif-hound-desktop/src/components/Map/components/layers/MapLayers.tsx", "line": 1, "end_line": 80 }
+      ]
+    },
+    {
+      "id": "workbench-ui",
+      "type": "frontend",
+      "label": "Workbench UI",
+      "sublabel": "React Flow",
+      "pos": [660, 200],
+      "size": [128, 60],
+      "sources": [
+        { "path": "apps/exif-hound-desktop/src/components/Workbench.tsx", "line": 1, "end_line": 40 }
+      ]
+    },
+    {
+      "id": "evidence-ui",
+      "type": "frontend",
+      "label": "Evidence Hub",
+      "sublabel": "bento + tables",
+      "pos": [820, 200],
+      "size": [128, 60],
+      "sources": [
+        { "path": "apps/exif-hound-desktop/src/components/evidence/EvidenceView.tsx", "line": 1, "end_line": 80 }
+      ]
+    },
+    {
+      "id": "pkg-exif-hound-core",
+      "type": "backend",
+      "label": "exif-hound-core",
+      "sublabel": "composition root",
+      "pos": [240, 400],
+      "size": [148, 64],
+      "sources": [
+        { "path": "packages/exif-hound-core/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/exif-hound-core/src/ExifHoundCore.ts", "line": 1, "end_line": 19 }
+      ]
+    },
+    {
+      "id": "pkg-investigation-archive",
+      "type": "database",
+      "label": "investigation-archive",
+      "sublabel": "ProjectStore + schema",
+      "pos": [560, 400],
+      "size": [158, 64],
+      "sources": [
+        { "path": "packages/investigation-archive/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/investigation-archive/src/ProjectStore.ts", "line": 1, "end_line": 60 }
+      ]
+    },
+    {
+      "id": "sqljs",
+      "type": "database",
+      "label": "sql.js",
+      "sublabel": "in-memory SQLite",
+      "pos": [1020, 400],
+      "size": [130, 58],
+      "sources": [
+        { "path": "apps/exif-hound-desktop/src/core/archiveDbProvider.ts", "line": 1, "end_line": 20 }
+      ]
+    },
+    {
+      "id": "pkg-exif-middleware",
+      "type": "backend",
+      "label": "exif-middleware",
+      "sublabel": "exifreader parse",
+      "pos": [200, 540],
+      "size": [138, 58],
+      "sources": [
+        { "path": "packages/exif-middleware/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/exif-middleware/src/index.ts", "line": 1, "end_line": 30 }
+      ]
+    },
+    {
+      "id": "pkg-image-processing",
+      "type": "backend",
+      "label": "image-processing",
+      "sublabel": "middleware · OpenCV",
+      "pos": [360, 540],
+      "size": [150, 58],
+      "sources": [
+        { "path": "packages/image-processing-middleware/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/image-processing-middleware/src/index.ts", "line": 1, "end_line": 19 }
+      ]
+    },
+    {
+      "id": "pkg-image-forensics",
+      "type": "backend",
+      "label": "image-forensics",
+      "sublabel": "middleware · provenance",
+      "pos": [520, 540],
+      "size": [150, 58],
+      "sources": [
+        { "path": "packages/image-forensics-middleware/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/image-forensics-middleware/src/index.ts", "line": 1, "end_line": 18 }
+      ]
+    },
+    {
+      "id": "pkg-ocr-middleware",
+      "type": "backend",
+      "label": "ocr-middleware",
+      "sublabel": "Paddle OCR",
+      "pos": [680, 540],
+      "size": [138, 58],
+      "sources": [
+        { "path": "packages/ocr-middleware/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/ocr-middleware/src/index.ts", "line": 1, "end_line": 5 }
+      ]
+    },
+    {
+      "id": "pkg-workbench-workflow",
+      "type": "backend",
+      "label": "workbench-workflow",
+      "sublabel": "graph runner",
+      "pos": [840, 540],
+      "size": [148, 58],
+      "sources": [
+        { "path": "packages/workbench-workflow/package.json", "line": 1, "end_line": 20 },
+        { "path": "packages/workbench-workflow/src/index.ts", "line": 1, "end_line": 6 }
+      ]
+    },
+    {
+      "id": "tauri-fs",
+      "type": "backend",
+      "label": "Tauri FS Port",
+      "sublabel": "images/ + data.db",
+      "pos": [1020, 280],
+      "size": [138, 60],
+      "sources": [
+        { "path": "packages/exif-hound-core/src/platform/desktop/TauriFsPort.ts", "line": 1, "end_line": 39 }
+      ]
+    },
+    {
+      "id": "tauri-rust",
+      "type": "security",
+      "label": "Tauri Rust",
+      "sublabel": "IPC + HTTPS policy",
+      "pos": [1020, 80],
+      "size": [138, 64],
+      "sources": [
+        { "path": "apps/exif-hound-desktop/src-tauri/src/lib.rs", "line": 1, "end_line": 80 },
+        { "path": "apps/exif-hound-desktop/src-tauri/src/security.rs", "line": 146, "end_line": 182 }
+      ]
+    },
+    {
+      "id": "nominatim",
+      "type": "external",
+      "label": "Nominatim",
+      "sublabel": "reverse geocode",
+      "pos": [40, 40],
+      "size": [118, 58],
+      "sources": [
+        { "path": "packages/exif-hound-core/src/geocoding/geocoding.ts", "line": 1, "end_line": 30 }
+      ]
+    },
+    {
+      "id": "tile-servers",
+      "type": "external",
+      "label": "Tile Servers",
+      "sublabel": "OSM / custom HTTPS",
+      "pos": [1180, 80],
+      "size": [140, 58]
+    },
+    {
+      "id": "prov-exifreader",
+      "type": "external",
+      "label": "exifreader",
+      "sublabel": "ExifTagLoader",
+      "pos": [180, 680],
+      "size": [130, 58],
+      "sources": [
+        { "path": "packages/exif-middleware/src/index.ts", "line": 200, "end_line": 220 },
+        { "path": "packages/image-forensics-middleware/src/LocalImageReaders.ts", "line": 1, "end_line": 13 }
+      ]
+    },
+    {
+      "id": "prov-opencv",
+      "type": "external",
+      "label": "@opencvjs/web",
+      "sublabel": "ImageEnhancer",
+      "pos": [340, 680],
+      "size": [138, 58],
+      "sources": [
+        { "path": "packages/image-processing-middleware/src/OpenCvImageEnhancer.ts", "line": 1, "end_line": 12 },
+        { "path": "packages/image-processing-middleware/src/types.ts", "line": 76, "end_line": 82 }
+      ]
+    },
+    {
+      "id": "prov-web-codec",
+      "type": "external",
+      "label": "WebView codec",
+      "sublabel": "ImageCodec",
+      "pos": [500, 680],
+      "size": [140, 58],
+      "sources": [
+        { "path": "packages/exif-hound-core/src/middleware/preprocessImage.ts", "line": 62, "end_line": 89 },
+        { "path": "packages/image-processing-middleware/src/types.ts", "line": 7, "end_line": 10 }
+      ]
+    },
+    {
+      "id": "prov-paddleocr",
+      "type": "external",
+      "label": "paddleocr-js",
+      "sublabel": "OcrWorkerFactory",
+      "pos": [660, 680],
+      "size": [138, 58],
+      "sources": [
+        { "path": "packages/ocr-middleware/src/PaddleOcrWorkerFactory.ts", "line": 1, "end_line": 25 },
+        { "path": "packages/ocr-middleware/src/OcrWorker.ts", "line": 28, "end_line": 36 }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "packages/ (npm workspaces)",
+      "wraps": [
+        "pkg-exif-hound-core",
+        "pkg-investigation-archive",
+        "pkg-exif-middleware",
+        "pkg-image-processing",
+        "pkg-image-forensics",
+        "pkg-ocr-middleware",
+        "pkg-workbench-workflow"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Worker threads (isolated bundles)",
+      "wraps": ["web-workers"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Native shell (Rust plugins)",
+      "wraps": ["tauri-rust", "tauri-fs"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "open-app",
+      "from": "investigator",
+      "to": "react-shell",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-core",
+      "from": "react-shell",
+      "to": "pkg-exif-hound-core",
+      "variant": "emphasis"
+    },
+    {
+      "id": "core-worker-scripts",
+      "from": "pkg-exif-hound-core",
+      "to": "web-workers",
+      "label": "spawn workers",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-spawn-exif-worker",
+      "from": "react-shell",
+      "to": "web-workers",
+      "variant": "dashed"
+    },
+    {
+      "id": "worker-exif-mw",
+      "from": "web-workers",
+      "to": "pkg-exif-middleware",
+      "label": "bundle import only"
+    },
+    {
+      "id": "worker-img-mw",
+      "from": "web-workers",
+      "to": "pkg-image-processing",
+      "label": "bundle import only"
+    },
+    {
+      "id": "worker-postmessage-core",
+      "from": "web-workers",
+      "to": "pkg-exif-hound-core",
+      "label": "postMessage → main thread",
+      "variant": "dashed"
+    },
+    {
+      "id": "core-archive",
+      "from": "pkg-exif-hound-core",
+      "to": "pkg-investigation-archive",
+      "variant": "emphasis"
+    },
+    {
+      "id": "archive-sql",
+      "from": "pkg-investigation-archive",
+      "to": "sqljs",
+      "label": "DatabaseEngineProvider"
+    },
+    {
+      "id": "archive-fs",
+      "from": "pkg-investigation-archive",
+      "to": "tauri-fs",
+      "label": "write-through"
+    },
+    {
+      "id": "fs-rust",
+      "from": "tauri-fs",
+      "to": "tauri-rust",
+      "label": "scoped paths",
+      "variant": "security"
+    },
+    {
+      "id": "core-exif-mw",
+      "from": "pkg-exif-hound-core",
+      "to": "pkg-exif-middleware",
+      "label": "main-thread facades"
+    },
+    {
+      "id": "core-imgproc",
+      "from": "pkg-exif-hound-core",
+      "to": "pkg-image-processing",
+      "label": "preprocess"
+    },
+    {
+      "id": "core-forensics",
+      "from": "pkg-exif-hound-core",
+      "to": "pkg-image-forensics"
+    },
+    {
+      "id": "core-ocr",
+      "from": "pkg-exif-hound-core",
+      "to": "pkg-ocr-middleware"
+    },
+    {
+      "id": "core-workflow",
+      "from": "pkg-exif-hound-core",
+      "to": "pkg-workbench-workflow",
+      "label": "NodeHandler registry"
+    },
+    {
+      "id": "geocode",
+      "from": "pkg-exif-hound-core",
+      "to": "tauri-rust",
+      "label": "geocode port",
+      "variant": "security"
+    },
+    {
+      "id": "rust-nominatim",
+      "from": "tauri-rust",
+      "to": "nominatim",
+      "label": "HTTPS allowlist"
+    },
+    {
+      "id": "map-tiles",
+      "from": "map-ui",
+      "to": "tile-servers",
+      "label": "preset tiles"
+    },
+    {
+      "id": "rust-tiles",
+      "from": "tauri-rust",
+      "to": "tile-servers",
+      "label": "custom proxy",
+      "variant": "dashed"
+    },
+    {
+      "id": "workbench-core",
+      "from": "workbench-ui",
+      "to": "pkg-exif-hound-core",
+      "label": "run graph"
+    },
+    {
+      "id": "evidence-core",
+      "from": "evidence-ui",
+      "to": "pkg-exif-hound-core",
+      "label": "EvidenceHubService"
+    },
+    {
+      "id": "evidence-archive",
+      "from": "evidence-ui",
+      "to": "pkg-investigation-archive",
+      "label": "read rows"
+    },
+    {
+      "id": "mw-exif-provider",
+      "from": "pkg-exif-middleware",
+      "to": "prov-exifreader",
+      "variant": "dashed"
+    },
+    {
+      "id": "mw-forensics-exif",
+      "from": "pkg-image-forensics",
+      "to": "prov-exifreader",
+      "variant": "dashed"
+    },
+    {
+      "id": "mw-img-opencv",
+      "from": "pkg-image-processing",
+      "to": "prov-opencv",
+      "variant": "dashed"
+    },
+    {
+      "id": "mw-img-codec",
+      "from": "pkg-image-processing",
+      "to": "prov-web-codec",
+      "variant": "dashed"
+    },
+    {
+      "id": "mw-ocr-paddle",
+      "from": "pkg-ocr-middleware",
+      "to": "prov-paddleocr",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "packages/ workspaces (7)",
+      "items": [
+        "exif-hound-core — sole desktop import surface; facades over all other packages",
+        "investigation-archive — ProjectStore, Drizzle schema, images/ + data/data.db layout",
+        "Worker scripts live in exif-hound-core; they import middleware only inside the worker bundle (not full core)",
+        "ocr-middleware, image-forensics-middleware, workbench-workflow — WorkbenchRunService"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Primary path",
+      "items": [
+        "Upload → core worker URL → worker thread → middleware → postMessage → core enrich → archive",
+        "Workbench UI → core → workflow runner → OCR + forensics → archive tables",
+        "Evidence UI → core index builder over investigation-archive rows"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Provider ports (swap without touching UI)",
+      "items": [
+        "Each package exposes a middleware class + injectable port(s); core facades mirror the same shape",
+        "ExifMiddleware (ExifTagLoader), ImageProcessingMiddleware (ImageCodec + ImageEnhancer), OcrMiddleware (OcrWorkerFactory)",
+        "ImageForensicsMiddleware (MetadataReader, ImageStructureReader, LocalOcrRecognizer)",
+        "investigation-archive: DatabaseEngineProvider + FsPort; core: ReverseGeocodingProvider → Nominatim",
+        "Configure via ExifHoundCoreOptions / MiddlewareNamespaceOptions or configureReverseGeocodingProvider",
+        "Desktop UI libs (Leaflet, @xyflow/react) stay in apps/exif-hound-desktop — swap via package deps"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust boundaries",
+      "items": [
+        "Desktop app must not import middleware packages directly (scan:domain-imports)",
+        "Rust HTTPS allowlists for Nominatim, tiles, remote images; FS scoped to project roots",
+        "sql.js WASM DB serialized to disk via TauriFsPort"
+      ]
+    }
+  ]
+}

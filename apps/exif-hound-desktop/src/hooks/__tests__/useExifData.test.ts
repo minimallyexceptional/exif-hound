@@ -23,7 +23,7 @@ import { useExifData } from '../useExifData';
 
 // jsdom has no Worker support; the hook processes EXIF data through a Web Worker.
 // Provide a mock Worker that bridges postMessage to the mocked extractExifData,
-// mimicking the real exifWorker.ts behavior.
+// mimicking the exif-hound-core worker entry behavior.
 class MockWorker {
   onmessage: ((event: MessageEvent<ExifWorkerResponse>) => void) | null = null;
   onerror: ((event: ErrorEvent) => void) | null = null;

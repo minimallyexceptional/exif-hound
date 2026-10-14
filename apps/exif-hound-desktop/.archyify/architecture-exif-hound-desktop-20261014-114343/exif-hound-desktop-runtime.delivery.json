@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "879dded4-41de-44ef-9e2f-3e7ae10e6773",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/candidate.json",
+  "output": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+  "specification": {
+    "sha256": "76bf6aee1d4132e4c2e27d6ed8b0c20c60118ac4c1daf600a6e4112f364bacd3",
+    "bytes": 15435
+  },
+  "artifact": {
+    "sha256": "efcf38d5581607cd2262e387f5f4aab3e0b323b8fd94767dc9fd7d09eecf5161",
+    "bytes": 871776
+  }
+}

@@ -1,36 +1,40 @@
-import ExifReader from 'exifreader';
 import {
+  ExifMiddleware,
   extractExifData,
   formatDate,
   formatExifMetadata,
   formatFileSize,
+  loadExifReaderTags,
   type ExifMetadata,
+  type ExifMiddlewareOptions,
 } from 'exif-middleware';
 
 export class ExifMiddlewareFacade {
+  readonly instance: ExifMiddleware;
+
+  constructor(options: ExifMiddlewareOptions = {}) {
+    this.instance = new ExifMiddleware(options);
+  }
+
   extractExifData(buffer: ArrayBuffer): Promise<ExifMetadata> {
-    return extractExifData(buffer);
+    return this.instance.extractExifData(buffer);
   }
 
   formatExifMetadata(metadata: ExifMetadata): Record<string, string> {
-    return formatExifMetadata(metadata);
+    return this.instance.formatExifMetadata(metadata);
   }
 
   formatFileSize(bytes: number, decimals?: number): string {
-    return formatFileSize(bytes, decimals);
+    return this.instance.formatFileSize(bytes, decimals);
   }
 
   formatDate(date: Date): string {
-    return formatDate(date);
+    return this.instance.formatDate(date);
   }
 
-  /** Load raw EXIF tags (e.g. embedded thumbnail) without exposing exifreader to the app. */
-  async loadExifReaderTags(buffer: ArrayBuffer, options?: { expanded?: boolean }) {
-    if (options?.expanded) {
-      return ExifReader.load(buffer, { expanded: true });
-    }
-    return ExifReader.load(buffer);
+  loadExifReaderTags(buffer: ArrayBuffer, options?: { expanded?: boolean }) {
+    return this.instance.loadExifReaderTags(buffer, options);
   }
 }
 
-export type { ExifMetadata };
+export { extractExifData, formatDate, formatExifMetadata, formatFileSize, loadExifReaderTags, type ExifMetadata, type ExifMiddlewareOptions, ExifMiddleware } from 'exif-middleware';

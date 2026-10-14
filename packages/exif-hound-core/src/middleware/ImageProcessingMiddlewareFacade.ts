@@ -18,4 +18,10 @@ export type {
   PreprocessImageRequest,
   RasterImage,
 } from 'image-processing-middleware';
-export { configureImageProcessingWorker, preprocessImage } from './preprocessImage';
+export { ImageProcessingFacade } from './ImageProcessingFacade';
+export {
+  configureImageProcessingWorker,
+  configureImageProcessingMiddleware,
+  createDefaultImageProcessingMiddleware,
+  preprocessImage,
+} from './preprocessImage';

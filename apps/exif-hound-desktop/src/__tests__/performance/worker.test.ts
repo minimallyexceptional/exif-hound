@@ -109,7 +109,7 @@ describe('EXIF Worker Performance', () => {
       if (errorHandler) {
         errorHandler({
           message: 'Worker error',
-          filename: 'exifWorker.ts',
+          filename: 'exif-hound-core/workers/exif.ts',
           lineno: 10
         } as ErrorEvent);
       }

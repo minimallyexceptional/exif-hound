@@ -1,0 +1,1810 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-14T16:04:15.950Z",
+  "specification": {
+    "path": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/candidate.json",
+    "sha256": "76bf6aee1d4132e4c2e27d6ed8b0c20c60118ac4c1daf600a6e4112f364bacd3",
+    "bytes": 15435
+  },
+  "artifact": {
+    "path": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+    "sha256": "efcf38d5581607cd2262e387f5f4aab3e0b323b8fd94767dc9fd7d09eecf5161",
+    "bytes": 871776
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/home/bloodmachine/.local/share/cursor-agent/versions/2026.10.01-e373342/node",
+        "/home/bloodmachine/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/candidate.json",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "76bf6aee1d4132e4c2e27d6ed8b0c20c60118ac4c1daf600a6e4112f364bacd3",
+          "bytes": 15435
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 561,
+      "command": [
+        "/home/bloodmachine/.local/share/cursor-agent/versions/2026.10.01-e373342/node",
+        "/home/bloodmachine/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/candidate.json",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "879dded4-41de-44ef-9e2f-3e7ae10e6773",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/candidate.json",
+        "output": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+        "specification": {
+          "sha256": "76bf6aee1d4132e4c2e27d6ed8b0c20c60118ac4c1daf600a6e4112f364bacd3",
+          "bytes": 15435
+        },
+        "artifact": {
+          "sha256": "efcf38d5581607cd2262e387f5f4aab3e0b323b8fd94767dc9fd7d09eecf5161",
+          "bytes": 871776
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/minimallyexceptional/exif-hound",
+          "revision": "44974668371b37c899b7c24c7f4fe11c93f93da9",
+          "references": 36
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 117,
+      "command": [
+        "/home/bloodmachine/.local/share/cursor-agent/versions/2026.10.01-e373342/node",
+        "/home/bloodmachine/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+        "artifact": {
+          "sha256": "efcf38d5581607cd2262e387f5f4aab3e0b323b8fd94767dc9fd7d09eecf5161",
+          "bytes": 871776
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 31,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 6,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 7,
+            "maxStretch": 1.935,
+            "routesOverSuggestedStretch": 3,
+            "minSegmentPx": 11,
+            "minInteriorSegmentPx": 21,
+            "shortSegmentCount": 1,
+            "shortEndpointSegmentCount": 1,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "id": "open-app",
+                  "from": "investigator",
+                  "to": "react-shell",
+                  "label": "",
+                  "collectionIndex": 0,
+                  "artifactIndex": 1
+                },
+                "right": {
+                  "id": "core-worker-scripts",
+                  "from": "pkg-exif-hound-core",
+                  "to": "web-workers",
+                  "label": "spawn workers",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "point": [
+                  216,
+                  229
+                ]
+              },
+              {
+                "left": {
+                  "id": "open-app",
+                  "from": "investigator",
+                  "to": "react-shell",
+                  "label": "",
+                  "collectionIndex": 0,
+                  "artifactIndex": 1
+                },
+                "right": {
+                  "id": "worker-exif-mw",
+                  "from": "web-workers",
+                  "to": "pkg-exif-middleware",
+                  "label": "bundle import only",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  173.8,
+                  229
+                ]
+              },
+              {
+                "left": {
+                  "id": "shell-core",
+                  "from": "react-shell",
+                  "to": "pkg-exif-hound-core",
+                  "label": "",
+                  "collectionIndex": 1,
+                  "artifactIndex": 2
+                },
+                "right": {
+                  "id": "workbench-core",
+                  "from": "workbench-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "run graph",
+                  "collectionIndex": 20,
+                  "artifactIndex": 21
+                },
+                "point": [
+                  298.95,
+                  329.99999999999994
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "core-worker-scripts",
+                  "from": "pkg-exif-hound-core",
+                  "to": "web-workers",
+                  "label": "spawn workers",
+                  "collectionIndex": 2,
+                  "artifactIndex": 3
+                },
+                "right": {
+                  "id": "worker-exif-mw",
+                  "from": "web-workers",
+                  "to": "pkg-exif-middleware",
+                  "label": "bundle import only",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  216,
+                  188.99999999999997
+                ],
+                "sharedNode": "web-workers"
+              },
+              {
+                "left": {
+                  "id": "shell-spawn-exif-worker",
+                  "from": "react-shell",
+                  "to": "web-workers",
+                  "label": "",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "id": "worker-exif-mw",
+                  "from": "web-workers",
+                  "to": "pkg-exif-middleware",
+                  "label": "bundle import only",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  356,
+                  189.00000000000003
+                ],
+                "sharedNode": "web-workers"
+              },
+              {
+                "left": {
+                  "id": "worker-exif-mw",
+                  "from": "web-workers",
+                  "to": "pkg-exif-middleware",
+                  "label": "bundle import only",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "right": {
+                  "id": "core-exif-mw",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-exif-middleware",
+                  "label": "main-thread facades",
+                  "collectionIndex": 11,
+                  "artifactIndex": 12
+                },
+                "point": [
+                  262,
+                  516
+                ],
+                "sharedNode": "pkg-exif-middleware"
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "core-archive",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-investigation-archive",
+                  "label": "",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "point": [
+                  623.9500000000007,
+                  396.9366666666666
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "core-forensics",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-image-forensics",
+                  "label": "",
+                  "collectionIndex": 13,
+                  "artifactIndex": 14
+                },
+                "point": [
+                  442,
+                  432
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "core-ocr",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-ocr-middleware",
+                  "label": "",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "point": [
+                  442,
+                  537
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "geocode",
+                  "from": "pkg-exif-hound-core",
+                  "to": "tauri-rust",
+                  "label": "geocode port",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  631,
+                  277
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "map-tiles",
+                  "from": "map-ui",
+                  "to": "tile-servers",
+                  "label": "preset tiles",
+                  "collectionIndex": 18,
+                  "artifactIndex": 19
+                },
+                "point": [
+                  631,
+                  230
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "workbench-core",
+                  "from": "workbench-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "run graph",
+                  "collectionIndex": 20,
+                  "artifactIndex": 21
+                },
+                "point": [
+                  631,
+                  330
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "evidence-core",
+                  "from": "evidence-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "EvidenceHubService",
+                  "collectionIndex": 21,
+                  "artifactIndex": 22
+                },
+                "point": [
+                  631,
+                  350
+                ]
+              },
+              {
+                "left": {
+                  "id": "worker-postmessage-core",
+                  "from": "web-workers",
+                  "to": "pkg-exif-hound-core",
+                  "label": "postMessage → main thread",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "workbench-core",
+                  "from": "workbench-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "run graph",
+                  "collectionIndex": 20,
+                  "artifactIndex": 21
+                },
+                "point": [
+                  328,
+                  330
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "core-archive",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-investigation-archive",
+                  "label": "",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "geocode",
+                  "from": "pkg-exif-hound-core",
+                  "to": "tauri-rust",
+                  "label": "geocode port",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "point": [
+                  521,
+                  375.99999999999994
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "core-archive",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-investigation-archive",
+                  "label": "",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "right": {
+                  "id": "evidence-core",
+                  "from": "evidence-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "EvidenceHubService",
+                  "collectionIndex": 21,
+                  "artifactIndex": 22
+                },
+                "point": [
+                  358.0999999999999,
+                  375.99999999999994
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "archive-sql",
+                  "from": "pkg-investigation-archive",
+                  "to": "sqljs",
+                  "label": "DatabaseEngineProvider",
+                  "collectionIndex": 8,
+                  "artifactIndex": 9
+                },
+                "right": {
+                  "id": "archive-fs",
+                  "from": "pkg-investigation-archive",
+                  "to": "tauri-fs",
+                  "label": "write-through",
+                  "collectionIndex": 9,
+                  "artifactIndex": 10
+                },
+                "point": [
+                  996,
+                  437.5
+                ],
+                "sharedNode": "pkg-investigation-archive"
+              },
+              {
+                "left": {
+                  "id": "core-imgproc",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-image-processing",
+                  "label": "preprocess",
+                  "collectionIndex": 12,
+                  "artifactIndex": 13
+                },
+                "right": {
+                  "id": "core-ocr",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-ocr-middleware",
+                  "label": "",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "point": [
+                  428,
+                  537
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "core-forensics",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-image-forensics",
+                  "label": "",
+                  "collectionIndex": 13,
+                  "artifactIndex": 14
+                },
+                "right": {
+                  "id": "core-ocr",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-ocr-middleware",
+                  "label": "",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "point": [
+                  536,
+                  537
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "core-ocr",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-ocr-middleware",
+                  "label": "",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "right": {
+                  "id": "core-workflow",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-workbench-workflow",
+                  "label": "NodeHandler registry",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "point": [
+                  342,
+                  537
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "core-workflow",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-workbench-workflow",
+                  "label": "NodeHandler registry",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "mw-forensics-exif",
+                  "from": "pkg-image-forensics",
+                  "to": "prov-exifreader",
+                  "label": "",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "point": [
+                  595,
+                  622
+                ]
+              },
+              {
+                "left": {
+                  "id": "core-workflow",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-workbench-workflow",
+                  "label": "NodeHandler registry",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "mw-img-opencv",
+                  "from": "pkg-image-processing",
+                  "to": "prov-opencv",
+                  "label": "",
+                  "collectionIndex": 25,
+                  "artifactIndex": 26
+                },
+                "point": [
+                  428,
+                  622
+                ]
+              },
+              {
+                "left": {
+                  "id": "core-workflow",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-workbench-workflow",
+                  "label": "NodeHandler registry",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "mw-img-codec",
+                  "from": "pkg-image-processing",
+                  "to": "prov-web-codec",
+                  "label": "",
+                  "collectionIndex": 26,
+                  "artifactIndex": 27
+                },
+                "point": [
+                  442,
+                  622
+                ]
+              },
+              {
+                "left": {
+                  "id": "core-workflow",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-workbench-workflow",
+                  "label": "NodeHandler registry",
+                  "collectionIndex": 15,
+                  "artifactIndex": 16
+                },
+                "right": {
+                  "id": "mw-ocr-paddle",
+                  "from": "pkg-ocr-middleware",
+                  "to": "prov-paddleocr",
+                  "label": "",
+                  "collectionIndex": 27,
+                  "artifactIndex": 28
+                },
+                "point": [
+                  749,
+                  622
+                ]
+              },
+              {
+                "left": {
+                  "id": "geocode",
+                  "from": "pkg-exif-hound-core",
+                  "to": "tauri-rust",
+                  "label": "geocode port",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "right": {
+                  "id": "workbench-core",
+                  "from": "workbench-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "run graph",
+                  "collectionIndex": 20,
+                  "artifactIndex": 21
+                },
+                "point": [
+                  521,
+                  330
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "geocode",
+                  "from": "pkg-exif-hound-core",
+                  "to": "tauri-rust",
+                  "label": "geocode port",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "right": {
+                  "id": "evidence-core",
+                  "from": "evidence-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "EvidenceHubService",
+                  "collectionIndex": 21,
+                  "artifactIndex": 22
+                },
+                "point": [
+                  521,
+                  350
+                ],
+                "sharedNode": "pkg-exif-hound-core"
+              },
+              {
+                "left": {
+                  "id": "geocode",
+                  "from": "pkg-exif-hound-core",
+                  "to": "tauri-rust",
+                  "label": "geocode port",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "right": {
+                  "id": "evidence-archive",
+                  "from": "evidence-ui",
+                  "to": "pkg-investigation-archive",
+                  "label": "read rows",
+                  "collectionIndex": 22,
+                  "artifactIndex": 23
+                },
+                "point": [
+                  870,
+                  277
+                ]
+              },
+              {
+                "left": {
+                  "id": "rust-nominatim",
+                  "from": "tauri-rust",
+                  "to": "nominatim",
+                  "label": "HTTPS allowlist",
+                  "collectionIndex": 17,
+                  "artifactIndex": 18
+                },
+                "right": {
+                  "id": "map-tiles",
+                  "from": "map-ui",
+                  "to": "tile-servers",
+                  "label": "preset tiles",
+                  "collectionIndex": 18,
+                  "artifactIndex": 19
+                },
+                "point": [
+                  652,
+                  69
+                ]
+              },
+              {
+                "left": {
+                  "id": "evidence-core",
+                  "from": "evidence-ui",
+                  "to": "pkg-exif-hound-core",
+                  "label": "EvidenceHubService",
+                  "collectionIndex": 21,
+                  "artifactIndex": 22
+                },
+                "right": {
+                  "id": "evidence-archive",
+                  "from": "evidence-ui",
+                  "to": "pkg-investigation-archive",
+                  "label": "read rows",
+                  "collectionIndex": 22,
+                  "artifactIndex": 23
+                },
+                "point": [
+                  870,
+                  350
+                ],
+                "sharedNode": "evidence-ui"
+              },
+              {
+                "left": {
+                  "id": "mw-forensics-exif",
+                  "from": "pkg-image-forensics",
+                  "to": "prov-exifreader",
+                  "label": "",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "right": {
+                  "id": "mw-img-opencv",
+                  "from": "pkg-image-processing",
+                  "to": "prov-opencv",
+                  "label": "",
+                  "collectionIndex": 25,
+                  "artifactIndex": 26
+                },
+                "point": [
+                  428,
+                  656
+                ]
+              },
+              {
+                "left": {
+                  "id": "mw-forensics-exif",
+                  "from": "pkg-image-forensics",
+                  "to": "prov-exifreader",
+                  "label": "",
+                  "collectionIndex": 24,
+                  "artifactIndex": 25
+                },
+                "right": {
+                  "id": "mw-img-codec",
+                  "from": "pkg-image-processing",
+                  "to": "prov-web-codec",
+                  "label": "",
+                  "collectionIndex": 26,
+                  "artifactIndex": 27
+                },
+                "point": [
+                  570,
+                  656
+                ]
+              }
+            ],
+            "crowdedSides": [
+              {
+                "node": "pkg-exif-hound-core",
+                "label": "exif-hound-core",
+                "side": "right",
+                "relationships": 7,
+                "sidePx": 64,
+                "neededPx": 116
+              }
+            ],
+            "detours": [
+              {
+                "relationship": {
+                  "id": "worker-exif-mw",
+                  "from": "web-workers",
+                  "to": "pkg-exif-middleware",
+                  "label": "bundle import only",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "bends": 4,
+                "stretch": 1.401
+              },
+              {
+                "relationship": {
+                  "id": "worker-img-mw",
+                  "from": "web-workers",
+                  "to": "pkg-image-processing",
+                  "label": "bundle import only",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "bends": 4,
+                "stretch": 1.935
+              },
+              {
+                "relationship": {
+                  "id": "worker-postmessage-core",
+                  "from": "web-workers",
+                  "to": "pkg-exif-hound-core",
+                  "label": "postMessage → main thread",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "bends": 4,
+                "stretch": 1.376
+              },
+              {
+                "relationship": {
+                  "id": "archive-fs",
+                  "from": "pkg-investigation-archive",
+                  "to": "tauri-fs",
+                  "label": "write-through",
+                  "collectionIndex": 9,
+                  "artifactIndex": 10
+                },
+                "bends": 3,
+                "stretch": 1.09
+              },
+              {
+                "relationship": {
+                  "id": "core-ocr",
+                  "from": "pkg-exif-hound-core",
+                  "to": "pkg-ocr-middleware",
+                  "label": "",
+                  "collectionIndex": 14,
+                  "artifactIndex": 15
+                },
+                "bends": 4,
+                "stretch": 1.085
+              },
+              {
+                "relationship": {
+                  "id": "geocode",
+                  "from": "pkg-exif-hound-core",
+                  "to": "tauri-rust",
+                  "label": "geocode port",
+                  "collectionIndex": 16,
+                  "artifactIndex": 17
+                },
+                "bends": 4,
+                "stretch": 1
+              },
+              {
+                "relationship": {
+                  "id": "map-tiles",
+                  "from": "map-ui",
+                  "to": "tile-servers",
+                  "label": "preset tiles",
+                  "collectionIndex": 18,
+                  "artifactIndex": 19
+                },
+                "bends": 3,
+                "stretch": 1.062
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 40,
+            "emptyTopRatio": 0.05,
+            "occupiedTop": 40,
+            "viewBoxTop": 0,
+            "canvasHeight": 806,
+            "typicalNodeHeight": 58,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1275,
+            "actualBudgetPx": 1275,
+            "actualReaderWidth": 1305,
+            "desiredReaderWidth": 1305,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "core-worker-scripts",
+              "from": "pkg-exif-hound-core",
+              "to": "web-workers"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.5,
+            "semanticTextCount": 64
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "879dded4-41de-44ef-9e2f-3e7ae10e6773"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1705,
+      "command": [
+        "/home/bloodmachine/.local/share/cursor-agent/versions/2026.10.01-e373342/node",
+        "/home/bloodmachine/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "879dded4-41de-44ef-9e2f-3e7ae10e6773",
+        "artifact": {
+          "path": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.html",
+          "sha256": "efcf38d5581607cd2262e387f5f4aab3e0b323b8fd94767dc9fd7d09eecf5161",
+          "bytes": 871776
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "/usr/bin/google-chrome-stable"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 924,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1305,
+              "diagramWidth": 1275,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 756,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 7.5,
+              "minimumProjectedNonEdgeTextPx": 8.4375,
+              "minimumProjectedEdgeTextPx": 7.5,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1305,
+              "diagramWidth": 1275,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 756,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 7.5,
+              "minimumProjectedNonEdgeTextPx": 8.4375,
+              "minimumProjectedEdgeTextPx": 7.5,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1438,
+              "diagramWidth": 1408,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 834,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1832,
+              "diagramWidth": 1782,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 924,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1305,
+              "diagramWidth": 1275,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 756,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 7.5,
+              "minimumProjectedNonEdgeTextPx": 8.4375,
+              "minimumProjectedEdgeTextPx": 7.5,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1305,
+              "diagramWidth": 1275,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 756,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 7.5,
+              "minimumProjectedNonEdgeTextPx": 8.4375,
+              "minimumProjectedEdgeTextPx": 7.5,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1438,
+              "diagramWidth": 1408,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 834,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1832,
+              "diagramWidth": 1782,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 924,
+              "overflowX": false,
+              "overflowY": true,
+              "verticalScrollAccepted": true,
+              "overflowDisposition": "readable-vertical-scroll",
+              "readerLayout": "adaptive",
+              "readerOverflow": "authored",
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1305,
+              "diagramWidth": 1275,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 78,
+                "diagramChromePx": 78,
+                "svgPx": 756,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 7.5,
+              "minimumProjectedNonEdgeTextPx": 8.4375,
+              "minimumProjectedEdgeTextPx": 7.5,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1305,
+              "diagramWidth": 1275,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 756,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 7.5,
+              "minimumProjectedNonEdgeTextPx": 8.4375,
+              "minimumProjectedEdgeTextPx": 7.5,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1438,
+              "diagramWidth": 1408,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 86,
+                "diagramChromePx": 84,
+                "svgPx": 834,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1832,
+              "diagramWidth": 1782,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 94,
+                "diagramChromePx": 94,
+                "svgPx": 1056,
+                "cardsPx": 0,
+                "viewBoxHeight": 806
+              },
+              "viewBoxWidth": 1360,
+              "minimumProjectedNodeTextPx": 8,
+              "minimumProjectedNonEdgeTextPx": 9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "spawn workers",
+              "minimumProjectedNodeTextDetail": "edge",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "edge",
+                "id": "core-worker-scripts",
+                "from": "pkg-exif-hound-core",
+                "to": "web-workers"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 44,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "exif-hound-desktop-runtime.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.finalize.json",
+    "summaryReceipt": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.finalize-summary.json",
+    "browserCheckReceipt": "/home/bloodmachine/orca/workspaces/exif-hound/RC/apps/exif-hound-desktop/.archyify/architecture-exif-hound-desktop-20261014-114343/exif-hound-desktop-runtime.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-14T16:04:18.487Z",
+  "durationMs": 2536,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-14T15:44:19.571Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

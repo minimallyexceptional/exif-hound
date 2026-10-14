@@ -1,16 +1,21 @@
-import ExifReader from 'exifreader';
+import { defaultExifTagLoader, type ExifTagLoader } from 'exif-middleware';
 import type { ImageStructureFacts, ImageStructureReader, MetadataReader } from './types';
 
-export class ExifReaderMetadataReader implements MetadataReader {
+export class ExifTagLoaderMetadataReader implements MetadataReader {
+  constructor(private readonly tagLoader: ExifTagLoader = defaultExifTagLoader) {}
+
   read(bytes: Uint8Array): Record<string, unknown> {
     const buffer = bytes.slice().buffer as ArrayBuffer;
-    const tags = ExifReader.load(buffer);
+    const tags = this.tagLoader.loadFlat(buffer);
     return Object.fromEntries(Object.entries(tags).map(([name, tag]) => [
       name,
       tag.description ?? tag.value,
     ]));
   }
 }
+
+/** Default metadata reader backed by the shared ExifTagLoader port. */
+export class ExifReaderMetadataReader extends ExifTagLoaderMetadataReader {}
 
 export class LocalImageStructureReader implements ImageStructureReader {
   inspect(bytes: Uint8Array): ImageStructureFacts {

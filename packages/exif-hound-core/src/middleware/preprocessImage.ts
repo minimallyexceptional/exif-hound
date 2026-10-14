@@ -104,11 +104,14 @@ const enhancer = {
   },
 };
 
-const middleware = new ImageProcessingMiddleware(codec, enhancer);
+export function createDefaultImageProcessingMiddleware(): ImageProcessingMiddleware {
+  return new ImageProcessingMiddleware(codec, enhancer);
+}
 
-type PreprocessFn = typeof defaultPreprocessImage;
+const defaultMiddleware = createDefaultImageProcessingMiddleware();
 
-function defaultPreprocessImage(
+export function preprocessImageWithMiddleware(
+  middleware: ImageProcessingMiddleware,
   imageId: number,
   imageName: string,
   sourceBytes: Uint8Array,
@@ -120,6 +123,28 @@ function defaultPreprocessImage(
     sourceBytes,
     onProgress: (progress) => onProgress(progress.progress, progress.status),
   });
+}
+
+type PreprocessFn = typeof defaultPreprocessImage;
+
+function defaultPreprocessImage(
+  imageId: number,
+  imageName: string,
+  sourceBytes: Uint8Array,
+  onProgress: (progress: number, status: string) => void,
+) {
+  return preprocessImageWithMiddleware(defaultMiddleware, imageId, imageName, sourceBytes, onProgress);
+}
+
+let configuredMiddleware: ImageProcessingMiddleware | null = null;
+
+/** Replace the default ImageProcessingMiddleware (codec/enhancer ports). */
+export function configureImageProcessingMiddleware(middleware: ImageProcessingMiddleware): void {
+  configuredMiddleware = middleware;
+}
+
+function resolveMiddleware(): ImageProcessingMiddleware {
+  return configuredMiddleware ?? defaultMiddleware;
 }
 
 let preprocessImageOverride: PreprocessFn | null = null;
@@ -134,6 +159,8 @@ export function preprocessImage(
   sourceBytes: Uint8Array,
   onProgress: (progress: number, status: string) => void,
 ) {
-  const run = preprocessImageOverride ?? defaultPreprocessImage;
-  return run(imageId, imageName, sourceBytes, onProgress);
+  if (preprocessImageOverride) {
+    return preprocessImageOverride(imageId, imageName, sourceBytes, onProgress);
+  }
+  return preprocessImageWithMiddleware(resolveMiddleware(), imageId, imageName, sourceBytes, onProgress);
 }

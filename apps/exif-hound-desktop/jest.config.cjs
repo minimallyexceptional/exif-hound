@@ -26,7 +26,6 @@ module.exports = {
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/__mocks__/**',
-    '!src/types/**',
     '!src/main.tsx',
     '!src/vite-env.d.ts'
   ],
