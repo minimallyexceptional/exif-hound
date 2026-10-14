@@ -23,6 +23,18 @@ export interface AppSessionState {
   showRoute: boolean;
 }
 
+/** Overlay DB identity and EXIF onto an existing session image (keep id/url/file). */
+export function applyPersistedExif(
+  image: ImageData,
+  record: { id: number; exif: unknown },
+): ImageData {
+  return {
+    ...image,
+    projectImageId: record.id,
+    exif: (record.exif ?? {}) as ExifData,
+  };
+}
+
 /** Strip runtime-only fields (geocoding loading state) before persisting. */
 export function serializeExif(exif: ExifData): unknown {
   const plain = JSON.parse(JSON.stringify(exif ?? null)) as ExifData;

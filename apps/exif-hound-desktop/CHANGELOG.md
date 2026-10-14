@@ -4,9 +4,14 @@ All notable changes to the EXIF Hound desktop app are documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- **Upload EXIF:** After an image is saved to the project, the session uses EXIF reloaded from `data.db` instead of the in-memory extract. Selection and blob URLs stay the same.
+
 ### Added
 
 - **List view GPS:** Place is the first GPS column (full Nominatim name, or "—") and the GPS Data group is visible by default.
+- **Evidence GPS place names:** When place-name lookup is enabled in Settings, Evidence compilation reverse-geocodes GPS-tagged images that are missing a label and writes the result onto the session image so EXIF details and the map can show it.
 
 ## 2.6.9
 

@@ -306,13 +306,20 @@ export class ProjectStore {
     const rows = await this.db.select().from(schema.images).where(eq(schema.images.diskPath, diskPath));
     await this.flush();
 
+    let persistedExif: unknown = null;
+    try {
+      persistedExif = JSON.parse(rows[0].exifJson);
+    } catch {
+      throw new InvalidProjectError(`Corrupt metadata for image "${fileName}".`);
+    }
+
     return {
       id: rows[0].id,
       fileName,
       diskPath,
       hasImage,
       bytes: bytes ? new Uint8Array(bytes) : null,
-      exif: exif ?? null,
+      exif: persistedExif,
       sourceUrl,
       addedAt,
     };
