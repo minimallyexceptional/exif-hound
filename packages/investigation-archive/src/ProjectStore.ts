@@ -27,7 +27,13 @@ import {
 } from './errors';
 import type { DatabaseEngine } from './ports';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
+import {
+  foldOcrRows,
+  foldToolResultRows,
+  resolveOcrUpsert,
+  resolveToolResultUpsert,
+} from './canonicalEvidence';
 
 export interface ProjectStoreDeps {
   dbProvider: DatabaseEngineProvider;
@@ -300,13 +306,20 @@ export class ProjectStore {
     const rows = await this.db.select().from(schema.images).where(eq(schema.images.diskPath, diskPath));
     await this.flush();
 
+    let persistedExif: unknown = null;
+    try {
+      persistedExif = JSON.parse(rows[0].exifJson);
+    } catch {
+      throw new InvalidProjectError(`Corrupt metadata for image "${fileName}".`);
+    }
+
     return {
       id: rows[0].id,
       fileName,
       diskPath,
       hasImage,
       bytes: bytes ? new Uint8Array(bytes) : null,
-      exif: exif ?? null,
+      exif: persistedExif,
       sourceUrl,
       addedAt,
     };
@@ -358,21 +371,39 @@ export class ProjectStore {
       throw new InvalidProjectError('OCR results can only be saved for a project image.');
     }
     const processedAt = result.processedAt ?? new Date();
-    await this.db.insert(schema.ocrResults).values({
-      imageId: result.imageId,
+    const incoming: OcrResultRecord = {
+      ...result,
       imageName: result.imageName ?? images[0].fileName,
-      text: result.text,
-      confidence: result.confidence,
+      processedAt,
       resultStatus: result.resultStatus ?? (result.text.trim() ? 'success' : 'no-text'),
-      workflowId: result.workflowId ?? null,
-      workflowRunId: result.workflowRunId ?? null,
-      nodeId: result.nodeId ?? null,
-      processedAt: processedAt.toISOString(),
       provider: result.provider ?? 'paddle',
       engineVersion: result.engineVersion ?? 'PaddleOCR.js@0.4.2 / PP-OCRv6_small',
-      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
-      wordsJson: JSON.stringify(result.words ?? []),
-    });
+    };
+    const existingRows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, result.imageId));
+    const foldedExisting = existingRows.length ? foldOcrRows(existingRows.map(mapOcrResult)) : null;
+    const resolved = resolveOcrUpsert(foldedExisting, incoming);
+    const values = {
+      imageId: resolved.imageId,
+      imageName: resolved.imageName ?? images[0].fileName,
+      text: resolved.text,
+      confidence: resolved.confidence,
+      resultStatus: resolved.resultStatus ?? (resolved.text.trim() ? 'success' : 'no-text'),
+      workflowId: resolved.workflowId ?? null,
+      workflowRunId: resolved.workflowRunId ?? null,
+      nodeId: resolved.nodeId ?? null,
+      processedAt: resolved.processedAt.toISOString(),
+      provider: resolved.provider ?? 'paddle',
+      engineVersion: resolved.engineVersion ?? 'PaddleOCR.js@0.4.2 / PP-OCRv6_small',
+      preprocessingManifestJson: resolved.preprocessingManifest == null ? null : JSON.stringify(resolved.preprocessingManifest),
+      wordsJson: JSON.stringify(resolved.words ?? []),
+    };
+    const keepId = foldedExisting?.id ?? existingRows.sort((a, b) => b.id - a.id)[0]?.id;
+    if (keepId != null) {
+      await this.db.update(schema.ocrResults).set(values).where(eq(schema.ocrResults.id, keepId));
+      await this.db.delete(schema.ocrResults).where(and(eq(schema.ocrResults.imageId, result.imageId), ne(schema.ocrResults.id, keepId)));
+    } else {
+      await this.db.insert(schema.ocrResults).values(values);
+    }
     await this.flush();
     const rows = await this.db.select().from(schema.ocrResults).where(eq(schema.ocrResults.imageId, result.imageId));
     const saved = rows.sort((a, b) => b.id - a.id)[0];
@@ -391,24 +422,12 @@ export class ProjectStore {
     const rows = await this.db.select().from(schema.ocrResults);
     return rows
       .filter((row) => row.workflowId === workflowId && row.nodeId === nodeId)
-      .sort((a, b) => b.id - a.id)
-      .map(mapOcrResult);
+      .map(mapOcrResult)
+      .sort((a, b) => b.processedAt.getTime() - a.processedAt.getTime());
   }
 
   async appendWorkflowProvenanceResult(result: WorkflowToolResultRecord): Promise<WorkflowToolResultRecord> {
-    await this.assertHealthy();
-    const imageRows = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
-    if (!imageRows[0] || !imageRows[0].hasImage) throw new InvalidProjectError('Forensic results require a local project image.');
-    await this.db.insert(schema.imageProvenanceResults).values({
-      imageId: result.imageId, imageName: imageRows[0].fileName, resultJson: JSON.stringify(result.result),
-      resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
-      nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
-      finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
-      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
-    });
-    await this.flush();
-    const rows = await this.db.select().from(schema.imageProvenanceResults);
-    return mapWorkflowToolResult(rows.sort((a, b) => b.id - a.id)[0]);
+    return this.upsertWorkflowToolResult(result, 'provenance');
   }
 
   async listWorkflowProvenanceResults(workflowId: string, nodeId: string): Promise<WorkflowToolResultRecord[]> {
@@ -419,18 +438,46 @@ export class ProjectStore {
   }
 
   async appendWorkflowIdentifierResult(result: WorkflowToolResultRecord): Promise<WorkflowToolResultRecord> {
+    return this.upsertWorkflowToolResult(result, 'identifiers');
+  }
+
+  private async upsertWorkflowToolResult(
+    result: WorkflowToolResultRecord,
+    kind: 'provenance' | 'identifiers',
+  ): Promise<WorkflowToolResultRecord> {
     await this.assertHealthy();
     const imageRows = await this.db.select().from(schema.images).where(eq(schema.images.id, result.imageId));
     if (!imageRows[0] || !imageRows[0].hasImage) throw new InvalidProjectError('Forensic results require a local project image.');
-    await this.db.insert(schema.visualIdentifierResults).values({
-      imageId: result.imageId, imageName: imageRows[0].fileName, resultJson: JSON.stringify(result.result),
-      resultStatus: result.resultStatus, workflowId: result.workflowId, workflowRunId: result.workflowRunId,
-      nodeId: result.nodeId, toolVersion: result.toolVersion, startedAt: result.startedAt.toISOString(),
-      finishedAt: result.finishedAt.toISOString(), error: result.error ?? null,
-      preprocessingManifestJson: result.preprocessingManifest == null ? null : JSON.stringify(result.preprocessingManifest),
-    });
+    const table = kind === 'provenance' ? schema.imageProvenanceResults : schema.visualIdentifierResults;
+    const existingRows = await this.db.select().from(table).where(eq(table.imageId, result.imageId));
+    const foldedExisting = existingRows.length
+      ? foldToolResultRows(existingRows.map(mapWorkflowToolResult), kind)
+      : null;
+    const incoming: WorkflowToolResultRecord = { ...result, imageName: result.imageName ?? imageRows[0].fileName };
+    const resolved = resolveToolResultUpsert(foldedExisting, incoming, kind);
+    const values = {
+      imageId: resolved.imageId,
+      imageName: resolved.imageName,
+      resultJson: JSON.stringify(resolved.result),
+      resultStatus: resolved.resultStatus,
+      workflowId: resolved.workflowId,
+      workflowRunId: resolved.workflowRunId,
+      nodeId: resolved.nodeId,
+      toolVersion: resolved.toolVersion,
+      startedAt: resolved.startedAt.toISOString(),
+      finishedAt: resolved.finishedAt.toISOString(),
+      error: resolved.error ?? null,
+      preprocessingManifestJson: resolved.preprocessingManifest == null ? null : JSON.stringify(resolved.preprocessingManifest),
+    };
+    const keepId = foldedExisting?.id ?? existingRows.sort((a, b) => b.id - a.id)[0]?.id;
+    if (keepId != null) {
+      await this.db.update(table).set(values).where(eq(table.id, keepId));
+      await this.db.delete(table).where(and(eq(table.imageId, result.imageId), ne(table.id, keepId)));
+    } else {
+      await this.db.insert(table).values(values);
+    }
     await this.flush();
-    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    const rows = await this.db.select().from(table).where(eq(table.imageId, result.imageId));
     return mapWorkflowToolResult(rows.sort((a, b) => b.id - a.id)[0]);
   }
 
@@ -439,6 +486,24 @@ export class ProjectStore {
     const rows = await this.db.select().from(schema.visualIdentifierResults);
     return rows.filter(row => row.workflowId === workflowId && row.nodeId === nodeId)
       .sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
+  async listProjectOcrResults(): Promise<OcrResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.ocrResults);
+    return rows.sort((a, b) => b.id - a.id).map(mapOcrResult);
+  }
+
+  async listProjectProvenanceResults(): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.imageProvenanceResults);
+    return rows.sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
+  }
+
+  async listProjectIdentifierResults(): Promise<WorkflowToolResultRecord[]> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.visualIdentifierResults);
+    return rows.sort((a, b) => b.id - a.id).map(mapWorkflowToolResult);
   }
 
   async saveWorkflow(record: ProjectWorkflowRecord): Promise<void> {

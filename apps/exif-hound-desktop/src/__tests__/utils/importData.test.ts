@@ -71,7 +71,7 @@ describe('parseImportData KML', () => {
   it('parses unprefixed KML into a GeoJSON layer', async () => {
     const result = await parseKml(unprefixedKml);
     expect(result.type).toBe('kml');
-    expect(result.layer).toBeInstanceOf(L.GeoJSON);
+    expect(typeof (result.layer as L.GeoJSON).toGeoJSON).toBe('function');
     const fc = asFeatureCollection((result.layer as L.GeoJSON).toGeoJSON());
     expect(fc.features).toHaveLength(1);
     expect(fc.features[0].geometry?.type).toBe('Point');

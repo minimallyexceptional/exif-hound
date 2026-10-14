@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Modal } from './common/Modal';
-import ExifReader from 'exifreader';
 import { ImageData } from '../types';
+import { useCore } from '../core/CoreContext';
 import { ArrowLeftRight } from 'lucide-react';
 
 interface ImageComparisonProps {
@@ -10,6 +10,7 @@ interface ImageComparisonProps {
 }
 
 export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose }) => {
+  const core = useCore();
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
         const response = await fetch(image.url);
         const buffer = await response.arrayBuffer();
         
-        const tags = await ExifReader.load(buffer);
+        const tags = await core.middleware.exif.loadExifReaderTags(buffer);
         
         const thumbnailTag = tags.Thumbnail;
 

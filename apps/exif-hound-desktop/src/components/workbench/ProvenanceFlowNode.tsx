@@ -4,9 +4,7 @@ import type { WorkbenchFlowData } from './NodeFrame';
 import { NodeFrame } from './NodeFrame';
 
 const ProvenanceFlowNode: React.FC<NodeProps & { data: WorkbenchFlowData }> = (props) => (
-  <NodeFrame {...props} type="provenance" input="image" output="evidence">
-    <div className="px-3 py-3 text-xs leading-relaxed text-app-accent-dim">Review metadata, timestamps, and local file-structure indicators.</div>
-  </NodeFrame>
+  <NodeFrame {...props} type="provenance" input="image" inputLabel="Image" outputs={[{ id: 'image', label: 'Image' }, { id: 'evidence', label: 'Evidence' }]} />
 );
 
 export default ProvenanceFlowNode;

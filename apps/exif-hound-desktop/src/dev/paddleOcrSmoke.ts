@@ -1,4 +1,4 @@
-import { OcrMiddleware, PaddleOcrWorkerFactory } from 'ocr-middleware';
+import { OcrMiddleware, PaddleOcrWorkerFactory } from 'exif-hound-core';
 
 async function run(): Promise<void> {
   const canvas = document.createElement('canvas');

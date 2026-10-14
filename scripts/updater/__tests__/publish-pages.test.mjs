@@ -22,7 +22,7 @@ function makeRepo() {
   git(repo, 'config', 'user.name', 'Updater test');
   git(repo, 'config', 'user.email', 'updater-test@example.invalid');
   fs.mkdirSync(path.join(repo, 'update-site'));
-  fs.writeFileSync(path.join(repo, 'update-site', 'index.html'), '<h1>Exif Hound</h1>');
+  fs.writeFileSync(path.join(repo, 'update-site', 'index.html'), '<h1>EXIF Hound</h1>');
   fs.writeFileSync(path.join(repo, 'update-site', '.nojekyll'), '');
   fs.writeFileSync(path.join(repo, 'README.md'), 'source repo');
   git(repo, 'add', '.');
@@ -60,7 +60,7 @@ test('creates gh-pages and retains earlier channel manifests when publishing ano
     publish(repo, 'internal', '2.6.0-test.1');
     publish(repo, 'stable', '2.6.0');
 
-    assert.equal(readPagesFile(remote, 'index.html'), '<h1>Exif Hound</h1>');
+    assert.equal(readPagesFile(remote, 'index.html'), '<h1>EXIF Hound</h1>');
     assert.equal(readPagesFile(remote, '.nojekyll'), '');
     assert.equal(JSON.parse(readPagesFile(remote, 'stable/latest.json')).version, '2.6.0');
     assert.equal(JSON.parse(readPagesFile(remote, 'internal/latest.json')).version, '2.6.0-test.1');

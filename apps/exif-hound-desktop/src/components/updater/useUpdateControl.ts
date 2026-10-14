@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { UpdateService, UpdateState, getUpdateService } from '../../services/updater';
+import { UpdateService, UpdateState, getUpdateService } from 'exif-hound-core';
 
 /**
  * Binds the update service state to React for surfaces that show update
- * status inline (Settings "About" panel, Help menu). Rendering of dialogs
+ * status inline (Settings "About" panel). Rendering of dialogs
  * remains the job of UpdateNotification.
  */
 export function useUpdateControl(

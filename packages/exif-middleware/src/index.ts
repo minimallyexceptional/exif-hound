@@ -51,7 +51,7 @@ export interface ExifMetadata {
     width: number;
     height: number;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

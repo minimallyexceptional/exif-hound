@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { createControlComponent } from '@react-leaflet/core';
 import L from 'leaflet';
 import 'leaflet-fullscreen';
@@ -64,6 +64,17 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
   onToggleReticle = () => {},
   fullscreenPosition = 'topleft'
 }) => {
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) {
+      return;
+    }
+    L.DomEvent.disableClickPropagation(el);
+    L.DomEvent.disableScrollPropagation(el);
+  }, []);
+
   return (
     <>
       {showFullscreen && <FullscreenControl position={fullscreenPosition} />}
@@ -71,7 +82,7 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
       {/* Custom controls for route toggle, import, etc. */}
       <div className="leaflet-control-container">
         <div className="leaflet-top leaflet-right">
-          <div className="leaflet-control leaflet-bar">
+          <div ref={toolbarRef} className="leaflet-control leaflet-bar">
             <button
               onClick={onToggleReticle}
               className={`border-b ${showReticle ? 'toggle-active' : 'toggle-inactive'}`}

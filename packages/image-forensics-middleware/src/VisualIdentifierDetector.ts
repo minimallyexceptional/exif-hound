@@ -14,9 +14,10 @@ export class VisualIdentifierDetector {
       onProgress: progress => onProgress?.(progress.progress, progress.status),
     });
     const words = recognized.words ?? [];
+    const lines = groupLines(words);
     const enabled = enabledFamilies(input.settings.enabledFamilies);
     const candidates: IdentifierCandidate[] = [];
-    for (const line of groupLines(words)) {
+    for (const line of lines) {
       for (const rule of rules) {
         if (!enabled.has(rule.family)) continue;
         rule.pattern.lastIndex = 0;
@@ -31,13 +32,10 @@ export class VisualIdentifierDetector {
         }
       }
     }
-    const profile = input.settings.licensePlateProfile;
+    const profile = resolveLicensePlateProfile(input.settings);
     if (profile === 'us-general') {
-      words.forEach((word, index) => {
-        if (/^(?=.*[A-Z])(?=.*\d)[A-Z0-9]{5,8}$/i.test(word.text.trim())) {
-          candidates.push(createCandidate('license-plate-like', word.text, [{ word, index, start: 0, end: word.text.length }], profile));
-        }
-      });
+      for (const line of lines) candidates.push(...licensePlateCandidates(line, profile));
+      candidates.push(...licensePlateCandidatesFromText(recognized.text, words, profile));
     }
     return {
       schemaVersion: 1,
@@ -113,6 +111,160 @@ const rules: Array<{ family: Exclude<IdentifierCandidate['family'], 'license-pla
   },
 ];
 
+function resolveLicensePlateProfile(settings: VisualIdentifierInput['settings']): string | null {
+  if (settings.licensePlateProfile === 'off') return null;
+  if (settings.licensePlateProfile === 'us-general') return 'us-general';
+  return enabledFamilies(settings.enabledFamilies).has('license-plate-like') ? 'us-general' : null;
+}
+
+const usStateNames = [
+  'WESTVIRGINIA', 'NORTHCAROLINA', 'SOUTHCAROLINA', 'MASSACHUSETTS', 'NEWHAMPSHIRE',
+  'NORTHDAKOTA', 'SOUTHDAKOTA', 'RHODEISLAND', 'PENNSYLVANIA', 'CONNECTICUT',
+  'MISSISSIPPI', 'WASHINGTON', 'WISCONSIN', 'CALIFORNIA', 'NEWJERSEY',
+  'NEWMEXICO', 'MINNESOTA', 'LOUISIANA', 'OKLAHOMA', 'COLORADO', 'MARYLAND',
+  'MISSOURI', 'MONTANA', 'NEBRASKA', 'GEORGIA', 'ALABAMA', 'ARIZONA',
+  'ARKANSAS', 'FLORIDA', 'INDIANA', 'NEWYORK', 'OREGON', 'NEVADA',
+  'KANSAS', 'TEXAS', 'IDAHO', 'IOWA', 'OHIO', 'UTAH',
+].sort((left, right) => right.length - left.length);
+
+function compactPlate(value: string): string {
+  return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+}
+
+function isUsGeneralPlate(value: string): boolean {
+  return /^(?=.*[A-Z])(?=.*\d)[A-Z0-9]{5,8}$/.test(value);
+}
+
+function consumeLeadingStates(compact: string, start = 0): number {
+  let index = start;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const state of usStateNames) {
+      if (compact.startsWith(state, index)) {
+        index += state.length;
+        changed = true;
+        break;
+      }
+    }
+  }
+  return index;
+}
+
+function plateValue(value: string): string | null {
+  const compact = compactPlate(value);
+  const body = compact.slice(consumeLeadingStates(compact));
+  return isUsGeneralPlate(body) ? body : null;
+}
+
+function plateScore(plates: string[]): number {
+  return plates.length * 10 + plates.filter(plate => plate.length === 6 || plate.length === 7).length;
+}
+
+function extractPlatesFromCompact(raw: string): string[] {
+  const compact = compactPlate(raw);
+  const covered = fullyCoveredPlates(compact.slice(consumeLeadingStates(compact)));
+  if (covered?.length) return covered;
+  return leftmostPlates(compact);
+}
+
+function fullyCoveredPlates(body: string): string[] | null {
+  const search = (rest: string): string[] | null => {
+    rest = rest.slice(consumeLeadingStates(rest));
+    if (!rest) return [];
+    let best: string[] | null = null;
+    for (let len = 5; len <= 8; len += 1) {
+      const slice = rest.slice(0, len);
+      if (slice.length !== len || !isUsGeneralPlate(slice)) continue;
+      const tail = search(rest.slice(len));
+      if (!tail) continue;
+      const candidate = [slice, ...tail];
+      if (!best || plateScore(candidate) > plateScore(best)) best = candidate;
+    }
+    return best;
+  };
+  return search(body);
+}
+
+function leftmostPlates(compact: string): string[] {
+  const body = compact.slice(consumeLeadingStates(compact));
+  if (!body) return [];
+  if (isUsGeneralPlate(body)) return [body];
+  for (const len of [7, 6, 8, 5]) {
+    const slice = body.slice(0, len);
+    if (slice.length === len && isUsGeneralPlate(slice)) return [slice, ...leftmostPlates(body.slice(len))];
+  }
+  return body.length <= 1 ? [] : leftmostPlates(body.slice(1));
+}
+
+function extractPlatesFromLine(line: string): string[] {
+  const tokens = line.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  const found: string[] = [];
+  for (let start = 0; start < tokens.length; start += 1) {
+    let compact = '';
+    for (let index = start; index < tokens.length; index += 1) {
+      compact += compactPlate(tokens[index]);
+      if (compact.length > 16) break;
+      const value = plateValue(compact);
+      if (value) found.push(value);
+    }
+  }
+  found.push(...extractPlatesFromCompact(line));
+  return [...new Set(found)];
+}
+
+function evidenceSpansForPlate(value: string, words: OcrWord[]): LineWord[][] {
+  const indexed = words.map((word, index) => ({ word, index, start: 0, end: word.text.length }));
+  const spans: LineWord[][] = [];
+  for (let start = 0; start < indexed.length; start += 1) {
+    let compact = '';
+    const span: LineWord[] = [];
+    for (let end = start; end < indexed.length; end += 1) {
+      compact += compactPlate(indexed[end].word.text);
+      span.push(indexed[end]);
+      if (compact.length > 16) break;
+      if (plateValue(compact) === value) {
+        spans.push([...span]);
+        break;
+      }
+    }
+  }
+  if (spans.length) return spans;
+  return indexed
+    .filter(entry => extractPlatesFromCompact(entry.word.text).includes(value))
+    .map(entry => [entry]);
+}
+
+function licensePlateCandidates(line: WordLine, profile: string): IdentifierCandidate[] {
+  const found: IdentifierCandidate[] = [];
+  for (let start = 0; start < line.words.length; start += 1) {
+    const evidence: LineWord[] = [];
+    let compact = '';
+    for (let index = start; index < line.words.length; index += 1) {
+      compact += compactPlate(line.words[index].word.text);
+      evidence.push(line.words[index]);
+      if (compact.length > 16) break;
+      const value = plateValue(compact);
+      if (value) found.push(createCandidate('license-plate-like', value, evidence, profile));
+    }
+  }
+  for (const entry of line.words) {
+    const plates = extractPlatesFromCompact(entry.word.text);
+    if (plates.length <= 1 && plateValue(entry.word.text) === plates[0]) continue;
+    for (const plate of plates) found.push(createCandidate('license-plate-like', plate, [entry], profile));
+  }
+  return found;
+}
+
+function licensePlateCandidatesFromText(text: string, words: OcrWord[], profile: string): IdentifierCandidate[] {
+  const values = [...new Set(text.split(/\r?\n/).flatMap(extractPlatesFromLine))];
+  return values.flatMap((value) => {
+    const spans = evidenceSpansForPlate(value, words);
+    if (!spans.length) return [createCandidate('license-plate-like', value, [], profile)];
+    return spans.map(evidence => createCandidate('license-plate-like', value, evidence, profile));
+  });
+}
+
 function enabledFamilies(value: string | IdentifierCandidate['family'][] | undefined): Set<string> {
   if (Array.isArray(value)) return new Set(value);
   if (typeof value === 'string') return new Set(value.split(',').map(item => item.trim()).filter(Boolean));
@@ -120,6 +272,13 @@ function enabledFamilies(value: string | IdentifierCandidate['family'][] | undef
 }
 
 function createCandidate(family: IdentifierCandidate['family'], value: string, evidence: LineWord[], profile?: string): IdentifierCandidate {
+  if (!evidence.length) {
+    return {
+      family, value, confidence: 0, sourceWords: [],
+      boundingBox: { x: 0, y: 0, width: 0, height: 0 },
+      ...(profile ? { profile } : {}),
+    };
+  }
   const x0 = Math.min(...evidence.map(item => item.word.boundingBox.x));
   const y0 = Math.min(...evidence.map(item => item.word.boundingBox.y));
   const x1 = Math.max(...evidence.map(item => item.word.boundingBox.x + item.word.boundingBox.width));
@@ -135,13 +294,44 @@ function createCandidate(family: IdentifierCandidate['family'], value: string, e
 }
 
 function uniqueCandidates(candidates: IdentifierCandidate[]): IdentifierCandidate[] {
-  const seen = new Set<string>();
-  return candidates.filter(candidate => {
-    const key = `${candidate.family}:${candidate.value.toLowerCase()}:${candidate.sourceWords.join(',')}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const best = new Map<string, IdentifierCandidate>();
+  for (const candidate of candidates) {
+    const key = candidate.family === 'license-plate-like'
+      ? `${candidate.family}:${candidate.value.toLowerCase()}:${plateLocationKey(candidate)}`
+      : `${candidate.family}:${candidate.value.toLowerCase()}:${candidate.sourceWords.join(',')}`;
+    const current = best.get(key);
+    if (!current || betterPlateCandidate(candidate, current)) best.set(key, candidate);
+  }
+  const all = Array.from(best.values());
+  const located = new Set(
+    all.filter(candidate => candidate.family === 'license-plate-like' && boxArea(candidate) > 0)
+      .map(candidate => candidate.value.toLowerCase()),
+  );
+  return all.filter(candidate => (
+    candidate.family !== 'license-plate-like'
+    || boxArea(candidate) > 0
+    || !located.has(candidate.value.toLowerCase())
+  ));
+}
+
+function plateLocationKey(candidate: IdentifierCandidate): string {
+  if (candidate.sourceWords.length) return `w:${candidate.sourceWords.join(',')}`;
+  if (boxArea(candidate) <= 0) return 'empty';
+  const box = candidate.boundingBox;
+  return `b:${box.x.toFixed(2)}:${box.y.toFixed(2)}`;
+}
+
+function betterPlateCandidate(candidate: IdentifierCandidate, current: IdentifierCandidate): boolean {
+  const area = boxArea(candidate);
+  const currentArea = boxArea(current);
+  if (area > 0 && currentArea <= 0) return true;
+  if (area > 0 && currentArea > 0) return area < currentArea;
+  return false;
+}
+
+function boxArea(candidate: IdentifierCandidate): number {
+  const area = candidate.boundingBox.width * candidate.boundingBox.height;
+  return Number.isFinite(area) ? area : -1;
 }
 
 const normalizeConfidence = (value: number): number => Math.min(100, Math.max(0, Number.isFinite(value) ? value : 0));

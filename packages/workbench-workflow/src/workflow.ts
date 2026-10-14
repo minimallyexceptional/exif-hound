@@ -1,4 +1,5 @@
-export type NodeKind = 'image' | 'ocr' | 'provenance' | 'visual-identifiers' | 'text' | 'evidence';
+export type NodeKind = 'image' | 'all-images' | 'ocr' | 'provenance' | 'visual-identifiers' | 'text' | 'evidence';
+export type ImageInputNodeKind = 'image' | 'all-images';
 export type PortType = 'image' | 'text' | 'evidence';
 export interface Point { x: number; y: number }
 export interface WorkflowNode {
@@ -23,9 +24,10 @@ export interface WorkflowGraph {
 
 const ports: Record<NodeKind, { inputs: PortType[]; outputs: PortType[] }> = {
   image: { inputs: [], outputs: ['image'] },
-  ocr: { inputs: ['image'], outputs: ['text'] },
-  provenance: { inputs: ['image'], outputs: ['evidence'] },
-  'visual-identifiers': { inputs: ['image'], outputs: ['evidence'] },
+  'all-images': { inputs: [], outputs: ['image'] },
+  ocr: { inputs: ['image'], outputs: ['image', 'text'] },
+  provenance: { inputs: ['image'], outputs: ['image', 'evidence'] },
+  'visual-identifiers': { inputs: ['image'], outputs: ['image', 'evidence'] },
   text: { inputs: ['text'], outputs: [] },
   evidence: { inputs: ['evidence'], outputs: [] },
 };
@@ -33,6 +35,36 @@ const ports: Record<NodeKind, { inputs: PortType[]; outputs: PortType[] }> = {
 export const transformNodeTypes: readonly NodeKind[] = ['ocr', 'provenance', 'visual-identifiers'];
 
 export interface ValidationIssue { message: string; nodeId?: string; edgeId?: string }
+
+function inferPorts(graph: WorkflowGraph, edge: WorkflowEdge): WorkflowEdge {
+  const source = graph.nodes.find((node) => node.id === edge.source);
+  const target = graph.nodes.find((node) => node.id === edge.target);
+  if (!source || !target) return edge;
+  const outputs = ports[source.type].outputs;
+  const inputs = ports[target.type].inputs;
+  let sourcePort = edge.sourcePort;
+  let targetPort = edge.targetPort;
+  if (!targetPort) {
+    targetPort = sourcePort && inputs.includes(sourcePort as PortType) ? sourcePort : inputs.length === 1 ? inputs[0] : targetPort;
+  }
+  if (!sourcePort) {
+    sourcePort = targetPort && outputs.includes(targetPort as PortType) ? targetPort : outputs.length === 1 ? outputs[0] : sourcePort;
+  }
+  return { ...edge, sourcePort, targetPort };
+}
+
+function flipEdge(edge: WorkflowEdge): WorkflowEdge {
+  return { ...edge, source: edge.target, sourcePort: edge.targetPort, target: edge.source, targetPort: edge.sourcePort };
+}
+
+export function normalizeConnection(graph: WorkflowGraph, edge: WorkflowEdge): WorkflowEdge | ValidationIssue {
+  const forward = inferPorts(graph, edge);
+  const forwardIssue = validateConnection(graph, forward);
+  if (!forwardIssue) return forward;
+  const backward = inferPorts(graph, flipEdge(edge));
+  const backwardIssue = validateConnection(graph, backward);
+  return backwardIssue ? forwardIssue : backward;
+}
 
 export function validateConnection(graph: WorkflowGraph, edge: WorkflowEdge): ValidationIssue | null {
   const source = graph.nodes.find((node) => node.id === edge.source);
@@ -68,24 +100,52 @@ export function validateGraph(graph: WorkflowGraph): ValidationIssue[] {
   return issues;
 }
 
+export function resolveImageInputRoot(graph: WorkflowGraph, nodeId: string, seen = new Set<string>()): WorkflowNode | null {
+  if (seen.has(nodeId)) return null;
+  seen.add(nodeId);
+  const node = graph.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node) return null;
+  if (node.type === 'image' || node.type === 'all-images') return node;
+  const inbound = graph.edges.find((edge) => edge.target === nodeId && edge.targetPort === 'image');
+  if (!inbound) return null;
+  return resolveImageInputRoot(graph, inbound.source, seen);
+}
+
 export function validateRunnableWorkflow(graph: WorkflowGraph): ValidationIssue[] {
   const issues = validateGraph(graph);
   if (issues.length) return issues;
   const transforms = graph.nodes.filter((node) => transformNodeTypes.includes(node.type));
   if (!transforms.length) return [{ message: 'Add an analysis transform to the workflow.' }];
+  const batchInputRoots = new Set<string>();
+  const singleImageRoots = new Set<string>();
   for (const node of transforms) {
-    const input = graph.edges.find((edge) => edge.target === node.id && edge.targetPort === 'image');
     const outputType = node.type === 'ocr' ? 'text' : 'evidence';
     const output = graph.edges.find((edge) => edge.source === node.id && edge.sourcePort === outputType);
-    const image = input && graph.nodes.find((candidate) => candidate.id === input.source);
+    const image = resolveImageInputRoot(graph, node.id);
     const resultNode = output && graph.nodes.find((candidate) => candidate.id === output.target);
-    if (!image || image.type !== 'image') issues.push({ message: 'Connect an Image node to every analysis transform.', nodeId: node.id });
-    else if (typeof image.settings.imageId !== 'number') issues.push({ message: 'Choose a project image for every connected Image node.', nodeId: image.id });
+    if (!image || (image.type !== 'image' && image.type !== 'all-images')) {
+      issues.push({ message: 'Connect an Image or All images node to every analysis transform.', nodeId: node.id });
+    } else if (image.type === 'all-images') {
+      batchInputRoots.add(image.id);
+      if (image.settings.active !== true) {
+        issues.push({ message: 'Enable the All images input or choose a project image.', nodeId: image.id });
+      }
+    } else if (typeof image.settings.imageId !== 'number') {
+      issues.push({ message: 'Choose a project image for every connected Image node.', nodeId: image.id });
+    } else {
+      singleImageRoots.add(image.id);
+    }
     const validResultType = node.type === 'ocr' ? resultNode?.type === 'text' : resultNode?.type === 'evidence';
     if (!validResultType) issues.push({
       message: node.type === 'ocr' ? 'Connect every OCR node to a Text output.' : 'Connect every forensic transform to an Evidence Report output.',
       nodeId: node.id,
     });
+  }
+  if (batchInputRoots.size > 1) {
+    issues.push({ message: 'Only one active All images input can feed this workflow.' });
+  }
+  if (batchInputRoots.size > 0 && singleImageRoots.size > 0) {
+    issues.push({ message: 'Use either Image nodes or one All images input, not both.' });
   }
   return issues;
 }
@@ -105,7 +165,7 @@ export function parseWorkflow(json: string): WorkflowGraph {
     throw new Error('Workflow file uses an unsupported format.');
   }
   for (const node of graph.nodes) {
-    if (!node || typeof node.id !== 'string' || !['image', 'ocr', 'provenance', 'visual-identifiers', 'text', 'evidence'].includes(node.type)
+    if (!node || typeof node.id !== 'string' || !['image', 'all-images', 'ocr', 'provenance', 'visual-identifiers', 'text', 'evidence'].includes(node.type)
       || typeof node.position?.x !== 'number' || typeof node.position?.y !== 'number'
       || !node.settings || typeof node.settings !== 'object') {
       throw new Error('Workflow file contains an invalid node.');

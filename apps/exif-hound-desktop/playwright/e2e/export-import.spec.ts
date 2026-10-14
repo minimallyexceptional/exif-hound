@@ -17,6 +17,7 @@ test('exports CSV through the save picker with generated content', async ({ page
   await openExport(page);
   await page.getByRole('button', { name: 'Export as CSV' }).click();
   await expect(page.getByRole('heading', { name: 'Export Data' })).toHaveCount(0);
+  await expect(page.getByText('Exported CSV')).toBeVisible();
   const saved = await page.evaluate(() => ({ options: window.__savePickerCalls[0], content: window.__lastSaveWritable.content }));
   expect(saved.options.suggestedName).toMatch(/^exif-hound-data-/);
   expect(JSON.stringify(saved.options.types)).toContain('text/csv');
@@ -27,6 +28,7 @@ test('exports JSON with the parsed metadata', async ({ page }) => {
   await openExport(page);
   await page.getByRole('button', { name: 'Export as JSON' }).click();
   await expect(page.getByRole('heading', { name: 'Export Data' })).toHaveCount(0);
+  await expect(page.getByText('Exported JSON')).toBeVisible();
   const saved = await page.evaluate(() => ({ options: window.__savePickerCalls[0], content: window.__lastSaveWritable.content }));
   expect(JSON.stringify(saved.options.types)).toContain('application/json');
   const parsed = JSON.parse(saved.content);
@@ -56,7 +58,10 @@ test.describe('Import', () => {
   test('imports a valid KML file and adds its placemarks to the map', async ({ page }) => {
     await page.locator('#fileInput').setInputFiles(FIXTURE_IMPORT.kml.path);
     await expect(page.getByRole('heading', { name: 'Import Location Data' })).toHaveCount(0);
-    await expect(page.locator('.leaflet-overlay-pane path').nth(1)).toBeAttached();
+    await expect(page.getByText('Imported KML overlay')).toBeVisible();
+    await expect(page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane circle')).toHaveCount(2, {
+      timeout: 15_000,
+    });
   });
 
   test('supports switching to CSV format', async ({ page }) => {

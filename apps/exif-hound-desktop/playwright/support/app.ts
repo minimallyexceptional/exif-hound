@@ -187,7 +187,7 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     await page.getByLabel('Project name').fill('E2E Project');
     await page.getByRole('button', { name: 'Choose parent folder' }).click();
     await page.getByRole('button', { name: 'Create project' }).click();
-    await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'EXIF Hound', exact: true })).toBeVisible();
   }
 }
 
@@ -212,7 +212,7 @@ export async function closeSettings(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toHaveCount(0);
 }
 
-export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Workbench'): Promise<void> {
+export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Workbench' | 'Evidence'): Promise<void> {
   await page.locator('header').getByRole('button', { name, exact: true }).click();
 }
 

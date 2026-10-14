@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an idea for Exif Hound
+description: Suggest an idea for EXIF Hound
 labels: ['enhancement']
 body:
   - type: textarea
@@ -13,7 +13,7 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: What would you like to happen? Keep in mind Exif Hound is local-first — no server-side processing of image data.
+      description: What would you like to happen? Keep in mind EXIF Hound is local-first — no server-side processing of image data.
     validations:
       required: true
   - type: textarea

@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, Suspense, lazy } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
+import { ExifErrorBoundary } from './components/ExifErrorBoundary';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
 import ExportModal from './components/ExportModal';
@@ -9,37 +10,42 @@ import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
-import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { Button } from './components/common/Button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { SidebarRailToggle } from './components/common/SidebarRailToggle';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
-import { getUpdateService } from './services/updater';
+import { getUpdateService } from 'exif-hound-core';
+import { notify } from './feedback';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
-import { ProjectStore } from 'investigation-archive';
-import type { OcrMiddleware, OcrProgress, OcrResult } from 'ocr-middleware';
-import { getArchiveDbProvider } from './services/investigationArchive/sqlJsEngine';
-import { TauriFsPort } from './services/investigationArchive/TauriFsPort';
+import { ProjectStore } from 'exif-hound-core';
+import type { OcrMiddleware, OcrProgress, OcrResult } from 'exif-hound-core';
+import { getArchiveDbProvider } from 'exif-hound-core';
+import { TauriFsPort } from 'exif-hound-core';
 import {
   toImageData,
   toStoreImage,
   toStoreState,
   fromStoreState,
   serializeExif,
+  applyPersistedExif,
   ProjectViewMode,
-} from './services/investigationArchive/ProjectSessionService';
-import { pickProjectFolder, resolveProjectFolder } from './services/investigationArchive/projectDialogs';
+  applyGpsPlaceNamePatches,
+  type GpsPlaceNamePatch,
+} from 'exif-hound-core';
+import { pickProjectFolder, resolveProjectFolder } from 'exif-hound-core';
 import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';
 import {
   InvalidProjectError,
   ProjectExistsError,
   UnsupportedSchemaError,
-} from 'investigation-archive';
+} from 'exif-hound-core';
 
 // Lazy load heavy components for code splitting
 const Map = lazy(() => import('./components/Map'));
 const Workbench = lazy(() => import('./components/Workbench'));
+const EvidenceView = lazy(() => import('./components/evidence/EvidenceView'));
 
 type ViewMode = ProjectViewMode;
 
@@ -58,7 +64,6 @@ function App() {
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
-  const [importError, setImportError] = useState<string | null>(null);
   // Entrypoint gate: the splash screen owns the window until a project is
   // created or opened. Everything downstream is unchanged.
   const [sessionState, setSessionState] = useState<'splash' | 'active'>('splash');
@@ -89,10 +94,14 @@ function App() {
       } else {
         savedImage = await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
       }
-      setImages(current => current.map(image => image.id === imageData.id ? { ...image, projectImageId: savedImage.id } : image));
+      setImages(current =>
+        current.map(image =>
+          image.id === imageData.id ? applyPersistedExif(image, savedImage) : image
+        )
+      );
     } catch (error) {
       if (__DEV__) console.error('Failed to persist image to project:', error);
-      setImportError(
+      notify.error(
         error instanceof Error && error.message
           ? `Project write failed: ${error.message}`
           : 'Project write failed — the image is shown but not saved to the project.'
@@ -118,6 +127,10 @@ function App() {
     }
   };
 
+  const handleImagesPatched = useCallback((patches: GpsPlaceNamePatch[]) => {
+    setImages((current) => applyGpsPlaceNamePatches(current, patches));
+  }, []);
+
   const handleSelectImage = (image: ImageData) => {
     setSelectedImageId(image.id);
   };
@@ -134,7 +147,7 @@ function App() {
   ): Promise<OcrResult> => {
     if (!projectStoreRef.current) throw new Error('Save this image to the project before running OCR.');
     const file = image;
-    ocrMiddlewareRef.current ??= import('ocr-middleware').then(({ OcrMiddleware: Middleware, PaddleOcrWorkerFactory }) => new Middleware({
+    ocrMiddlewareRef.current ??= import('exif-hound-core').then(({ OcrMiddleware: Middleware, PaddleOcrWorkerFactory }) => new Middleware({
       workerFactory: new PaddleOcrWorkerFactory({
         // These are app-root assets. Resolving against href would append them to
         // any nested pathname and could fetch the SPA fallback HTML as a model TAR.
@@ -167,6 +180,7 @@ function App() {
       )
       .catch((error: unknown) => {
         if (__DEV__) console.error('Failed to persist session state:', error);
+        notify.error('Could not save session state.');
       });
   };
 
@@ -188,7 +202,6 @@ function App() {
   };
 
   const handleImport = async (data: ImportData) => {
-    setImportError(null);
     try {
       const result = await parseImportData(data);
       setImportedData(result);
@@ -211,15 +224,16 @@ function App() {
           }
         }
       }
+      if (result.type === 'csv' && result.points) {
+        const count = result.points.length;
+        notify.success(count === 1 ? 'Imported 1 CSV point' : `Imported ${count} CSV points`);
+      } else {
+        notify.success('Imported KML overlay');
+      }
     } catch (error) {
       if (__DEV__) {
         console.error('Failed to import data:', error);
       }
-      setImportError(
-        error instanceof Error && error.message
-          ? `Failed to import location data: ${error.message}`
-          : 'Failed to import location data. Check the file format and try again.'
-      );
       throw error;
     }
   };
@@ -232,10 +246,15 @@ function App() {
         return 'Image Details';
       case 'workbench':
         return 'Workbench';
+      case 'evidence':
+        return 'Evidence';
       default:
         return '';
     }
   };
+
+  const hidePageSubheader = viewMode === 'workbench';
+  const isFullBleedView = viewMode === 'workbench' || viewMode === 'evidence';
 
   const renderMap = () => (
     <Suspense fallback={<div className="flex items-center justify-center h-full">
@@ -274,6 +293,22 @@ function App() {
               images={images}
               store={activeProjectStore}
               recognizeImage={handleRecognizeImage}
+            />
+          </Suspense>
+        );
+      case 'evidence':
+        return (
+          <Suspense fallback={<div className="flex h-full items-center justify-center text-app-white">Loading Evidence...</div>}>
+            <EvidenceView
+              key={activeProjectStore?.rootPath ?? 'no-project'}
+              images={images}
+              store={activeProjectStore}
+              onSelectImage={handleSelectImage}
+              onImagesPatched={handleImagesPatched}
+              onNavigateToMap={() => {
+                setViewMode('map');
+                persistSessionState({ viewMode: 'map' });
+              }}
             />
           </Suspense>
         );
@@ -318,7 +353,6 @@ function App() {
     setImages(records.map(toImageData));
     setSelectedImageId(null);
     setImportedData(undefined);
-    setImportError(null);
     const restoredState = fromStoreState(state);
     setShowRoute(restoredState.showRoute);
     setViewMode(restoredState.viewMode);
@@ -335,7 +369,7 @@ function App() {
         })
         .catch((error: unknown) => {
           if (__DEV__) console.error('Failed to re-parse imported data:', error);
-          setImportError('Previously imported overlay data could not be restored.');
+          notify.error('Previously imported overlay data could not be restored.');
         });
     }
   };
@@ -421,7 +455,7 @@ function App() {
           showSidebar={images.length > 0 && viewMode === 'map'}
           isGalleryCollapsed={isGalleryCollapsed}
           onToggleGallery={toggleGallery}
-          isEmpty={images.length === 0 && viewMode !== 'workbench'}
+          isEmpty={images.length === 0 && !isFullBleedView}
           sidebar={
             <ImageGallery 
               images={images}
@@ -430,24 +464,10 @@ function App() {
             />
           }
         >
-          <div className={`flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30 ${viewMode === 'workbench' ? 'hidden' : ''}`}>
+          <div className={`flex-none px-4 sm:px-6 py-4 border-b border-app-gray-light/30 ${hidePageSubheader ? 'hidden' : ''}`}>
             <h2 className="text-lg font-semibold text-app-white">
               {getViewTitle()}
             </h2>
-            {importError && (
-              <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 flex items-start gap-2 text-sm" role="alert">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">{importError}</div>
-                <button
-                  type="button"
-                  onClick={() => setImportError(null)}
-                  className="p-0.5 rounded hover:bg-red-500/10"
-                  aria-label="Dismiss import error"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
           </div>
           <div className="flex-1 min-h-0">
             {renderView()}
@@ -455,46 +475,44 @@ function App() {
         </AppLayout>
 
         {/* EXIF Panel - Only show for map and list views */}
-        {selectedImage && viewMode !== 'workbench' && (
+        {selectedImage && !isFullBleedView && (
           <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
             isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
           }`}>
             <div className="flex flex-col h-full">
               {/* Panel Header */}
-              <div 
+              <SidebarRailToggle
+                expanded={!isExifPanelCollapsed}
+                onToggle={() => setIsExifPanelCollapsed((prev) => !prev)}
+                screenReaderLabel="Image details panel"
+                testId="exif-details-toggle"
                 className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
-                  isExifPanelCollapsed 
-                    ? 'h-12 justify-center hover:bg-app-gray-light/30' 
+                  isExifPanelCollapsed
+                    ? 'h-12 justify-center hover:bg-app-gray-light/30'
                     : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
                 }`}
-                onClick={() => setIsExifPanelCollapsed(prev => !prev)}
-              >
-                {!isExifPanelCollapsed && (
+                leading={!isExifPanelCollapsed ? (
                   <h2 className="font-medium text-app-white flex items-center gap-2">
                     Details
                   </h2>
+                ) : undefined}
+                chevron={isExifPanelCollapsed ? (
+                  <ChevronLeft className="w-7 h-7 text-app-white" />
+                ) : (
+                  <ChevronRight className="w-7 h-7 text-app-white" />
                 )}
-                <Button
-                  variant="ghost"
-                  className="w-8 h-8 !p-0"
-                  aria-label={isExifPanelCollapsed ? "Expand details" : "Collapse details"}
-                >
-                  {isExifPanelCollapsed ? (
-                    <ChevronLeft className="w-7 h-7 text-app-white" />
-                  ) : (
-                    <ChevronRight className="w-7 h-7 text-app-white" />
-                  )}
-                </Button>
-              </div>
+              />
 
               {/* Panel Content */}
               <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
                 isExifPanelCollapsed ? 'w-0' : 'w-full'
               }`}>
-                <ExifPanel 
-                  image={selectedImage} 
-                  onShowComparison={handleShowComparison}
-                />
+                <ExifErrorBoundary key={selectedImage.id}>
+                  <ExifPanel
+                    image={selectedImage}
+                    onShowComparison={handleShowComparison}
+                  />
+                </ExifErrorBoundary>
               </div>
             </div>
           </div>
@@ -529,7 +547,7 @@ function App() {
         />
       )}
       {/*
-        Auto-update discovery + update dialogs. Fully silent unless an
+        Auto-update discovery + update toasts. Fully silent unless an
         update is found or the user initiates an action; loaded images are
         in-memory only, so any loaded content counts as unsaved work and
         the updater will confirm before restarting.

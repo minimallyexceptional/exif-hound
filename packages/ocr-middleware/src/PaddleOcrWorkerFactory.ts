@@ -1,8 +1,9 @@
 import type { PaddleOCRCreateOptions } from '@paddleocr/paddleocr-js';
 import type { OcrProgress, OcrWorker, OcrWorkerFactory, OcrWorkerResult } from './OcrWorker';
 
-interface PaddleLine { text: string; score: number }
-interface PaddlePrediction { items?: PaddleLine[] }
+type PaddlePoint = [number, number] | { x: number; y: number };
+interface PaddleLine { text: string; score: number; poly?: PaddlePoint[] }
+interface PaddlePrediction { items?: PaddleLine[]; image?: { width: number; height: number } }
 interface PaddleEngine {
   predict(image: unknown): Promise<PaddlePrediction[]>;
   dispose(): Promise<void>;
@@ -60,13 +61,16 @@ class PaddleOcrWorker implements OcrWorker {
     this.onProgress({ status: 'Detecting and recognizing text with PaddleOCR', progress: 0.3 });
     const [prediction] = await this.engine.predict(asImageBlob(image));
     const lines = (prediction?.items ?? []).filter(item => item.text.trim());
+    const imageSize = prediction?.image;
     this.onProgress({ status: 'PaddleOCR recognition complete', progress: 1 });
     return {
       text: lines.map(item => item.text.trim()).join('\n'),
       confidence: lines.length ? normalizeConfidence(lines.reduce((sum, item) => sum + item.score, 0) / lines.length * 100) : 0,
-      // PaddleOCR returns line polygons, not word boxes. Keep the common optional
-      // word list empty rather than suggesting line boxes are word coordinates.
-      words: [],
+      words: lines.flatMap(item => {
+        const boundingBox = normalizedBoxFromPoly(item.poly, imageSize?.width, imageSize?.height);
+        if (!boundingBox) return [];
+        return [{ text: item.text.trim(), confidence: normalizeConfidence(item.score * 100), boundingBox }];
+      }),
     };
   }
 
@@ -104,6 +108,29 @@ function asImageBlob(image: Blob | Uint8Array): Blob {
     : bytes[0] === 0xff && bytes[1] === 0xd8 ? 'image/jpeg'
       : bytes[0] === 0x52 && bytes[1] === 0x49 ? 'image/webp' : 'application/octet-stream';
   return new Blob([bytes.slice().buffer as ArrayBuffer], { type });
+}
+
+function normalizedBoxFromPoly(
+  poly: PaddlePoint[] | undefined,
+  imageWidth: number | undefined,
+  imageHeight: number | undefined,
+): { x: number; y: number; width: number; height: number } | null {
+  if (!poly?.length || !imageWidth || !imageHeight) return null;
+  const points = poly.map(point => Array.isArray(point) ? { x: point[0], y: point[1] } : point)
+    .filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
+  if (!points.length) return null;
+  const xs = points.map(point => point.x);
+  const ys = points.map(point => point.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const x = minX / imageWidth;
+  const y = minY / imageHeight;
+  const width = (maxX - minX) / imageWidth;
+  const height = (maxY - minY) / imageHeight;
+  if (![x, y, width, height].every(value => Number.isFinite(value))) return null;
+  return { x, y, width, height };
 }
 
 function normalizeConfidence(confidence: number): number {

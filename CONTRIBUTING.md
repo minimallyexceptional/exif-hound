@@ -1,6 +1,6 @@
-# Contributing to Exif Hound
+# Contributing to EXIF Hound
 
-Thanks for your interest in contributing! Exif Hound is a privacy-first desktop
+Thanks for your interest in contributing! EXIF Hound is a privacy-first desktop
 app for inspecting image metadata, mapping photo locations, and organizing
 investigations — built as a single consolidated Tauri application.
 

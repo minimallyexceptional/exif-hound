@@ -4,11 +4,9 @@ import {
   UpdateState,
   getUpdateService,
   getUpdateConfiguration,
-} from '../../services/updater';
-import { UpdateAvailableDialog } from './UpdateAvailableDialog';
-import { UpdateProgressDialog } from './UpdateProgressDialog';
+} from 'exif-hound-core';
+import { notify, UPDATE_TOAST_IDS } from '../../feedback';
 import { UpdateReadyDialog } from './UpdateReadyDialog';
-import { UpdateErrorDialog } from './UpdateErrorDialog';
 
 interface Props {
   /**
@@ -23,6 +21,28 @@ interface Props {
   enableAutomaticChecks?: boolean;
 }
 
+const UPDATER_TOAST_IDS = Object.values(UPDATE_TOAST_IDS);
+
+function dismissOtherUpdaterToasts(keep: string) {
+  for (const id of UPDATER_TOAST_IDS) {
+    if (id !== keep) notify.dismiss(id);
+  }
+}
+
+function downloadLabel(state: UpdateState): string {
+  if (state.name === 'downloading') {
+    const total = state.progress?.totalBytes;
+    const received = state.progress?.receivedBytes ?? 0;
+    if (total && total > 0) {
+      const percent = Math.min(100, Math.round((received / total) * 100));
+      return `Downloading update… ${percent}%`;
+    }
+    return 'Downloading update…';
+  }
+  if (state.name === 'installing') return 'Installing update…';
+  return 'Restarting…';
+}
+
 /**
  * Renders the update UX from the service's state machine, and owns the
  * automatic discovery schedule. Automatic check failures are invisible by
@@ -35,9 +55,8 @@ export const UpdateNotification: React.FC<Props> = ({
 }) => {
   const service = useMemo(() => serviceProp ?? getUpdateService(), [serviceProp]);
   const [state, setState] = useState<UpdateState>(service.getState());
-  // Versions the user deferred with "Later" — they stay reachable through
-  // the manual check (Settings / Help menu) but stop nagging automatically.
   const [dismissedVersions, setDismissedVersions] = useState<ReadonlySet<string>>(new Set());
+  const [confirmUnsaved, setConfirmUnsaved] = useState(false);
 
   useEffect(() => service.subscribe(setState), [service]);
 
@@ -53,41 +72,77 @@ export const UpdateNotification: React.FC<Props> = ({
   const appName = getUpdateConfiguration().appName;
   const dismissed = update !== undefined && dismissedVersions.has(update.version);
 
+  useEffect(() => {
+    if (state.name === 'available' && update && !dismissed) {
+      dismissOtherUpdaterToasts(UPDATE_TOAST_IDS.available);
+      const notes = update.notes
+        ? update.notes.split('\n').map(line => line.trim()).filter(Boolean).join(' ')
+        : undefined;
+      notify.action({
+        id: UPDATE_TOAST_IDS.available,
+        title: `${appName} ${update.version} is available.`,
+        description: notes || undefined,
+        actionLabel: `Install ${update.version}`,
+        onAction: () => {
+          void service.download().catch(() => undefined);
+        },
+        onDismiss: () => {
+          if (service.getState().name === 'available') {
+            setDismissedVersions(prev => new Set(prev).add(update.version));
+          }
+        },
+      });
+      return;
+    }
+
+    if (state.name === 'downloading' || state.name === 'installing' || state.name === 'restarting') {
+      dismissOtherUpdaterToasts(UPDATE_TOAST_IDS.progress);
+      notify.loading(downloadLabel(state), { id: UPDATE_TOAST_IDS.progress });
+      return;
+    }
+
+    if (state.name === 'ready-to-install' && update && !dismissed) {
+      dismissOtherUpdaterToasts(UPDATE_TOAST_IDS.ready);
+      notify.action({
+        id: UPDATE_TOAST_IDS.ready,
+        title: `${appName} ${update.version} has downloaded and passed its security verification.`,
+        actionLabel: 'Restart & Update',
+        onAction: () => {
+          if (hasUnsavedWork()) setConfirmUnsaved(true);
+          else void service.installAndRestart().catch(() => undefined);
+        },
+        onDismiss: () => {
+          if (service.getState().name === 'ready-to-install') {
+            setDismissedVersions(prev => new Set(prev).add(update.version));
+          }
+        },
+      });
+      return;
+    }
+
+    if (state.name === 'error' && state.errorVisible && state.error) {
+      dismissOtherUpdaterToasts(UPDATE_TOAST_IDS.error);
+      notify.error(state.error.userMessage, {
+        id: UPDATE_TOAST_IDS.error,
+        onDismiss: () => service.dismiss(),
+      });
+      return;
+    }
+
+    if (state.name === 'idle' || dismissed) {
+      for (const id of UPDATER_TOAST_IDS) notify.dismiss(id);
+    }
+  }, [appName, dismissed, hasUnsavedWork, service, state, update]);
+
+  if (!confirmUnsaved) return null;
+
   return (
-    <>
-      {state.name === 'available' && update && !dismissed && (
-        <UpdateAvailableDialog
-          update={update}
-          appName={appName}
-          downloadStarting={false}
-          onLater={() => setDismissedVersions(prev => new Set(prev).add(update.version))}
-          onDownload={() => {
-            void service.download().catch(() => undefined);
-          }}
-        />
-      )}
-
-      {(state.name === 'downloading' ||
-        state.name === 'installing' ||
-        state.name === 'restarting') && (
-        <UpdateProgressDialog phase={state.name} progress={state.progress} />
-      )}
-
-      {state.name === 'ready-to-install' && update && !dismissed && (
-        <UpdateReadyDialog
-          update={update}
-          appName={appName}
-          hasUnsavedWork={hasUnsavedWork()}
-          onRestart={() => {
-            void service.installAndRestart().catch(() => undefined);
-          }}
-          onLater={() => setDismissedVersions(prev => new Set(prev).add(update.version))}
-        />
-      )}
-
-      {state.name === 'error' && state.errorVisible && state.error && (
-        <UpdateErrorDialog error={state.error} onDismiss={() => service.dismiss()} />
-      )}
-    </>
+    <UpdateReadyDialog
+      onRestart={() => {
+        setConfirmUnsaved(false);
+        void service.installAndRestart().catch(() => undefined);
+      }}
+      onCancel={() => setConfirmUnsaved(false)}
+    />
   );
 };

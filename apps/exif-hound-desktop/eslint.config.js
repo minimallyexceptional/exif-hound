@@ -9,6 +9,7 @@ export default tseslint.config(
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
+    ignores: ['src/workers/exifWorker.ts', 'src/workers/imageProcessingWorker.ts'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -18,6 +19,17 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
+      'no-restricted-imports': ['error', {
+        paths: [
+          { name: 'investigation-archive', message: 'Import from exif-hound-core instead.' },
+          { name: 'workbench-workflow', message: 'Import from exif-hound-core instead.' },
+          { name: 'exif-middleware', message: 'Import from exif-hound-core instead.' },
+          { name: 'ocr-middleware', message: 'Import from exif-hound-core instead.' },
+          { name: 'image-processing-middleware', message: 'Import from exif-hound-core instead.' },
+          { name: 'image-forensics-middleware', message: 'Import from exif-hound-core instead.' },
+          { name: 'exifreader', message: 'Import from exif-hound-core instead.' },
+        ],
+      }],
       ...reactHooks.configs.recommended.rules,
       // New opinionated rules introduced in eslint-plugin-react-hooks v7:
       // downgrade to warn until the flagged patterns are refactored.

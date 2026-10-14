@@ -2,7 +2,7 @@
 
 ## Why
 
-Users need a direct way to support Exif Hound on GitHub from within the desktop app.
+Users need a direct way to support EXIF Hound on GitHub from within the desktop app.
 
 ## What Changes
 
@@ -11,7 +11,7 @@ Add a “Star on GitHub” action immediately below “Check for Updates” in t
 ## Capabilities
 
 ### New Capabilities
-- `github-support-link`: Users can open the Exif Hound GitHub repository from the app using a clearly labeled action below the update check.
+- `github-support-link`: Users can open the EXIF Hound GitHub repository from the app using a clearly labeled action below the update check.
 
 ### Modified Capabilities
 - None.
