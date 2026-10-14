@@ -223,8 +223,8 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                 />
                 <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
                 <span className="ml-3 text-sm font-medium text-app-white">
-                  Look up place names for GPS-tagged photos (sends coordinates to OpenStreetMap
-                  Nominatim)
+                  Look up place names for GPS-tagged photos on upload and when compiling Evidence
+                  (sends coordinates to OpenStreetMap Nominatim)
                 </span>
               </label>
             </section>

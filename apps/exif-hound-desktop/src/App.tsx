@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Suspense, lazy } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
 import ExifPanel from './components/ExifPanel';
@@ -29,7 +29,10 @@ import {
   toStoreState,
   fromStoreState,
   serializeExif,
+  applyPersistedExif,
   ProjectViewMode,
+  applyGpsPlaceNamePatches,
+  type GpsPlaceNamePatch,
 } from 'exif-hound-core';
 import { pickProjectFolder, resolveProjectFolder } from 'exif-hound-core';
 import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';
@@ -91,7 +94,11 @@ function App() {
       } else {
         savedImage = await store.addImage(args.fileName, args.bytes, args.exif, args.sourceUrl);
       }
-      setImages(current => current.map(image => image.id === imageData.id ? { ...image, projectImageId: savedImage.id } : image));
+      setImages(current =>
+        current.map(image =>
+          image.id === imageData.id ? applyPersistedExif(image, savedImage) : image
+        )
+      );
     } catch (error) {
       if (__DEV__) console.error('Failed to persist image to project:', error);
       notify.error(
@@ -119,6 +126,10 @@ function App() {
       void persistImage(imageData);
     }
   };
+
+  const handleImagesPatched = useCallback((patches: GpsPlaceNamePatch[]) => {
+    setImages((current) => applyGpsPlaceNamePatches(current, patches));
+  }, []);
 
   const handleSelectImage = (image: ImageData) => {
     setSelectedImageId(image.id);
@@ -293,6 +304,7 @@ function App() {
               images={images}
               store={activeProjectStore}
               onSelectImage={handleSelectImage}
+              onImagesPatched={handleImagesPatched}
               onNavigateToMap={() => {
                 setViewMode('map');
                 persistSessionState({ viewMode: 'map' });

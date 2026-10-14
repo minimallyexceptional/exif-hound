@@ -3,6 +3,21 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import EvidenceView from '../EvidenceView';
 import type { ProjectStore } from 'exif-hound-core';
 import type { ImageData } from '../../../types';
+import { getLocationFromCoordinates } from 'exif-hound-core';
+
+const settings = { privacySettings: { reverseGeocoding: false } };
+jest.mock('../../../context/SettingsContext', () => ({
+  useSettings: () => settings,
+}));
+jest.mock('exif-hound-core', () => {
+  const actual = jest.requireActual('exif-hound-core');
+  return {
+    ...actual,
+    getLocationFromCoordinates: jest.fn(),
+  };
+});
+const mockLookup = getLocationFromCoordinates as jest.Mock;
+
 const storeMocks = {
   listProjectOcrResults: jest.fn().mockResolvedValue([]),
   listProjectIdentifierResults: jest.fn().mockResolvedValue([]),
@@ -18,9 +33,19 @@ const image: ImageData = {
   exif: {},
 };
 
+const gpsImage: ImageData = {
+  id: 'gps-img',
+  projectImageId: 8,
+  url: 'blob:x',
+  file: { name: 'gps.jpg', type: 'image/jpeg', size: 1, lastModified: 0 },
+  exif: { latitude: 51.5, longitude: -0.12 },
+};
+
 describe('EvidenceView', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    settings.privacySettings.reverseGeocoding = false;
+    mockLookup.mockResolvedValue({ formatted: 'London', loading: false });
     storeMocks.listProjectOcrResults.mockResolvedValue([]);
     storeMocks.listProjectIdentifierResults.mockResolvedValue([]);
     storeMocks.listProjectProvenanceResults.mockResolvedValue([]);
@@ -134,5 +159,38 @@ describe('EvidenceView', () => {
     await screen.findByRole('button', { name: /Emails, 1 item/i });
     expect(screen.getByText('item')).toBeInTheDocument();
     expect(screen.queryByText('items')).not.toBeInTheDocument();
+  });
+
+  it('reports place-name patches when reverse geocoding is enabled', async () => {
+    settings.privacySettings.reverseGeocoding = true;
+    const onImagesPatched = jest.fn();
+    render(
+      <EvidenceView
+        images={[gpsImage]}
+        store={store}
+        onSelectImage={jest.fn()}
+        onImagesPatched={onImagesPatched}
+      />,
+    );
+    await screen.findByRole('button', { name: /GPS locations, 1 item/i });
+    await waitFor(() => expect(onImagesPatched).toHaveBeenCalledWith([
+      { id: 'gps-img', location: { formatted: 'London', loading: false } },
+    ]));
+    expect(mockLookup).toHaveBeenCalledWith(51.5, -0.12);
+  });
+
+  it('does not look up place names when reverse geocoding is disabled', async () => {
+    const onImagesPatched = jest.fn();
+    render(
+      <EvidenceView
+        images={[gpsImage]}
+        store={store}
+        onSelectImage={jest.fn()}
+        onImagesPatched={onImagesPatched}
+      />,
+    );
+    await screen.findByRole('button', { name: /GPS locations, 1 item/i });
+    expect(mockLookup).not.toHaveBeenCalled();
+    expect(onImagesPatched).not.toHaveBeenCalled();
   });
 });
