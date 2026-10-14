@@ -38,7 +38,7 @@ in release notes unless they prefer to remain anonymous.
   GitHub Pages.
 - **Network access.** The only outbound traffic is the update feed, map tile
   requests, and (when the user enables it in Settings) reverse geocoding of GPS
-  coordinates via OpenStreetMap Nominatim.
+  coordinates via OpenStreetMap Nominatim (on upload and when compiling Evidence).
 
 ## Signing key compromise
 

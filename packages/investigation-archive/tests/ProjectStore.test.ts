@@ -166,6 +166,21 @@ describe('image write-through', () => {
     expect(beach.sourceUrl).toBeNull();
   });
 
+  it('returns EXIF parsed from stored JSON, not the input object', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'ExifRoundTrip', '2.7.0');
+    const input = { latitude: 51.5, cameraMake: 'TestCam' };
+    const saved = await store.addImage('beach.jpg', jpegBytes, input);
+
+    expect(saved.exif).not.toBe(input);
+    expect(saved.exif).toEqual({ latitude: 51.5, cameraMake: 'TestCam' });
+
+    input.latitude = 0;
+    expect(saved.exif).toEqual({ latitude: 51.5, cameraMake: 'TestCam' });
+
+    const listed = await store.listImages();
+    expect(listed[0].exif).toEqual({ latitude: 51.5, cameraMake: 'TestCam' });
+  });
+
   it('deduplicates colliding filenames on disk', async () => {
     const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'Dupes', '2.7.0');
     const first = await store.addImage('beach.jpg', jpegBytes, {});
