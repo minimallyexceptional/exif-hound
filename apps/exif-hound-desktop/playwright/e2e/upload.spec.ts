@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { bootApp, closeSettings, openSettings, uploadImages } from '../support/app';
+import { bootApp, closeSettings, openExifDetailsPanel, openSettings, uploadImages } from '../support/app';
 import { FIXTURE_IMAGES, FIXTURE_IMPORT } from '../support/fixtures';
 
 test('accepts an image through the header file input and selects it', async ({ page }) => {
   await bootApp(page);
   await uploadImages(page, [FIXTURE_IMAGES.fullExif]);
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.fullExif.name}"]`)).toBeAttached();
+  await openExifDetailsPanel(page);
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
   await expect(page.getByText(FIXTURE_IMAGES.fullExif.name, { exact: true })).toBeVisible();
   await expect(page.getByText('Imported 1 image')).toBeVisible();
@@ -16,6 +17,7 @@ test('handles multiple files at once', async ({ page }) => {
   await uploadImages(page, [FIXTURE_IMAGES.fullExif, FIXTURE_IMAGES.noGps]);
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.fullExif.name}"]`)).toBeAttached();
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.noGps.name}"]`)).toBeAttached();
+  await openExifDetailsPanel(page);
   await expect(page.getByText('Model', { exact: true }).locator('..').locator('div').last()).toHaveText('Hound-2');
   await expect(page.locator('header').getByRole('button', { name: 'Investigation' })).toHaveCount(0);
   await expect(page.getByText('Imported 2 images')).toBeVisible();
@@ -32,6 +34,7 @@ test('survives a corrupt image without crashing and shows unavailable metadata',
   await bootApp(page);
   await uploadImages(page, [FIXTURE_IMAGES.corrupt]);
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.corrupt.name}"]`)).toBeAttached();
+  await openExifDetailsPanel(page);
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
   for (const label of ['Make', 'Model', 'Exposure Time', 'F-Number', 'ISO']) {
     await expect(page.getByText(label, { exact: true }).locator('..').locator('div').last()).toHaveText('N/A');

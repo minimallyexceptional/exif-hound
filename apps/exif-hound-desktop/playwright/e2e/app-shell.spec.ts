@@ -19,6 +19,14 @@ test('shows the empty state before any images are uploaded', async ({ page }) =>
   await expect(page.locator('header').getByRole('button', { name: 'Workbench', exact: true })).toBeVisible();
 });
 
+test('renders a collapsed EXIF details panel on the empty map', async ({ page }) => {
+  await bootApp(page);
+  const detailsToggle = page.getByTestId('exif-details-toggle');
+  await expect(detailsToggle).toBeVisible();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('heading', { name: 'Details', exact: true })).toHaveCount(0);
+});
+
 test('boots on the light theme when seeded', async ({ page }) => {
   await bootApp(page, { localStorage: { theme: 'light' } });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');

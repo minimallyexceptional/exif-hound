@@ -208,6 +208,14 @@ export async function uploadImages(page: Page, fixtures: ExifFixture[]): Promise
   }
 }
 
+export async function openExifDetailsPanel(page: Page): Promise<void> {
+  const detailsToggle = page.getByTestId('exif-details-toggle');
+  await expect(detailsToggle).toBeVisible();
+  if ((await detailsToggle.getAttribute('aria-expanded')) === 'true') return;
+  await detailsToggle.click();
+  await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
+}
+
 export async function openSettings(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();

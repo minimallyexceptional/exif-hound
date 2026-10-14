@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { bootApp, uploadImages } from '../support/app';
+import { bootApp, openExifDetailsPanel, uploadImages } from '../support/app';
 import { FIXTURE_IMAGES } from '../support/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await bootApp(page);
   await uploadImages(page, [FIXTURE_IMAGES.fullExif]);
+  await openExifDetailsPanel(page);
 });
 
 test('opens the comparison modal from the details panel', async ({ page }) => {

@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ImageData, ImportData } from './types';
 import ImageUploader from './components/ImageUploader';
-import ExifPanel from './components/ExifPanel';
-import { ExifErrorBoundary } from './components/ExifErrorBoundary';
+import { ExifDetailsPanel } from './components/ExifDetailsPanel';
 import ImageGallery from './components/ImageGallery';
 import ImageList from './components/ImageList';
 import ExportModal from './components/ExportModal';
@@ -10,8 +9,6 @@ import ImportModal from './components/ImportModal';
 import Settings from './components/Settings';
 import { AppHeader } from './components/AppHeader';
 import { AppLayout } from './components/AppLayout';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { SidebarRailToggle } from './components/common/SidebarRailToggle';
 import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, type ImportedData, type ImportedPoint } from 'exif-hound-core';
 import { UpdateNotification } from './components/updater/UpdateNotification';
@@ -67,7 +64,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isGalleryCollapsed, setIsGalleryCollapsed] = useState(false);
   const [gallerySelectionRequest, setGallerySelectionRequest] = useState(0);
-  const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(false);
+  const [isExifPanelCollapsed, setIsExifPanelCollapsed] = useState(true);
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [comparisonImage, setComparisonImage] = useState<ImageData | null>(null);
   const [importedData, setImportedData] = useState<ImportedData | undefined>(undefined);
@@ -140,6 +137,7 @@ function App() {
 
   const handleSelectImage = (image: ImageData) => {
     setSelectedImageId(image.id);
+    setIsExifPanelCollapsed(false);
   };
 
   const handleGalleryImageSelect = (imageData: ImageData) => {
@@ -525,48 +523,14 @@ function App() {
           </div>
         </AppLayout>
 
-        {/* EXIF Panel - Only show for map and list views */}
-        {selectedImage && !isFullBleedView && (
-          <div className={`flex-none bg-app-gray border-l border-app-gray-light/30 transition-all duration-300 ease-in-out ${
-            isExifPanelCollapsed ? 'w-12' : 'w-[400px]'
-          }`}>
-            <div className="flex flex-col h-full">
-              {/* Panel Header */}
-              <SidebarRailToggle
-                expanded={!isExifPanelCollapsed}
-                onToggle={() => setIsExifPanelCollapsed((prev) => !prev)}
-                screenReaderLabel="Image details panel"
-                testId="exif-details-toggle"
-                className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
-                  isExifPanelCollapsed
-                    ? 'h-12 justify-center hover:bg-app-gray-light/30'
-                    : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
-                }`}
-                leading={!isExifPanelCollapsed ? (
-                  <h2 className="font-medium text-app-white flex items-center gap-2">
-                    Details
-                  </h2>
-                ) : undefined}
-                chevron={isExifPanelCollapsed ? (
-                  <ChevronLeft className="w-7 h-7 text-app-white" />
-                ) : (
-                  <ChevronRight className="w-7 h-7 text-app-white" />
-                )}
-              />
-
-              {/* Panel Content */}
-              <div className={`flex-1 overflow-hidden transition-all duration-300 ease-in-out ${
-                isExifPanelCollapsed ? 'w-0' : 'w-full'
-              }`}>
-                <ExifErrorBoundary key={selectedImage.id}>
-                  <ExifPanel
-                    image={selectedImage}
-                    onShowComparison={handleShowComparison}
-                  />
-                </ExifErrorBoundary>
-              </div>
-            </div>
-          </div>
+        {/* EXIF panel stays in the map/list layout, collapsed until an image is selected. */}
+        {!isFullBleedView && (
+          <ExifDetailsPanel
+            collapsed={isExifPanelCollapsed}
+            image={selectedImage}
+            onToggle={() => setIsExifPanelCollapsed((prev) => !prev)}
+            onShowComparison={handleShowComparison}
+          />
         )}
       </div>
 

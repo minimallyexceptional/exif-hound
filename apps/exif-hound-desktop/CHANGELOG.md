@@ -11,6 +11,7 @@ All notable changes to the EXIF Hound desktop app are documented in this file.
 
 ### Fixed
 
+- **EXIF panel:** The map/list details rail renders collapsed on first load and opens when an image is selected, instead of mounting only after a gallery click.
 - **Linux updates:** In-app updates work for `.deb` and `.rpm` installs. The release feed publishes signed `linux-*-deb` and `linux-*-rpm` manifest entries, and mismatched updater formats surface a clear GitHub Releases fallback message.
 
 ### Added

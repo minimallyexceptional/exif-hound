@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { bootApp, uploadImages } from '../support/app';
+import { bootApp, openExifDetailsPanel, uploadImages } from '../support/app';
 import { FIXTURE_IMAGES, FULL_EXIF_EXPECTED as EXPECTED } from '../support/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await bootApp(page);
   await uploadImages(page, [FIXTURE_IMAGES.fullExif]);
+  await openExifDetailsPanel(page);
 });
 
 test('shows the parsed metadata for the selected image', async ({ page }) => {
@@ -25,6 +26,7 @@ test('shows the parsed metadata for the selected image', async ({ page }) => {
 test('shows no-location placeholders for images without GPS', async ({ page }) => {
   await bootApp(page);
   await uploadImages(page, [FIXTURE_IMAGES.noGps]);
+  await openExifDetailsPanel(page);
   await expect(page.locator(`[data-testid="gallery-item"][data-file-name="${FIXTURE_IMAGES.noGps.name}"]`)).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { name: FIXTURE_IMAGES.noGps.name })).toBeVisible();
   await expect(page.getByText('No location data available')).toBeVisible();

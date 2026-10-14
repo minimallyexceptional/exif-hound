@@ -38,7 +38,18 @@ test('collapses and expands the gallery sidebar', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
 });
 
+test('opens the collapsed EXIF details panel when a gallery image is clicked', async ({ page }) => {
+  const detailsToggle = page.getByTestId('exif-details-toggle');
+  await expect(detailsToggle).toBeVisible();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('heading', { name: 'Details', exact: true })).toHaveCount(0);
+  await page.locator(`[data-testid="gallery-item"][data-file-name="${FIXTURE_IMAGES.fullExif.name}"]`).click();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
+});
+
 test('collapses and expands the EXIF details panel', async ({ page }) => {
+  await page.locator(`[data-testid="gallery-item"][data-file-name="${FIXTURE_IMAGES.fullExif.name}"]`).click();
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
   const detailsToggle = page.getByTestId('exif-details-toggle');
   await detailsToggle.click();
