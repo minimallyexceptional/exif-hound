@@ -22,14 +22,11 @@ describe('EXIF Worker Performance', () => {
   });
 
   test('should create worker for EXIF parsing', () => {
-    const worker = new Worker('../../workers/exifWorker.ts', { 
-      type: 'module' 
+    const worker = new Worker('exif-hound-core/workers/exif', {
+      type: 'module',
     });
-    
-    expect(Worker).toHaveBeenCalledWith(
-      '../../workers/exifWorker.ts',
-      { type: 'module' }
-    );
+
+    expect(Worker).toHaveBeenCalledWith('exif-hound-core/workers/exif', { type: 'module' });
     expect(worker).toBeDefined();
   });
 

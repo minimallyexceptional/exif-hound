@@ -4,7 +4,7 @@ import { Camera, Clock, MapPin, Info, Settings2, RotateCcw } from 'lucide-react'
 import { VirtualDataGrid } from './common/VirtualDataGrid';
 import { formatFileSize } from '../utils/formatters';
 import { formatShortDateTime } from '../utils/date';
-import { ImportedPoint } from '../utils/importData';
+import type { ImportedPoint } from 'exif-hound-core';
 import { ProjectImage } from './ProjectImage';
 import { formatFileType } from '../utils/formatFileType';
 

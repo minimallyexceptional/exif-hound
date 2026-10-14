@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { FileJson, FileSpreadsheet, Loader } from 'lucide-react';
 import { ImageData } from '../types';
-import { generateCsv } from '../utils/csvExport';
-import { generateJson } from '../utils/jsonExport';
+import { generateCsv, generateJson } from 'exif-hound-core';
 import { saveJsonFile, saveCsvFile } from '../utils/fileSystem';
 import { redactGpsFromExif } from '../utils/exifRedaction';
 import { Modal } from './common/Modal';

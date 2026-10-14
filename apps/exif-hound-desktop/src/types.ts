@@ -1,4 +1,4 @@
-import { LocationData } from './utils/geocoding';
+import type { LocationData } from 'exif-hound-core';
 
 export interface ExifData {
   latitude?: number | null;

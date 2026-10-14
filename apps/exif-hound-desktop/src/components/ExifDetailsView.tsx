@@ -3,7 +3,7 @@ import { ImageData } from '../types';
 import { ImageIcon, Images, FileText, MapPin, Clock, Camera } from 'lucide-react';
 import { Button } from './common/Button';
 import { formatDateTime } from '../utils/date';
-import { formatShortLocation } from '../utils/geocoding';
+import { formatShortLocation } from 'exif-hound-core';
 import { ProjectImage } from './ProjectImage';
 import { formatFileType } from '../utils/formatFileType';
 

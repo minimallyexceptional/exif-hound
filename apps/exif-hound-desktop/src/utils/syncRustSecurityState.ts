@@ -1,5 +1,5 @@
 import type { MapSettings } from '../types';
-import { getRecentProjects } from './recentProjects';
+import { getRecentProjects } from 'exif-hound-core';
 import {
   hostFromTileTemplate,
   syncCustomTileHosts,

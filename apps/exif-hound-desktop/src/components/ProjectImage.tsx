@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ImageData } from '../types';
-import type { ImportedPoint } from '../utils/importData';
+import type { ImportedPoint } from 'exif-hound-core';
 import { RemoteImagePlaceholder } from './RemoteImagePlaceholder';
 import { useRemoteImageLoaded } from '../context/RemoteImageContext';
 

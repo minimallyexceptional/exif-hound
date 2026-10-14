@@ -4,7 +4,7 @@ import {
   getLocationFromCoordinates,
   LocationData,
   __setIsTauriEnvironmentForTests,
-} from '../../utils/geocoding';
+} from 'exif-hound-core';
 
 const mockTauriFetch = jest.fn();
 

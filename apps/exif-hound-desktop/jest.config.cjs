@@ -12,6 +12,8 @@ module.exports = {
     }]
   },
   moduleNameMapper: {
+    '^exif-hound-core/workers/exif$': '<rootDir>/../../packages/exif-hound-core/src/workers/exif.ts',
+    '^exif-hound-core/workers/image-processing$': '<rootDir>/../../packages/exif-hound-core/src/workers/image-processing.ts',
     '^exif-hound-core/desktop$': '<rootDir>/../../packages/exif-hound-core/dist/desktop.cjs',
     '^exif-hound-core$': '<rootDir>/../../packages/exif-hound-core/dist/index.cjs',
     '\\?worker&url$': '<rootDir>/src/__mocks__/fileMock.cjs',

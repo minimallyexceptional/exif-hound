@@ -12,16 +12,6 @@ const renderUploader = (onImageUpload: jest.Mock) =>
     </SettingsProvider>
   );
 
-// Mock the EXIF worker
-jest.mock('../../workers/exifWorker', () => ({
-  __esModule: true,
-  default: class MockExifWorker {
-    postMessage = jest.fn();
-    addEventListener = jest.fn();
-    terminate = jest.fn();
-  }
-}));
-
 // Mock useExifData hook
 jest.mock('../../hooks/useExifData');
 const mockUseExifData = useExifData as jest.MockedFunction<typeof useExifData>;

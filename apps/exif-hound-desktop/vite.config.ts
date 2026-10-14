@@ -127,8 +127,22 @@ export default defineConfig({
   resolve: {
     dedupe: ['leaflet'],
     alias: [
-      { find: 'exif-hound-core/desktop', replacement: path.join(packagesDir, 'exif-hound-core/dist/desktop.js') },
-      { find: 'exif-hound-core', replacement: path.join(packagesDir, 'exif-hound-core/dist/index.js') },
+      {
+        find: /^exif-hound-core\/workers\/exif$/,
+        replacement: path.join(packagesDir, 'exif-hound-core/src/workers/exif.ts'),
+      },
+      {
+        find: /^exif-hound-core\/workers\/image-processing$/,
+        replacement: path.join(packagesDir, 'exif-hound-core/src/workers/image-processing.ts'),
+      },
+      {
+        find: /^exif-hound-core\/desktop$/,
+        replacement: path.join(packagesDir, 'exif-hound-core/dist/desktop.js'),
+      },
+      {
+        find: /^exif-hound-core$/,
+        replacement: path.join(packagesDir, 'exif-hound-core/dist/index.js'),
+      },
       { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') },
       { find: 'image-processing-middleware', replacement: path.join(packagesDir, 'image-processing-middleware/dist') },
     ],

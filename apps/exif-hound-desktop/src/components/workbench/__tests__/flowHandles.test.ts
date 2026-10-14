@@ -1,5 +1,5 @@
 import type { WorkflowGraph } from 'exif-hound-core';
-import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from '../flowHandles';
+import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from 'exif-hound-core';
 
 const graph: WorkflowGraph = {
   formatVersion: 1,

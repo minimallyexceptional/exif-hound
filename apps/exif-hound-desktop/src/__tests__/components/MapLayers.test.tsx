@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import L from 'leaflet';
 import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import { MapLayers } from '../../components/Map/components/layers/MapLayers';
-import { ImportedData } from '../../utils/importData';
+import type { ImportedData } from 'exif-hound-core';
 
 // The <GeoJSON> mock records every remount so the test can assert that a new
 // KML import actually replaces the layer's features.

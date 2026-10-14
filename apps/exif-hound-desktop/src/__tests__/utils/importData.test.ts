@@ -2,7 +2,7 @@
 // (toGeoJSON round-trip, eachLayer), which the global jsdom mock can't provide.
 jest.unmock('leaflet');
 
-import { parseImportData, looksLikeKml, ImportedData } from '../../utils/importData';
+import { parseImportData, looksLikeKml, type ImportedData } from 'exif-hound-core';
 import L from 'leaflet';
 import type { FeatureCollection, Geometry } from 'geojson';
 

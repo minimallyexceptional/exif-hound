@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { Button } from './common/Button';
 import { ImportData } from '../types';
-import { looksLikeKml } from '../utils/importData';
+import { looksLikeKml } from 'exif-hound-core';
 
 interface Props {
   onClose: () => void;

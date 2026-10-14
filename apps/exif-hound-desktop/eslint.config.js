@@ -9,7 +9,6 @@ export default tseslint.config(
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
-    ignores: ['src/workers/exifWorker.ts', 'src/workers/imageProcessingWorker.ts'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,

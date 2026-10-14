@@ -1,5 +1,5 @@
 import { createDesktopCore, type ExifHoundCore } from 'exif-hound-core';
-import workerUrl from '../workers/imageProcessingWorker?worker&url';
+import workerUrl from 'exif-hound-core/workers/image-processing?worker&url';
 import { getArchiveDbProvider } from './archiveDbProvider';
 
 export function bootstrapCore(): ExifHoundCore {

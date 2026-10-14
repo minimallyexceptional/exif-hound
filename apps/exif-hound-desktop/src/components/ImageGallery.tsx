@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
 import { Camera } from 'lucide-react';
-import { ImportedPoint } from '../utils/importData';
+import type { ImportedPoint } from 'exif-hound-core';
 import { ProjectImage } from './ProjectImage';
 
 interface Props {

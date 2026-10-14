@@ -4,8 +4,6 @@ import '@testing-library/jest-dom';
 import App from '../../App';
 import { ThemeProvider } from '../../context/ThemeContext';
 import { SettingsProvider } from '../../context/SettingsContext';
-import { TauriProvider } from '../../context/TauriContext';
-
 // Mock Tauri
 window.__TAURI__ = {
   fs: {},
@@ -26,11 +24,7 @@ jest.mock('../../components/FullExifView', () => ({
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <ThemeProvider>
-      <SettingsProvider>
-        <TauriProvider>
-          {ui}
-        </TauriProvider>
-      </SettingsProvider>
+      <SettingsProvider>{ui}</SettingsProvider>
     </ThemeProvider>
   );
 };

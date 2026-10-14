@@ -1,5 +1,5 @@
-import { configureImageProcessingWorker, preprocessImage } from '../utils/preprocessImage';
-import workerUrl from '../workers/imageProcessingWorker?worker&url';
+import { configureImageProcessingWorker, preprocessImage } from 'exif-hound-core';
+import workerUrl from 'exif-hound-core/workers/image-processing?worker&url';
 
 configureImageProcessingWorker(workerUrl);
 import { OcrMiddleware, PaddleOcrWorkerFactory } from 'exif-hound-core';

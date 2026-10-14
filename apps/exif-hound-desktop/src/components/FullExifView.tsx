@@ -17,7 +17,7 @@ import type { ExpandedTags } from 'exif-hound-core';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
 import { formatDateTime, formatDateOnly } from '../utils/date';
-import { formatLocation } from '../utils/geocoding';
+import { formatLocation } from 'exif-hound-core';
 import { formatFileType } from '../utils/formatFileType';
 import {
   formatExifTagForCopy,

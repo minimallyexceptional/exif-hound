@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Map from '../index';
 import { ImageData } from '../../../types';
-import { ImportedPoint } from '../../../utils/importData';
+import type { ImportedPoint } from 'exif-hound-core';
 
 // Mock the components that are used in the Map component
 jest.mock('../components/layers/MapLayers', () => ({

@@ -3,7 +3,7 @@ import { TileLayer, Circle, useMap, GeoJSON } from 'react-leaflet';
 import { ProxiedTileLayer } from './ProxiedTileLayer';
 import { useSettings } from '../../../../context/SettingsContext';
 import { MAP_STYLES } from '../../../../constants/mapStyles';
-import { ImportedPoint, ImportedData } from '../../../../utils/importData';
+import type { ImportedPoint, ImportedData } from 'exif-hound-core';
 import L from 'leaflet';
 import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 

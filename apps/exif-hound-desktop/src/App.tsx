@@ -13,7 +13,7 @@ import { AppLayout } from './components/AppLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SidebarRailToggle } from './components/common/SidebarRailToggle';
 import { ImageComparison } from './components/ImageComparison';
-import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
+import { parseImportData, type ImportedData, type ImportedPoint } from 'exif-hound-core';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from 'exif-hound-core';
 import { notify } from './feedback';
@@ -37,7 +37,7 @@ import {
   applyGpsPlaceNamePatches,
 } from 'exif-hound-core';
 import { pickProjectFolder, resolveProjectFolder } from 'exif-hound-core';
-import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';
+import { recordRecentProject, getRecentProjects, type RecentProject } from 'exif-hound-core';
 import {
   InvalidProjectError,
   ProjectExistsError,

@@ -24,7 +24,6 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@mapbox/leaflet-omnivore": "^0.3.4",
     "@tanstack/react-virtual": "^3.14.0",
     "@tauri-apps/api": "^2.12.1",
     "@tauri-apps/plugin-dialog": "^2.8.1",

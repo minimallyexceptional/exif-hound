@@ -5,7 +5,7 @@ import { fixCoordinates } from '../../../../utils/diagnostics';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Marker, Circle, useMap } from 'react-leaflet';
 import { ImagePopup } from './ImagePopup';
-import { ImportedPoint } from '../../../../utils/importData';
+import type { ImportedPoint } from 'exif-hound-core';
 
 interface ImageClusterProps {
   images: (ImageData | ImportedPoint)[];

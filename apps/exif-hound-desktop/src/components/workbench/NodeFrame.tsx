@@ -4,7 +4,7 @@ import { Handle, Position } from '@xyflow/react';
 import { FileOutput, FileSearch, Image, Images, ScanSearch, ScanText, Text } from 'lucide-react';
 import type { NodeKind, WorkbenchFlowData } from 'exif-hound-core';
 import type { LucideIcon } from 'lucide-react';
-import { sourceHandleId, targetHandleId } from './flowHandles';
+import { sourceHandleId, targetHandleId } from 'exif-hound-core';
 import { portColor, portHandleClass } from './portStyle';
 
 export type { WorkbenchFlowData };

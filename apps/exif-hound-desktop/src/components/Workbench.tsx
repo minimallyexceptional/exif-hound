@@ -23,7 +23,7 @@ import TextFlowNode from './workbench/TextFlowNode';
 import EvidenceFlowNode from './workbench/EvidenceFlowNode';
 import type { WorkbenchFlowData } from './workbench/NodeFrame';
 import { WorkbenchEligibleImageCountContext } from './workbench/WorkbenchEligibleImageCountContext';
-import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from './workbench/flowHandles';
+import { isFlowConnectionAllowed, portFromHandle, sourceHandleId, targetHandleId } from 'exif-hound-core';
 import { portEdgeStyle } from './workbench/portStyle';
 import { notify } from '../feedback';
 import {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, FolderOpen } from 'lucide-react';
 import { Button } from './common/Button';
 import Logomark from './common/Logomark';
-import { RecentProject } from '../utils/recentProjects';
+import type { RecentProject } from 'exif-hound-core';
 import { APP_DISPLAY_NAME } from '../constants/brand';
 
 interface SplashScreenProps {

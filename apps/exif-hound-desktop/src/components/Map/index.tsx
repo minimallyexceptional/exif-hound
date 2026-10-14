@@ -11,7 +11,7 @@ import { MapZoomHandler } from './components/controls/MapZoomHandler';
 import { useMapCenter } from './hooks/useMapCenter';
 import { useMapImages } from './hooks/useMapImages';
 import { MapErrorBoundary } from './components/MapErrorBoundary';
-import { ImportedPoint, ImportedData } from '../../utils/importData';
+import type { ImportedPoint, ImportedData } from 'exif-hound-core';
 import ReticleLayer from './components/layers/ReticleLayer';
 
 // Lazy load CSS imports only when Map component is loaded

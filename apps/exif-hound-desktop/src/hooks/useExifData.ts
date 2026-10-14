@@ -1,11 +1,9 @@
 import { ExifData } from '../types';
 import { ExifMetadata } from 'exif-hound-core';
 import { fixCoordinates } from '../utils/diagnostics';
-import exifWorkerUrl from '../workers/exifWorker?worker&url';
-import { convertMetadataToExifData } from '../utils/exifUtils';
-import type { ExifWorkerMessage, ExifWorkerResponse } from '../workers/exifWorker';
-
-import { getLocationFromCoordinates } from '../utils/geocoding';
+import exifWorkerUrl from 'exif-hound-core/workers/exif?worker&url';
+import { convertMetadataToExifData, getLocationFromCoordinates } from 'exif-hound-core';
+import type { ExifWorkerMessage, ExifWorkerResponse } from 'exif-hound-core/workers/exif';
 
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
