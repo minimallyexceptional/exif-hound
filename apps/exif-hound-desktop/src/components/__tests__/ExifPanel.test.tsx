@@ -56,8 +56,12 @@ describe('ExifPanel', () => {
     renderPanel();
 
     expect(screen.getByRole('img', { name: 'Selected' })).toBeInTheDocument();
+    expect(screen.getByTestId('exif-sidebar-chrome')).toHaveClass('bg-app-dark');
+    expect(screen.getByTestId('exif-sidebar-preview')).toHaveClass('w-full');
     expect(screen.getByText('shot.jpg')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Compare with EXIF Thumbnail' })).toBeInTheDocument();
+    const preview = screen.getByRole('img', { name: 'Selected' });
+    const compare = screen.getByRole('button', { name: 'Compare with EXIF Thumbnail' });
+    expect(preview.compareDocumentPosition(compare) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'View All EXIF Data' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Back to Details' })).not.toBeInTheDocument();
 

@@ -30,9 +30,9 @@ export function ExifDetailsPanel({
           onToggle={onToggle}
           screenReaderLabel="Image details panel"
           testId="exif-details-toggle"
-          className={`flex items-center border-b border-app-gray-light/30 transition-colors cursor-pointer ${
+          className={`flex items-center bg-app-dark transition-colors cursor-pointer ${
             collapsed
-              ? 'h-12 justify-center hover:bg-app-gray-light/30'
+              ? 'h-12 justify-center border-b border-app-gray-light/40 hover:bg-app-gray-light/30'
               : 'h-12 px-4 justify-between hover:bg-app-gray-light/30'
           }`}
           leading={!collapsed ? (
