@@ -24,7 +24,7 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
   const selectedStyle = MAP_STYLES.find(style => style.id === (mapSettings?.selectedStyle || defaultLayer)) || MAP_STYLES[0];
   
   // Use custom tiles if enabled, otherwise use selected style
-  const customTilesEnabled = Boolean(mapSettings?.customTiles?.enabled);
+  const customTilesEnabled = mapSettings?.customTiles?.enabled === true;
   const tileConfig = customTilesEnabled
     ? {
         url: mapSettings!.customTiles.url,

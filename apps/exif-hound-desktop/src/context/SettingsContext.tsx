@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { MapSettings, PrivacySettings } from '../types';
+import { normalizeMapSettings } from '../utils/normalizeMapSettings';
 import { readJsonStorage, writeJsonStorage } from '../utils/settingsStorage';
 
 export interface AppPreferences {
@@ -23,14 +24,6 @@ const defaultAppPreferences: AppPreferences = {
   automaticUpdateChecks: true,
 };
 
-const defaultMapSettings: MapSettings = {
-  selectedStyle: 'osm-standard',
-  customTiles: {
-    enabled: false,
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-  }
-};
-
 const defaultPrivacySettings: PrivacySettings = {
   reverseGeocoding: false,
 };
@@ -47,14 +40,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const [mapSettings, setMapSettings] = useState<MapSettings>(() => {
     const savedSettings = readJsonStorage<Partial<MapSettings>>('mapSettings', {});
-    return {
-      ...defaultMapSettings,
-      ...savedSettings,
-      customTiles: {
-        ...defaultMapSettings.customTiles,
-        ...(savedSettings.customTiles || {}),
-      },
-    };
+    return normalizeMapSettings(savedSettings);
   });
 
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() =>
