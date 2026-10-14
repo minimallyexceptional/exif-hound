@@ -34,8 +34,9 @@ test('selects a map style and persists it to localStorage', async ({ page }) => 
 
 test('toggles the custom tile server and persists the URL', async ({ page }) => {
   const url = 'https://{s}.tiles.example.org/{z}/{x}/{y}.png';
-  await page.locator('input[type="checkbox"]').check({ force: true });
-  await page.locator('input[type="text"]').fill(url);
+  const mapSection = page.getByRole('heading', { name: 'Map Settings' }).locator('..').locator('..');
+  await mapSection.locator('input[type="checkbox"]').check({ force: true });
+  await mapSection.locator('input[type="text"]').fill(url);
   const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('mapSettings')!));
   expect(settings.customTiles.enabled).toBe(true);
   expect(settings.customTiles.url).toContain('tiles.example.org');
