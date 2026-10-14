@@ -115,6 +115,17 @@ function parseKmlToLayer(text: string): L.GeoJSON {
 
 export interface ImportedPoint extends ImageData {
   hasImage: boolean;
+  /** HTTPS URL from CSV import; bytes are not fetched until the user opts in. */
+  pendingRemoteUrl?: string;
+}
+
+function isHttpsImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim());
+    return parsed.protocol === 'https:' && parsed.hostname.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export interface ImportedData {
@@ -156,12 +167,14 @@ export function parseImportData(data: { type: 'kml' | 'csv', data: string }): Pr
             return;
           }
           
-          const imageUrl = row['url'] || row['image url'];
+          const rawUrl = (row['url'] || row['image url'] || '').trim();
+          const remoteUrl = rawUrl && isHttpsImageUrl(rawUrl) ? rawUrl : '';
           
           validImages.push({
             id: Math.random().toString(36).substr(2, 9),
-            url: imageUrl || '',
-            hasImage: !!imageUrl,
+            url: '',
+            pendingRemoteUrl: remoteUrl || undefined,
+            hasImage: false,
             file: {
               name: row['file name'] || `Imported Point ${index + 1}`,
               type: row['file type'] || '',

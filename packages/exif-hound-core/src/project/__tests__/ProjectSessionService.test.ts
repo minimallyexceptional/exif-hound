@@ -10,6 +10,7 @@ import {
   applyPersistedExif,
 } from '../ProjectSessionService';
 import type { ImageData } from '../../types/imageData';
+import type { ImportedPoint } from '../../importExport/importData';
 
 function fakeFile(name: string, bytes: Uint8Array): File {
   return new File([bytes as unknown as BlobPart], name, { type: 'image/png' });
@@ -47,11 +48,24 @@ describe('toStoreImage', () => {
     expect(out.exif).toEqual({ latitude: 51.5 });
   });
 
+  it('does not persist blob object URLs as sourceUrl after materialization', () => {
+    const image: ImportedPoint = {
+      id: '1',
+      url: 'blob:http://localhost/abc',
+      hasImage: true,
+      file: { name: 'a.jpg', type: 'image/jpeg', size: 1, lastModified: 0 },
+      exif: {},
+    };
+    const out = toStoreImage(image);
+    expect(out.sourceUrl).toBeNull();
+  });
+
   it('serializes an imported point entry without bytes and with sourceUrl', () => {
     const image = {
       id: 'p',
-      url: 'https://example.com/a.jpg',
-      hasImage: true,
+      url: '',
+      pendingRemoteUrl: 'https://example.com/a.jpg',
+      hasImage: false,
       file: { name: 'Imported Point 1', type: 'text/csv', size: 0, lastModified: 0 },
       exif: { latitude: 2, longitude: 3 },
     } as unknown as ImageData;
@@ -93,8 +107,9 @@ describe('toImageData', () => {
       sourceUrl: 'https://example.com/a.jpg',
     };
     const image = toImageData(record) as ImageData & { hasImage?: boolean };
-    expect(image.url).toBe('https://example.com/a.jpg');
-    expect(image.hasImage).toBe(true);
+    expect(image.url).toBe('');
+    expect((image as { pendingRemoteUrl?: string }).pendingRemoteUrl).toBe('https://example.com/a.jpg');
+    expect(image.hasImage).toBe(false);
     expect(image.exif).toEqual({ latitude: 3 });
   });
 

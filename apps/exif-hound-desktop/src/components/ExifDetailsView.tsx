@@ -4,6 +4,7 @@ import { ImageIcon, Images, FileText, MapPin, Clock, Camera } from 'lucide-react
 import { Button } from './common/Button';
 import { formatDateTime } from '../utils/date';
 import { formatShortLocation } from '../utils/geocoding';
+import { ProjectImage } from './ProjectImage';
 import { formatFileType } from '../utils/formatFileType';
 
 interface Props {
@@ -31,10 +32,11 @@ export function ExifDetailsView({ image, onViewFullExif, onShowComparison }: Pro
           <div className="flex gap-4">
             <div className="flex-none w-32 h-32">
               <div className="relative w-full h-full rounded-lg overflow-hidden border border-app-gray-light/30">
-                <img 
-                  src={image.url} 
-                  alt="Selected" 
-                  className="w-full h-full object-cover"
+                <ProjectImage
+                  image={image}
+                  alt="Selected"
+                  className="w-full h-full"
+                  imgClassName="w-full h-full object-cover"
                 />
               </div>
             </div>

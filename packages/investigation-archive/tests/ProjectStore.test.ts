@@ -200,6 +200,20 @@ describe('image write-through', () => {
     expect(images[0].sourceUrl).toBe('https://example.com/1.jpg');
   });
 
+  it('materializeImageBytes writes bytes and clears sourceUrl', async () => {
+    const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'Hydrate', '2.7.0');
+    const point = await store.addImage('Imported Point 1', null, { latitude: 1 }, 'https://example.com/1.jpg');
+    const hydrated = await store.materializeImageBytes(point.id, jpegBytes);
+    expect(hydrated.hasImage).toBe(true);
+    expect(hydrated.sourceUrl).toBeNull();
+    expect(hydrated.bytes).toEqual(jpegBytes);
+    const reopened = await ProjectStore.open({ dbProvider, fs }, '/projects/Hydrate');
+    const [image] = await reopened.listImages();
+    expect(image.hasImage).toBe(true);
+    expect(image.sourceUrl).toBeNull();
+    expect(image.bytes).toEqual(jpegBytes);
+  });
+
   it('appends OCR results against their stable image ID and returns the latest result', async () => {
     const store = await ProjectStore.create({ dbProvider, fs }, '/projects', 'OcrResults', '2.7.0');
     const image = await store.addImage('text.png', pngBytes, {});

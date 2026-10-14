@@ -61,4 +61,3 @@ test('shows GitHub star and sponsor actions side by side in About', async ({ pag
   expect(sponsorBox!.x).toBeGreaterThan(starBox!.x);
   expect(Math.abs(sponsorBox!.y - starBox!.y)).toBeLessThan(8);
 });
-

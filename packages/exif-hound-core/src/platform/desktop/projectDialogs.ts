@@ -24,13 +24,16 @@ async function pickFolderTauri(title: string): Promise<string | null> {
     recursive: true,
     title,
   });
-  return typeof picked === 'string' ? resolveProjectFolder(picked) : null;
+  return typeof picked === 'string' ? resolveProjectFolder(picked, true) : null;
 }
 
 /** Canonicalize a selected or recent folder and scope its complete tree. */
-export async function resolveProjectFolder(path: string): Promise<string> {
+export async function resolveProjectFolder(
+  path: string,
+  pickedInDialog = false,
+): Promise<string> {
   if (!isTauriEnvironment()) throw new Error(NOT_TAURI_MESSAGE);
-  return invoke<string>('resolve_project_folder', { path });
+  return invoke<string>('resolve_project_folder', { path, pickedInDialog });
 }
 
 /** Pick the parent folder for a new project. Null when cancelled. */

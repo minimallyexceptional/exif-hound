@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TileLayer, Circle, useMap, GeoJSON } from 'react-leaflet';
+import { ProxiedTileLayer } from './ProxiedTileLayer';
 import { useSettings } from '../../../../context/SettingsContext';
 import { MAP_STYLES } from '../../../../constants/mapStyles';
 import { ImportedPoint, ImportedData } from '../../../../utils/importData';
@@ -23,12 +24,14 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
   const selectedStyle = MAP_STYLES.find(style => style.id === (mapSettings?.selectedStyle || defaultLayer)) || MAP_STYLES[0];
   
   // Use custom tiles if enabled, otherwise use selected style
-  const tileConfig = mapSettings?.customTiles?.enabled
+  const customTilesEnabled = Boolean(mapSettings?.customTiles?.enabled);
+  const tileConfig = customTilesEnabled
     ? {
-        url: mapSettings.customTiles.url,
+        url: mapSettings!.customTiles.url,
         attribution: '&copy; Custom Tile Server'
       }
     : selectedStyle;
+  const tileSubdomains = tileConfig.url.includes('{s}') ? ['a', 'b', 'c'] : [];
 
   const renderCSVData = (data: ImportedPoint[]) => {
     return data.map((point, index) => {
@@ -99,15 +102,23 @@ export const MapLayers: React.FC<MapLayersProps> = ({ defaultLayer, csvData = []
 
   return (
     <>
-      <TileLayer
-        url={tileConfig.url}
-        attribution={tileConfig.attribution}
-        maxZoom={19}
-        minZoom={0}
-        subdomains={tileConfig.url.includes('{s}') ? ['a', 'b', 'c'] : []}
-        detectRetina={true}
-        crossOrigin=""
-      />
+      {customTilesEnabled ? (
+        <ProxiedTileLayer
+          url={tileConfig.url}
+          attribution={tileConfig.attribution}
+          subdomains={tileSubdomains}
+        />
+      ) : (
+        <TileLayer
+          url={tileConfig.url}
+          attribution={tileConfig.attribution}
+          maxZoom={19}
+          minZoom={0}
+          subdomains={tileSubdomains}
+          detectRetina={true}
+          crossOrigin=""
+        />
+      )}
       {csvData && renderCSVData(csvData)}
       {kmlGeoJSON && (
         <GeoJSON

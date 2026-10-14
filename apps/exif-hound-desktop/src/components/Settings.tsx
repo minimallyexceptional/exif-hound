@@ -5,11 +5,13 @@ import { openExternalUrl } from '../utils/openExternalUrl';
 import previewCustomTiles from '../assets/map-previews/custom-tiles.svg';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
+import { getUpdateConfiguration } from 'exif-hound-core';
 import { MAP_STYLES } from '../constants/mapStyles';
 import { GITHUB_REPOSITORY_URL, GITHUB_SPONSORS_URL } from '../constants/github';
 import { APP_DISPLAY_NAME } from '../constants/brand';
 import { useUpdateControl } from './updater/useUpdateControl';
 import { UpdateStateName, UpdateErrorCode } from 'exif-hound-core';
+import { readAllowedRemoteHosts, revokeRemoteHost } from '../utils/remoteImages';
 
 interface Props {
   onClose: () => void;
@@ -44,9 +46,24 @@ function renderUpdateStatus(
 
 const Settings: React.FC<Props> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
-  const { mapSettings, updateMapSettings, privacySettings, updatePrivacySettings } = useSettings();
+  const {
+    mapSettings,
+    updateMapSettings,
+    appPreferences,
+    updateAppPreferences,
+    privacySettings,
+    updatePrivacySettings,
+  } = useSettings();
+  const updateConfig = getUpdateConfiguration();
   const [appVersion, setAppVersion] = useState('…');
+  const [allowedRemoteHosts, setAllowedRemoteHosts] = useState<string[]>(() => [
+    ...readAllowedRemoteHosts(),
+  ]);
   const update = useUpdateControl();
+
+  const refreshAllowedRemoteHosts = () => {
+    setAllowedRemoteHosts([...readAllowedRemoteHosts()]);
+  };
 
   const handleStarOnGitHub = () => {
     void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
@@ -206,27 +223,79 @@ const Settings: React.FC<Props> = ({ onClose }) => {
             </section>
 
             <section className="glass-panel rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-app-white mb-2">Privacy</h2>
-              <p className="text-app-accent-dim mb-6 text-sm">
-                EXIF analysis stays on your device. Network use is limited to map tiles, optional
-                place-name lookup, and update checks.
-              </p>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacySettings.reverseGeocoding}
-                  onChange={(e) =>
-                    updatePrivacySettings({ reverseGeocoding: e.target.checked })
-                  }
-                  className="sr-only peer"
-                  data-testid="privacy-reverse-geocoding"
-                />
-                <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
-                <span className="ml-3 text-sm font-medium text-app-white">
-                  Look up place names for GPS-tagged photos on upload and when compiling Evidence
-                  (sends coordinates to OpenStreetMap Nominatim)
-                </span>
-              </label>
+              <h2 className="text-xl font-semibold text-app-white mb-6">Privacy</h2>
+              <div className="space-y-4 text-app-accent-dim text-sm">
+                <p>
+                  Local-first: no image data leaves your device unless you use an optional network feature below.
+                </p>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>
+                    <span className="text-app-white">Map tiles</span> — Built-in styles load from OpenStreetMap-family hosts in the webview. Custom tile servers are fetched through the desktop host for the hostname you configure (your IP is visible to that provider).
+                  </li>
+                  <li>
+                    <span className="text-app-white">Place names</span> — Optional reverse geocoding sends GPS coordinates to OpenStreetMap Nominatim via the desktop host when enabled below.
+                  </li>
+                  <li>
+                    <span className="text-app-white">Update checks</span> — Optional automatic or manual checks fetch{' '}
+                    <span className="selectable-value font-mono text-xs">{updateConfig.feedUrl}</span> over HTTPS (no investigation data is sent).
+                  </li>
+                  <li>
+                    <span className="text-app-white">Remote images</span> — CSV imports may list HTTPS image URLs; nothing is downloaded until you opt in per host (also via the desktop host).
+                  </li>
+                </ul>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacySettings.reverseGeocoding}
+                    onChange={(e) =>
+                      updatePrivacySettings({ reverseGeocoding: e.target.checked })
+                    }
+                    className="sr-only peer"
+                    data-testid="privacy-reverse-geocoding"
+                  />
+                  <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
+                  <span className="ml-3 text-sm font-medium text-app-white">
+                    Look up place names for GPS-tagged photos on upload and when compiling Evidence
+                  </span>
+                </label>
+                <div className="pt-2 border-t border-app-gray-light/30">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={appPreferences.automaticUpdateChecks}
+                      onChange={(e) => updateAppPreferences({ automaticUpdateChecks: e.target.checked })}
+                      className="sr-only peer"
+                    />
+                    <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
+                    <span className="ml-3 text-sm font-medium text-app-white">Automatic update checks</span>
+                  </label>
+                  <p className="mt-2 text-xs">
+                    When enabled, {APP_DISPLAY_NAME} checks for updates about 10 seconds after launch and every 12 hours while the app stays open. Manual checks in About always work.
+                  </p>
+                </div>
+                {allowedRemoteHosts.length > 0 && (
+                  <div className="pt-2 border-t border-app-gray-light/30 space-y-2">
+                    <p className="text-app-white text-sm">Allowed remote image hosts</p>
+                    <ul className="space-y-2">
+                      {allowedRemoteHosts.map(host => (
+                        <li key={host} className="flex items-center justify-between gap-3">
+                          <span className="selectable-value font-mono text-xs">{host}</span>
+                          <button
+                            type="button"
+                            className="text-xs text-app-accent hover:text-app-white underline"
+                            onClick={() => {
+                              revokeRemoteHost(host);
+                              refreshAllowedRemoteHosts();
+                            }}
+                          >
+                            Revoke
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </section>
 
             <section className="glass-panel rounded-lg p-6">
@@ -234,7 +303,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
               <div className="space-y-4 text-app-accent-dim">
                 <p>
                   {APP_DISPLAY_NAME} is a powerful tool for exploring and analyzing image metadata.
-                  Built with privacy in mind, all processing happens locally in your browser.
+                  Local-first: no image data leaves your device unless you enable optional network features above.
                 </p>
                 <p data-testid="app-version">Version {appVersion}</p>
 

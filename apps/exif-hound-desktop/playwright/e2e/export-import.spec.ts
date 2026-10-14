@@ -5,7 +5,7 @@ import { FIXTURE_IMAGES, FIXTURE_IMPORT } from '../support/fixtures';
 async function openExport(page: import('@playwright/test').Page) {
   await page.locator('header').getByRole('button', { name: 'Export' }).click();
   await expect(page.getByRole('heading', { name: 'Export Data' })).toBeVisible();
-  await expect(page.getByText('Export includes all metadata from 1 images')).toBeVisible();
+  await expect(page.getByText('Export includes metadata from 1 images')).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {

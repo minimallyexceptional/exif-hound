@@ -1,30 +1,25 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const NOMINATIM_ORIGIN = 'https://nominatim.openstreetmap.org';
+describe('Nominatim reverse geocoding network path', () => {
+  it('uses a Rust command instead of the HTTP plugin allowlist', () => {
+    const libRs = readFileSync(
+      join(__dirname, '../../../src-tauri/src/lib.rs'),
+      'utf8',
+    );
+    expect(libRs).toContain('fetch_nominatim_bytes');
 
-type HttpAllowEntry = string | { url?: string };
+    const capabilities = JSON.parse(
+      readFileSync(join(__dirname, '../../../src-tauri/capabilities/default.json'), 'utf8'),
+    ) as { permissions: unknown[] };
 
-function httpDefaultAllowUrls(): string[] {
-  const capabilities = JSON.parse(
-    readFileSync(join(__dirname, '../../../src-tauri/capabilities/default.json'), 'utf8')
-  ) as {
-    permissions: Array<string | { identifier?: string; allow?: HttpAllowEntry[] }>;
-  };
-
-  const httpDefault = capabilities.permissions.find(
-    (permission): permission is { identifier: string; allow: HttpAllowEntry[] } =>
-      typeof permission === 'object' && permission.identifier === 'http:default'
-  );
-
-  return (httpDefault?.allow ?? []).map(entry =>
-    typeof entry === 'string' ? entry : entry.url ?? ''
-  );
-}
-
-describe('Tauri HTTP scope for Nominatim reverse geocoding', () => {
-  it('allows Nominatim on http:default so the HTTP plugin can fetch place names', () => {
-    const urls = httpDefaultAllowUrls();
-    expect(urls.some(url => url.startsWith(NOMINATIM_ORIGIN))).toBe(true);
+    const hasHttpPlugin = capabilities.permissions.some(
+      permission =>
+        typeof permission === 'object' &&
+        permission !== null &&
+        'identifier' in permission &&
+        (permission as { identifier?: string }).identifier === 'http:default',
+    );
+    expect(hasHttpPlugin).toBe(false);
   });
 });

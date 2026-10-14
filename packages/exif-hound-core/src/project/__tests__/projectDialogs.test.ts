@@ -29,7 +29,10 @@ describe('project folder pickers', () => {
     expect(open).toHaveBeenCalledWith(
       expect.objectContaining({ directory: true, recursive: true })
     );
-    expect(invoke).toHaveBeenCalledWith('resolve_project_folder', { path: '/home/user/Picked' });
+    expect(invoke).toHaveBeenCalledWith('resolve_project_folder', {
+      path: '/home/user/Picked',
+      pickedInDialog: true,
+    });
   });
 
   it('pickProjectFolder grants recursive fs scope', async () => {
@@ -45,6 +48,7 @@ describe('project folder pickers', () => {
     await expect(pickParentFolder()).resolves.toBe('/home/user/Documents/Investigations');
     expect(invoke).toHaveBeenCalledWith('resolve_project_folder', {
       path: '/home/user\\Documents\\Investigations',
+      pickedInDialog: true,
     });
   });
 

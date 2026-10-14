@@ -102,7 +102,14 @@ const ImportModal: React.FC<Props> = ({ onClose, onImport }) => {
             {selectedFormat === 'kml' ? (
               <p>Upload a KML file containing location data. The file should include placemarks with coordinates.</p>
             ) : (
-              <p>Upload a CSV file with "latitude" and "longitude" columns. Additional columns will be imported as metadata.</p>
+              <div className="space-y-2">
+                <p>Upload a CSV file with "latitude" and "longitude" columns. Additional columns will be imported as metadata.</p>
+                <p>
+                  Optional <span className="font-mono">url</span> or <span className="font-mono">image url</span> columns may
+                  reference HTTPS image links. Those images are <strong>not</strong> downloaded automatically — you choose
+                  when (if ever) to load each host, and your IP is disclosed before loading.
+                </p>
+              </div>
             )}
           </div>
 

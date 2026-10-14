@@ -23,8 +23,16 @@ export const ImageComparison: React.FC<ImageComparisonProps> = ({ image, onClose
     const extractThumbnail = async () => {
       try {
         // Convert the file to an ArrayBuffer
-        const response = await fetch(image.url);
-        const buffer = await response.arrayBuffer();
+        let buffer: ArrayBuffer;
+        if (image.file instanceof File && image.file.size > 0) {
+          buffer = await image.file.arrayBuffer();
+        } else if (image.url.startsWith('blob:')) {
+          const response = await fetch(image.url);
+          buffer = await response.arrayBuffer();
+        } else {
+          setError('Load the image locally before comparing EXIF thumbnails.');
+          return;
+        }
         
         const tags = await core.middleware.exif.loadExifReaderTags(buffer);
         

@@ -16,13 +16,10 @@ function resolveIsTauriEnvironment(): boolean {
 }
 
 async function fetchNominatim(url: string): Promise<Response> {
-  // Do not set User-Agent here. WebKit (Linux/macOS Tauri webviews) treats it
-  // as a forbidden header and `new Request(...)` / `fetch` can throw, which
-  // is how place-name lookup failed in release builds. The HTTP plugin sends
-  // its own User-Agent; webview fetch sends the webview's.
   if (resolveIsTauriEnvironment()) {
-    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
-    return tauriFetch(url, { method: 'GET' });
+    const { invoke } = await import('@tauri-apps/api/core');
+    const bytes = await invoke<number[]>('fetch_nominatim_bytes', { url });
+    return new Response(Uint8Array.from(bytes), { status: 200 });
   }
 
   return fetch(url);

@@ -66,6 +66,12 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     // Default parent folder for bootApp's implicit project creation.
     'plugin:dialog|open': '/tmp/e2e-projects',
     resolve_project_folder: '__selected_folder__',
+    register_trusted_project_roots: null,
+    register_remote_image_hosts: null,
+    register_custom_tile_hosts: null,
+    fetch_remote_image_bytes: [],
+    fetch_map_tile_bytes: [],
+    fetch_nominatim_bytes: [],
     list_workflow_templates: [],
     save_workflow_template: null,
     ...options.commands,

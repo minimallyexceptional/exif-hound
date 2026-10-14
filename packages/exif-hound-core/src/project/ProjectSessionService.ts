@@ -72,11 +72,22 @@ export function toStoreImage(image: SessionEntry): {
   sourceUrl: string | null;
 } {
   if (isPointEntry(image)) {
+    const point = image as ImportedPoint;
+    let sourceUrl: string | null = null;
+    if (point.pendingRemoteUrl) {
+      sourceUrl = point.pendingRemoteUrl;
+    } else if (
+      point.hasImage &&
+      point.url &&
+      !point.url.startsWith('blob:')
+    ) {
+      sourceUrl = point.url;
+    }
     return {
-      fileName: image.file.name,
+      fileName: point.file.name,
       bytes: null,
-      exif: serializeExif(image.exif),
-      sourceUrl: image.url || null,
+      exif: serializeExif(point.exif),
+      sourceUrl,
     };
   }
   return {
@@ -100,8 +111,9 @@ export function toImageData(record: {
     const point: ImportedPoint = {
       id: newId(),
       projectImageId: record.id,
-      url: record.sourceUrl ?? '',
-      hasImage: !!record.sourceUrl,
+      url: record.hasImage ? (record.sourceUrl ?? '') : '',
+      pendingRemoteUrl: !record.hasImage && record.sourceUrl ? record.sourceUrl : undefined,
+      hasImage: record.hasImage,
       file: {
         name: record.fileName,
         type: 'text/csv',

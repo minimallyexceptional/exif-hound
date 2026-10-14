@@ -22,18 +22,6 @@ jest.mock('../../workers/exifWorker', () => ({
   }
 }));
 
-// Mock geocoding
-jest.mock('../../utils/geocoding', () => ({
-  getLocationFromCoordinates: jest.fn().mockImplementation(
-    () => new Promise(resolve =>
-      setTimeout(() => resolve({
-        country: 'Test Country',
-        city: 'Test City'
-      }), 50)
-    )
-  )
-}));
-
 // Mock useExifData hook
 jest.mock('../../hooks/useExifData');
 const mockUseExifData = useExifData as jest.MockedFunction<typeof useExifData>;

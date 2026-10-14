@@ -325,6 +325,56 @@ export class ProjectStore {
     };
   }
 
+  /**
+   * Persist downloaded remote image bytes and mark the record as having a local copy.
+   * Clears sourceUrl so reopening the project does not reference the remote host.
+   */
+  async materializeImageBytes(id: number, bytes: Uint8Array): Promise<ImageRecord> {
+    await this.assertHealthy();
+    const rows = await this.db.select().from(schema.images).where(eq(schema.images.id, id));
+    const row = rows[0];
+    if (!row) {
+      throw new InvalidProjectError('Image record was not found.');
+    }
+    const safeName = sanitizeImageName(row.fileName);
+    let diskPath = `${IMAGES_DIR}/${safeName}`;
+    const dot = safeName.lastIndexOf('.');
+    const stem = dot > 0 ? safeName.slice(0, dot) : safeName;
+    const ext = dot > 0 ? safeName.slice(dot) : '';
+    let counter = 1;
+    while (await this.ctx.fs.exists(joinPath(this.ctx.rootPath, diskPath))) {
+      diskPath = `${IMAGES_DIR}/${stem}-${counter}${ext}`;
+      counter += 1;
+    }
+    await this.ctx.fs.writeFile(joinPath(this.ctx.rootPath, diskPath), bytes);
+    await this.db
+      .update(schema.images)
+      .set({
+        diskPath,
+        hasImage: true,
+        sourceUrl: null,
+        exifJson: row.exifJson,
+      })
+      .where(eq(schema.images.id, id));
+    await this.flush();
+    let exif: unknown = null;
+    try {
+      exif = JSON.parse(row.exifJson);
+    } catch {
+      throw new InvalidProjectError(`Corrupt metadata for image "${row.fileName}".`);
+    }
+    return {
+      id: row.id,
+      fileName: row.fileName,
+      diskPath,
+      hasImage: true,
+      bytes: new Uint8Array(bytes),
+      exif,
+      sourceUrl: null,
+      addedAt: new Date(row.addedAt),
+    };
+  }
+
   async listImages(): Promise<ImageRecord[]> {
     await this.assertHealthy();
     const rows = await this.db.select().from(schema.images);

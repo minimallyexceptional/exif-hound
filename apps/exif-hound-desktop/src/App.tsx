@@ -17,6 +17,9 @@ import { parseImportData, ImportedData, ImportedPoint } from './utils/importData
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from 'exif-hound-core';
 import { notify } from './feedback';
+import { RemoteImageProvider } from './context/RemoteImageContext';
+import { useSettings } from './context/SettingsContext';
+import { syncRustSecurityState } from './utils/syncRustSecurityState';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'exif-hound-core';
@@ -49,6 +52,11 @@ const EvidenceView = lazy(() => import('./components/evidence/EvidenceView'));
 type ViewMode = ProjectViewMode;
 
 function App() {
+  const { appPreferences, mapSettings } = useSettings();
+
+  useEffect(() => {
+    void syncRustSecurityState(mapSettings);
+  }, [mapSettings]);
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const selectedImage = images.find((image) => image.id === selectedImageId) ?? null;
@@ -200,6 +208,39 @@ function App() {
     setShowImageComparison(true);
   };
 
+  const handleRemoteImageLoaded = async (
+    imageId: string,
+    projectImageId: number | undefined,
+    objectUrl: string,
+    blob: Blob,
+  ) => {
+    setImages(current =>
+      current.map(image => {
+        if (image.id !== imageId) return image;
+        if ('hasImage' in image) {
+          const point = image as ImportedPoint;
+          return {
+            ...point,
+            url: objectUrl,
+            hasImage: true,
+            pendingRemoteUrl: undefined,
+          };
+        }
+        return { ...image, url: objectUrl };
+      }),
+    );
+    const store = projectStoreRef.current;
+    if (store && projectImageId !== undefined) {
+      try {
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        await store.materializeImageBytes(projectImageId, bytes);
+      } catch (error) {
+        if (__DEV__) console.error('Failed to persist remote image bytes:', error);
+        notify.error('Remote image loaded but could not be saved into the project folder.');
+      }
+    }
+  };
+
   const handleImport = async (data: ImportData) => {
     try {
       const result = await parseImportData(data);
@@ -219,7 +260,11 @@ function App() {
         }
         if (result.type === 'csv' && result.points) {
           for (const point of result.points as ImportedPoint[]) {
-            await store.addImage(point.file.name, null, serializeExif(point.exif), point.url || null);
+            const remoteSource =
+              'pendingRemoteUrl' in point && point.pendingRemoteUrl
+                ? point.pendingRemoteUrl
+                : null;
+            await store.addImage(point.file.name, null, serializeExif(point.exif), remoteSource);
           }
         }
       }
@@ -317,14 +362,12 @@ function App() {
   };
 
   const describeError = (error: unknown, fallback: string): string => {
-    if (error instanceof UnsupportedSchemaError) {
-      return error.message;
-    }
-    if (error instanceof InvalidProjectError) {
-      return error.message;
-    }
-    if (error instanceof ProjectExistsError) {
-      return error.message;
+    if (
+      error instanceof UnsupportedSchemaError ||
+      error instanceof InvalidProjectError ||
+      error instanceof ProjectExistsError
+    ) {
+      return (error as Error).message;
     }
     if (error instanceof Error && error.message) return error.message;
     return fallback;
@@ -424,6 +467,7 @@ function App() {
   }
 
   return (
+    <RemoteImageProvider onLoaded={handleRemoteImageLoaded}>
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">
       <AppHeader
         imagesCount={images.length}
@@ -551,8 +595,12 @@ function App() {
         in-memory only, so any loaded content counts as unsaved work and
         the updater will confirm before restarting.
       */}
-      <UpdateNotification hasUnsavedWork={() => images.length > 0} />
+      <UpdateNotification
+        hasUnsavedWork={() => images.length > 0}
+        enableAutomaticChecks={appPreferences.automaticUpdateChecks}
+      />
     </div>
+    </RemoteImageProvider>
   );
 }
 

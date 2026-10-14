@@ -1,15 +1,16 @@
 import { ExifData } from '../types';
 import { ExifMetadata } from 'exif-hound-core';
 import { fixCoordinates } from '../utils/diagnostics';
-import { getLocationFromCoordinates } from '../utils/geocoding';
 import exifWorkerUrl from '../workers/exifWorker?worker&url';
 import { convertMetadataToExifData } from '../utils/exifUtils';
 import type { ExifWorkerMessage, ExifWorkerResponse } from '../workers/exifWorker';
 
+import { getLocationFromCoordinates } from '../utils/geocoding';
+
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
   onError?: (error: string) => void;
-  fetchLocation?: boolean; // Option to enable/disable location fetching
+  fetchLocation?: boolean;
 }
 
 let exifWorker: Worker | null = null;
