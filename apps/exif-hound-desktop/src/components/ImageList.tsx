@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Camera, Clock, MapPin, Info, Settings2
 import { formatFileSize } from '../utils/formatters';
 import { formatShortDateTime } from '../utils/date';
 import { ImportedPoint } from '../utils/importData';
+import { ProjectImage } from './ProjectImage';
 
 interface Props {
   images: (ImageData | ImportedPoint)[];
@@ -187,7 +188,7 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const imagesWithImages = useMemo(() => {
     return sortedImages.filter(image => {
       const isImportedPoint = 'hasImage' in image;
-      return isImportedPoint ? image.hasImage : true;
+      return isImportedPoint ? (image.hasImage || !!image.pendingRemoteUrl) : true;
     });
   }, [sortedImages]);
 
@@ -437,7 +438,12 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
                       className="flex items-center justify-center border-r border-app-gray-light/20"
                     >
                       <div className="w-8 h-8 rounded overflow-hidden border border-app-gray-light/30">
-                        <img src={image.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <ProjectImage
+                          image={image}
+                          alt=""
+                          className="w-full h-full"
+                          imgClassName="w-full h-full object-cover"
+                        />
                       </div>
                     </div>
                     {activeColumns.map((column, index) => renderCell(image, column, index))}

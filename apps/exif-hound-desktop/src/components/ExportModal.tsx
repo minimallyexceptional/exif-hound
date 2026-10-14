@@ -4,6 +4,7 @@ import { ImageData } from '../types';
 import { generateCsv } from '../utils/csvExport';
 import { generateJson } from '../utils/jsonExport';
 import { saveJsonFile, saveCsvFile } from '../utils/fileSystem';
+import { redactGpsFromExif } from '../utils/exifRedaction';
 import { Modal } from './common/Modal';
 import { Button } from './common/Button';
 
@@ -16,20 +17,23 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const handleExport = async (format: 'csv' | 'json') => {
+  const handleExport = async (format: 'csv' | 'json', redactGps = false) => {
     setExportError(null);
     setIsExporting(true);
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `exif-hound-data-${timestamp}`;
+    const filename = `exif-hound-data-${redactGps ? 'redacted-' : ''}${timestamp}`;
+    const payload = redactGps
+      ? images.map(image => ({ ...image, exif: redactGpsFromExif(image.exif) }))
+      : images;
     
     try {
       let success = false;
       
       if (format === 'csv') {
-        success = await saveCsvFile(generateCsv(images), filename);
+        success = await saveCsvFile(generateCsv(payload), filename);
       } else {
-        success = await saveJsonFile(generateJson(images), filename);
+        success = await saveJsonFile(generateJson(payload), filename);
       }
       
       if (success) {
@@ -80,9 +84,31 @@ const ExportModal: React.FC<Props> = ({ images, onClose }) => {
         >
           {isExporting ? 'Exporting...' : 'Export as CSV'}
         </Button>
+
+        <div className="border-t border-app-gray-light/30 pt-4 space-y-3">
+          <p className="text-xs text-app-accent-dim">
+            Redacted exports remove GPS coordinates from exported metadata only. Original project images on disk are unchanged.
+          </p>
+          <Button
+            fullWidth
+            variant="ghost"
+            onClick={() => handleExport('json', true)}
+            disabled={isExporting}
+          >
+            Export redacted JSON (no GPS fields)
+          </Button>
+          <Button
+            fullWidth
+            variant="ghost"
+            onClick={() => handleExport('csv', true)}
+            disabled={isExporting}
+          >
+            Export redacted CSV (no GPS fields)
+          </Button>
+        </div>
         
         <div className="text-xs text-app-accent-dim text-center mt-2">
-          Export includes all metadata from {images.length} images
+          Export includes metadata from {images.length} images
         </div>
       </div>
     </Modal>

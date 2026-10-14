@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Popup } from 'react-leaflet';
 import { ImageData } from '../../../../types';
 import { formatDateTime } from '../../../../utils/date';
+import { ProjectImage } from '../../../ProjectImage';
 
 interface ImagePopupProps {
   image: ImageData;
@@ -12,10 +13,11 @@ const ImagePopupComponent: React.FC<ImagePopupProps> = ({ image }) => {
     <Popup className="map-popup">
       <div className="text-app-white">
         <div className="relative aspect-video w-full overflow-hidden">
-          <img 
-            src={image.url} 
+          <ProjectImage
+            image={image}
             alt={image.file.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full"
+            imgClassName="w-full h-full object-cover"
           />
         </div>
         <div className="p-3 space-y-2">

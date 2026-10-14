@@ -120,7 +120,8 @@ export const ProjectCreateModal: React.FC<Props> = ({ onClose, onCreate }) => {
         <p className="text-xs text-app-accent-dim">
           The project folder will contain an <span className="font-mono">images/</span> directory
           and a <span className="font-mono">data/data.db</span> database. Everything you do is
-          written there as you work.
+          written there as you work. Full EXIF metadata (including GPS when present) and original
+          image bytes are stored locally in that folder.
         </p>
 
         <div className="flex justify-end gap-2">

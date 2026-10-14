@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('renders all sections', async ({ page }) => {
-  for (const section of ['Appearance', 'Map Settings', 'About']) await expect(page.getByRole('heading', { name: section, exact: true })).toBeVisible();
+  for (const section of ['Appearance', 'Map Settings', 'Privacy', 'About']) await expect(page.getByRole('heading', { name: section, exact: true })).toBeVisible();
   await expect(page.getByTestId('app-version')).toContainText(`Version ${APP_VERSION}`);
   await expect(page.getByRole('button', { name: 'Light', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Dark', exact: true })).toBeVisible();

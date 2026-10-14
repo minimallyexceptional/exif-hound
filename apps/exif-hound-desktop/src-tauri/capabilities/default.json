@@ -17,31 +17,11 @@
     "core:window:allow-set-title",
     "log:default",
     "dialog:default",
-    {
-      "identifier": "fs:allow-read-file",
-      "allow": [{ "path": "**" }]
-    },
-    {
-      "identifier": "fs:allow-write-file",
-      "allow": [{ "path": "**" }]
-    },
-    {
-      "identifier": "fs:allow-mkdir",
-      "allow": [{ "path": "**" }]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [{ "path": "**" }]
-    },
-    {
-      "identifier": "fs:allow-remove",
-      "allow": [{ "path": "**" }]
-    },
-    "http:default",
-    "http:allow-fetch",
-    "http:allow-fetch-cancel",
-    "http:allow-fetch-read-body",
-    "http:allow-fetch-send",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-remove",
     "updater:default",
     {
       "identifier": "opener:allow-open-url",
@@ -51,13 +31,6 @@
         }
       ]
     },
-    "process:default",
-    {
-      "identifier": "http:default",
-      "allow": [
-        "http://localhost:3000/api/*",
-        "https://exifhound.com/api/*"
-      ]
-    }
+    "process:default"
   ]
 }

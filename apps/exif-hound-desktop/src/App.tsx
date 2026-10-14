@@ -15,6 +15,8 @@ import { ImageComparison } from './components/ImageComparison';
 import { parseImportData, ImportedData, ImportedPoint } from './utils/importData';
 import { UpdateNotification } from './components/updater/UpdateNotification';
 import { getUpdateService } from './services/updater';
+import { RemoteImageProvider } from './context/RemoteImageContext';
+import { useSettings } from './context/SettingsContext';
 import SplashScreen from './components/SplashScreen';
 import ProjectCreateModal from './components/ProjectCreateModal';
 import { ProjectStore } from 'investigation-archive';
@@ -44,6 +46,7 @@ const Workbench = lazy(() => import('./components/Workbench'));
 type ViewMode = ProjectViewMode;
 
 function App() {
+  const { appPreferences } = useSettings();
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const selectedImage = images.find((image) => image.id === selectedImageId) ?? null;
@@ -185,6 +188,39 @@ function App() {
   const handleShowComparison = (image: ImageData) => {
     setComparisonImage(image);
     setShowImageComparison(true);
+  };
+
+  const handleRemoteImageLoaded = async (
+    imageId: string,
+    projectImageId: number | undefined,
+    objectUrl: string,
+    blob: Blob,
+  ) => {
+    setImages(current =>
+      current.map(image => {
+        if (image.id !== imageId) return image;
+        if ('hasImage' in image) {
+          const point = image as ImportedPoint;
+          return {
+            ...point,
+            url: objectUrl,
+            hasImage: true,
+            pendingRemoteUrl: undefined,
+          };
+        }
+        return { ...image, url: objectUrl };
+      }),
+    );
+    const store = projectStoreRef.current;
+    if (store && projectImageId !== undefined) {
+      try {
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        await store.materializeImageBytes(projectImageId, bytes);
+      } catch (error) {
+        if (__DEV__) console.error('Failed to persist remote image bytes:', error);
+        setImportError('Remote image loaded but could not be saved into the project folder.');
+      }
+    }
   };
 
   const handleImport = async (data: ImportData) => {
@@ -391,6 +427,7 @@ function App() {
   }
 
   return (
+    <RemoteImageProvider onLoaded={handleRemoteImageLoaded}>
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-app-black">
       <AppHeader
         imagesCount={images.length}
@@ -534,8 +571,12 @@ function App() {
         in-memory only, so any loaded content counts as unsaved work and
         the updater will confirm before restarting.
       */}
-      <UpdateNotification hasUnsavedWork={() => images.length > 0} />
+      <UpdateNotification
+        hasUnsavedWork={() => images.length > 0}
+        enableAutomaticChecks={appPreferences.automaticUpdateChecks}
+      />
     </div>
+    </RemoteImageProvider>
   );
 }
 

@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageData } from '../types';
 import { Camera } from 'lucide-react';
 import { ImportedPoint } from '../utils/importData';
+import { ProjectImage } from './ProjectImage';
 
 interface Props {
   images: (ImageData | ImportedPoint)[];
@@ -36,20 +37,11 @@ const GalleryItem = React.memo<{
       isSelected ? 'scale-[1.02]' : 'hover:scale-[1.02]'
     }`}>
       <div className="aspect-[3/2] w-full rounded-lg overflow-hidden shadow-lg">
-        <img
-          src={image.url}
+        <ProjectImage
+          image={image}
           alt={image.file.name}
-          className={`h-full w-full object-cover transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-70'}`}
-          loading="lazy"
-          onError={(e) => {
-            // Hide the image if it fails to load
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            const parent = target.parentElement;
-            if (parent) {
-              parent.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
-            }
-          }}
+          className="h-full w-full"
+          imgClassName={`h-full w-full object-cover transition-opacity duration-200 ${isSelected ? 'opacity-100' : 'opacity-70'}`}
         />
         <div className={`pointer-events-none absolute inset-0 rounded-lg ${
           isSelected 
@@ -71,7 +63,7 @@ const ImageGallery: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
   const imagesWithImages = useMemo(() => {
     return images.filter(image => {
       const isImportedPoint = 'hasImage' in image;
-      return isImportedPoint ? image.hasImage : true;
+      return isImportedPoint ? (image.hasImage || !!image.pendingRemoteUrl) : true;
     });
   }, [images]);
 

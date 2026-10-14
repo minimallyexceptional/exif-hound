@@ -49,8 +49,9 @@ describe('toStoreImage', () => {
   it('serializes an imported point entry without bytes and with sourceUrl', () => {
     const image = {
       id: 'p',
-      url: 'https://example.com/a.jpg',
-      hasImage: true,
+      url: '',
+      pendingRemoteUrl: 'https://example.com/a.jpg',
+      hasImage: false,
       file: { name: 'Imported Point 1', type: 'text/csv', size: 0, lastModified: 0 },
       exif: { latitude: 2, longitude: 3 },
     } as unknown as ImageData;
@@ -92,8 +93,9 @@ describe('toImageData', () => {
       sourceUrl: 'https://example.com/a.jpg',
     };
     const image = toImageData(record) as ImageData & { hasImage?: boolean };
-    expect(image.url).toBe('https://example.com/a.jpg');
-    expect(image.hasImage).toBe(true);
+    expect(image.url).toBe('');
+    expect((image as { pendingRemoteUrl?: string }).pendingRemoteUrl).toBe('https://example.com/a.jpg');
+    expect(image.hasImage).toBe(false);
     expect(image.exif).toEqual({ latitude: 3 });
   });
 

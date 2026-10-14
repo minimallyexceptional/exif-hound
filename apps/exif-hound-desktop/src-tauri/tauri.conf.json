@@ -21,7 +21,8 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; base-uri 'self'; connect-src 'self' ipc: http://ipc.localhost https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.openstreetmap.fr https://*.opentopomap.org https:; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.openstreetmap.fr https://*.opentopomap.org https:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
+      "devCsp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' ipc: http://ipc.localhost http://127.0.0.1:5176 http://127.0.0.1:5276 ws://127.0.0.1:5176 ws://127.0.0.1:5276; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:5176 http://127.0.0.1:5276 ws://127.0.0.1:5176 ws://127.0.0.1:5276 https:; img-src 'self' data: blob: http://127.0.0.1:5176 http://127.0.0.1:5276 https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
     }
   },
   "bundle": {

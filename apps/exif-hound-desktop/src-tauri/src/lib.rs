@@ -4,7 +4,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_http::init())
         // Auto-update support: the updater plugin verifies minisign signatures
         // against the public key baked into the Tauri config
         // before any artifact is installed. The process plugin provides relaunch.
@@ -26,7 +25,7 @@ pub fn run() {
                         .build(),
                 )?;
 
-                println!("Tauri app initialized with plugins: dialog, fs, http");
+                println!("Tauri app initialized with plugins: dialog, fs");
             }
 
             Ok(())
