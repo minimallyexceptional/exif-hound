@@ -41,7 +41,9 @@ fn fetch_https(url: &str) -> Result<Vec<u8>, String> {
 }
 
 pub fn register_trusted_project_roots(roots: Vec<String>) -> Result<(), String> {
-    let mut state = STATE.lock().map_err(|_| "Security state lock poisoned.".to_string())?;
+    let mut state = STATE
+        .lock()
+        .map_err(|_| "Security state lock poisoned.".to_string())?;
     for path in roots {
         let canonical = super::canonical_project_folder(&path)
             .map_err(|error| format!("Trusted project path could not be resolved: {error}"))?;
@@ -60,8 +62,7 @@ pub fn is_project_folder_allowed(path: &std::path::Path, picked_in_dialog: bool)
     let state = STATE.lock().ok();
     state
         .map(|state| {
-            state.trusted_recent_roots.contains(&key)
-                || state.session_dialog_roots.contains(&key)
+            state.trusted_recent_roots.contains(&key) || state.session_dialog_roots.contains(&key)
         })
         .unwrap_or(false)
 }
@@ -75,7 +76,9 @@ pub fn remember_session_dialog_root(path: &std::path::Path) {
 }
 
 pub fn register_remote_image_hosts(hosts: Vec<String>) -> Result<(), String> {
-    let mut state = STATE.lock().map_err(|_| "Security state lock poisoned.".to_string())?;
+    let mut state = STATE
+        .lock()
+        .map_err(|_| "Security state lock poisoned.".to_string())?;
     state.remote_image_hosts.clear();
     for host in hosts {
         state.remote_image_hosts.insert(normalize_host(&host));
@@ -84,7 +87,9 @@ pub fn register_remote_image_hosts(hosts: Vec<String>) -> Result<(), String> {
 }
 
 pub fn register_custom_tile_hosts(hosts: Vec<String>) -> Result<(), String> {
-    let mut state = STATE.lock().map_err(|_| "Security state lock poisoned.".to_string())?;
+    let mut state = STATE
+        .lock()
+        .map_err(|_| "Security state lock poisoned.".to_string())?;
     state.custom_tile_hosts.clear();
     for host in hosts {
         state.custom_tile_hosts.insert(normalize_host(&host));
