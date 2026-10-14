@@ -97,7 +97,7 @@ test('opening an existing project repopulates views from the database', async ({
   await entry.click();
 
   // Views repopulated from the db: both restored images, immediately ready.
-  await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'EXIF Hound', exact: true })).toBeVisible();
   for (const fixture of [FIXTURE_IMAGES.fullExif, FIXTURE_IMAGES.noGps]) {
     const item = page.locator(`[data-testid="gallery-item"][data-file-name="${fixture.name}"]`);
     await expect(item).toHaveCount(1);
@@ -132,7 +132,7 @@ test('Workbench opens the node editor and can save a machine-wide workflow templ
   await page.getByRole('tab', { name: 'Saved workflows' }).click();
   await expect(page.getByRole('heading', { name: 'Saved workflows' })).toBeVisible();
   await page.getByRole('tab', { name: 'Editor' }).click();
-  await page.getByTitle('Save reusable workflow').click();
+  await page.getByRole('button', { name: 'Save reusable workflow' }).click();
   await page.getByLabel('Workflow name').fill('Evidence starter');
   await page.getByRole('button', { name: 'Save workflow' }).click();
   await expect.poll(async () => page.evaluate(() => window.__tauriMock.calls.includes('save_workflow_template'))).toBe(true);
@@ -147,15 +147,15 @@ test('Workbench supports dragging nodes onto the canvas and connecting compatibl
   await page.getByRole('button', { name: 'Workbench' }).click();
 
   const canvas = page.locator('.react-flow__pane');
-  await page.getByRole('button', { name: 'Add Image node' }).dragTo(canvas, { targetPosition: { x: 250, y: 300 } });
-  await page.getByRole('button', { name: 'Add OCR node' }).dragTo(canvas, { targetPosition: { x: 530, y: 300 } });
-  await page.getByRole('button', { name: 'Add Text output node' }).dragTo(canvas, { targetPosition: { x: 810, y: 300 } });
+  await page.getByRole('button', { name: 'Add Image node' }).dragTo(canvas, { targetPosition: { x: 200, y: 200 } });
+  await page.getByRole('button', { name: 'Add OCR node' }).dragTo(canvas, { targetPosition: { x: 520, y: 320 } });
+  await page.getByRole('button', { name: 'Add Text output node' }).dragTo(canvas, { targetPosition: { x: 860, y: 440 } });
 
   const image = page.getByTestId('flow-node-image');
   const ocr = page.getByTestId('flow-node-ocr');
   const output = page.getByTestId('flow-node-text');
-  await image.locator('.react-flow__handle-right').dragTo(ocr.locator('.react-flow__handle-left'));
-  await ocr.locator('.react-flow__handle-right').dragTo(output.locator('.react-flow__handle-left'));
+  await image.locator('[data-handleid="out-image"]').dragTo(ocr.locator('[data-handleid="in-image"]'));
+  await ocr.locator('[data-handleid="out-text"]').dragTo(output.locator('[data-handleid="in-text"]'));
 
   await expect(page.locator('.react-flow__edge')).toHaveCount(2);
   await expect(page.getByText('Choose a project image for every connected Image node.')).toBeVisible();

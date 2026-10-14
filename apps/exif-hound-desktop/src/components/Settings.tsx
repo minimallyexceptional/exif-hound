@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { X, Moon, Sun, Map as MapIcon, Star } from 'lucide-react';
+import { X, Moon, Sun, Map as MapIcon, Star, Heart } from 'lucide-react';
 import { getVersion } from '@tauri-apps/api/app';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openExternalUrl } from '../utils/openExternalUrl';
+import previewCustomTiles from '../assets/map-previews/custom-tiles.svg';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
-import { getUpdateConfiguration } from '../services/updater';
+import { getUpdateConfiguration } from 'exif-hound-core';
 import { MAP_STYLES } from '../constants/mapStyles';
-import { GITHUB_REPOSITORY_URL } from '../constants/github';
-import { isTauriEnvironment } from '../utils/fileSystem';
+import { GITHUB_REPOSITORY_URL, GITHUB_SPONSORS_URL } from '../constants/github';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 import { useUpdateControl } from './updater/useUpdateControl';
-import { UpdateStateName, UpdateErrorCode } from '../services/updater';
+import { UpdateStateName, UpdateErrorCode } from 'exif-hound-core';
+import { readAllowedRemoteHosts, revokeRemoteHost } from '../utils/remoteImages';
 
 interface Props {
   onClose: () => void;
@@ -44,18 +46,34 @@ function renderUpdateStatus(
 
 const Settings: React.FC<Props> = ({ onClose }) => {
   const { theme, toggleTheme } = useTheme();
-  const { mapSettings, updateMapSettings, appPreferences, updateAppPreferences } = useSettings();
+  const {
+    mapSettings,
+    updateMapSettings,
+    appPreferences,
+    updateAppPreferences,
+    privacySettings,
+    updatePrivacySettings,
+  } = useSettings();
   const updateConfig = getUpdateConfiguration();
   const [appVersion, setAppVersion] = useState('…');
+  const [allowedRemoteHosts, setAllowedRemoteHosts] = useState<string[]>(() => [
+    ...readAllowedRemoteHosts(),
+  ]);
   const update = useUpdateControl();
 
+  const refreshAllowedRemoteHosts = () => {
+    setAllowedRemoteHosts([...readAllowedRemoteHosts()]);
+  };
+
   const handleStarOnGitHub = () => {
-    if (!isTauriEnvironment()) {
-      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
-      console.error('Unable to open the Exif Hound GitHub repository:', error);
+    void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+      console.error(`Unable to open the ${APP_DISPLAY_NAME} GitHub repository:`, error);
+    });
+  };
+
+  const handleSponsorOnGitHub = () => {
+    void openExternalUrl(GITHUB_SPONSORS_URL).catch((error: unknown) => {
+      console.error('Unable to open the GitHub Sponsors page:', error);
     });
   };
 
@@ -148,7 +166,11 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       }`}
                     >
                       <img
-                        src={style.preview}
+                        src={
+                          mapSettings.customTiles.enabled
+                            ? previewCustomTiles
+                            : style.preview
+                        }
                         alt={style.name}
                         className="w-full aspect-video object-cover"
                       />
@@ -191,7 +213,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                       }
                     })}
                     placeholder="Enter tile server URL (e.g., https://{s}.tile.server.org/{z}/{x}/{y}.png)"
-                    className="w-full px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light focus:outline-none focus:border-app-accent"
+                    className="app-control app-control-block !mt-0 w-full"
                   />
                   <p className="mt-2 text-xs text-app-accent-dim">
                     Supports standard map tile URL format with {'{z}'}, {'{x}'}, {'{y}'} placeholders and optional {'{s}'} for subdomains
@@ -208,16 +230,34 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                 </p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>
-                    <span className="text-app-white">Map tiles</span> — Leaflet loads raster tiles from OpenStreetMap-family hosts or a custom HTTPS tile server you configure in Map Settings (your IP is visible to that tile provider).
+                    <span className="text-app-white">Map tiles</span> — Built-in styles load from OpenStreetMap-family hosts in the webview. Custom tile servers are fetched through the desktop host for the hostname you configure (your IP is visible to that provider).
+                  </li>
+                  <li>
+                    <span className="text-app-white">Place names</span> — Optional reverse geocoding sends GPS coordinates to OpenStreetMap Nominatim via the desktop host when enabled below.
                   </li>
                   <li>
                     <span className="text-app-white">Update checks</span> — Optional automatic or manual checks fetch{' '}
                     <span className="selectable-value font-mono text-xs">{updateConfig.feedUrl}</span> over HTTPS (no investigation data is sent).
                   </li>
                   <li>
-                    <span className="text-app-white">Remote images</span> — CSV imports may list HTTPS image URLs; nothing is downloaded until you opt in per host.
+                    <span className="text-app-white">Remote images</span> — CSV imports may list HTTPS image URLs; nothing is downloaded until you opt in per host (also via the desktop host).
                   </li>
                 </ul>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacySettings.reverseGeocoding}
+                    onChange={(e) =>
+                      updatePrivacySettings({ reverseGeocoding: e.target.checked })
+                    }
+                    className="sr-only peer"
+                    data-testid="privacy-reverse-geocoding"
+                  />
+                  <div className="relative w-11 h-6 bg-app-gray-light rounded-full peer peer-checked:bg-app-accent peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent-dim peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-app-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-app-white after:border after:border-app-gray-light after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:bg-app-black"></div>
+                  <span className="ml-3 text-sm font-medium text-app-white">
+                    Look up place names for GPS-tagged photos on upload and when compiling Evidence
+                  </span>
+                </label>
                 <div className="pt-2 border-t border-app-gray-light/30">
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -230,9 +270,31 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     <span className="ml-3 text-sm font-medium text-app-white">Automatic update checks</span>
                   </label>
                   <p className="mt-2 text-xs">
-                    When enabled, Exif Hound checks for updates about 10 seconds after launch and every 12 hours while the app stays open. Manual checks in About always work.
+                    When enabled, {APP_DISPLAY_NAME} checks for updates about 10 seconds after launch and every 12 hours while the app stays open. Manual checks in About always work.
                   </p>
                 </div>
+                {allowedRemoteHosts.length > 0 && (
+                  <div className="pt-2 border-t border-app-gray-light/30 space-y-2">
+                    <p className="text-app-white text-sm">Allowed remote image hosts</p>
+                    <ul className="space-y-2">
+                      {allowedRemoteHosts.map(host => (
+                        <li key={host} className="flex items-center justify-between gap-3">
+                          <span className="selectable-value font-mono text-xs">{host}</span>
+                          <button
+                            type="button"
+                            className="text-xs text-app-accent hover:text-app-white underline"
+                            onClick={() => {
+                              revokeRemoteHost(host);
+                              refreshAllowedRemoteHosts();
+                            }}
+                          >
+                            Revoke
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -240,8 +302,8 @@ const Settings: React.FC<Props> = ({ onClose }) => {
               <h2 className="text-xl font-semibold text-app-white mb-6">About</h2>
               <div className="space-y-4 text-app-accent-dim">
                 <p>
-                  Exif Hound is a powerful tool for exploring and analyzing image metadata.
-                  Local-first: no image data leaves your device. Optional network features: map tiles, update checks, and remote images you choose to load.
+                  {APP_DISPLAY_NAME} is a powerful tool for exploring and analyzing image metadata.
+                  Local-first: no image data leaves your device unless you enable optional network features above.
                 </p>
                 <p data-testid="app-version">Version {appVersion}</p>
 
@@ -267,7 +329,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'available' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        Exif Hound {update.state.update.version} is available.
+                        {APP_DISPLAY_NAME} {update.state.update.version} is available.
                       </span>
                       <button
                         onClick={update.download}
@@ -288,7 +350,7 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                   {update.state.name === 'ready-to-install' && update.state.update && (
                     <div className="flex items-center gap-4 mt-3">
                       <span className="text-sm text-app-white">
-                        Exif Hound {update.state.update.version} is ready to install.
+                        {APP_DISPLAY_NAME} {update.state.update.version} is ready to install.
                       </span>
                       <button
                         onClick={update.restart}
@@ -299,20 +361,38 @@ const Settings: React.FC<Props> = ({ onClose }) => {
                     </div>
                   )}
                   <p className="text-xs mt-4 text-app-accent-dim">
-                    EXIF HOUND does not collect telemetry or analytics when checking for updates.
+                    {APP_DISPLAY_NAME} does not collect telemetry or analytics when checking for updates.
                     Update checks retrieve a static release manifest over HTTPS and do not transmit
                     investigation data, image metadata, filenames, usage information, or persistent
                     device identifiers.
                   </p>
                   <div className="mt-4 pt-2 border-t border-app-gray-light/30">
-                    <button
-                      onClick={handleStarOnGitHub}
-                      data-testid="settings-star-on-github"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
-                    >
-                      <Star className="w-4 h-4" />
-                      Star on GitHub
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={handleStarOnGitHub}
+                        data-testid="settings-star-on-github"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors"
+                      >
+                        <Star className="w-4 h-4" />
+                        Star on GitHub
+                      </button>
+                      <a
+                        href={GITHUB_SPONSORS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handleSponsorOnGitHub();
+                        }}
+                        data-testid="settings-sponsor-on-github"
+                        aria-label="Sponsor minimallyexceptional"
+                        title="Sponsor minimallyexceptional"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-app-gray-dark text-app-white rounded-lg border border-app-gray-light hover:border-app-accent transition-colors no-underline"
+                      >
+                        <Heart className="w-4 h-4 fill-current" aria-hidden />
+                        Sponsor
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>

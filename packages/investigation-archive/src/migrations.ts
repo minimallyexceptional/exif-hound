@@ -144,5 +144,17 @@ export async function runMigrations(engine: DatabaseEngine): Promise<void> {
     await engine.exec("ALTER TABLE ocr_results ADD COLUMN engine_version TEXT NOT NULL DEFAULT 'Tesseract.js'", [], 'run');
   }
   await engine.exec('UPDATE investigation_meta SET schema_format_version = 7 WHERE schema_format_version < 7', [], 'run');
+
+  const meta = await engine.exec('SELECT schema_format_version FROM investigation_meta LIMIT 1', [], 'all');
+  const version = meta.rows[0]?.[0];
+  if (typeof version === 'number' && version < 8) {
+    const { compactCanonicalToolResults, ensureCanonicalImageIndexes } = await import('./compactCanonicalToolResults');
+    await compactCanonicalToolResults(engine);
+    await ensureCanonicalImageIndexes(engine);
+    await engine.exec('UPDATE investigation_meta SET schema_format_version = 8 WHERE schema_format_version < 8', [], 'run');
+  } else {
+    const { ensureCanonicalImageIndexes } = await import('./compactCanonicalToolResults');
+    await ensureCanonicalImageIndexes(engine);
+  }
 }
 import type { DatabaseEngine } from './ports';

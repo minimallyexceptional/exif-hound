@@ -1,13 +1,16 @@
 import { ExifData } from '../types';
-import { ExifMetadata } from 'exif-middleware';
+import { ExifMetadata } from 'exif-hound-core';
 import { fixCoordinates } from '../utils/diagnostics';
 import exifWorkerUrl from '../workers/exifWorker?worker&url';
 import { convertMetadataToExifData } from '../utils/exifUtils';
 import type { ExifWorkerMessage, ExifWorkerResponse } from '../workers/exifWorker';
 
+import { getLocationFromCoordinates } from '../utils/geocoding';
+
 interface UseExifDataOptions {
   onSuccess?: (data: ExifData) => void;
   onError?: (error: string) => void;
+  fetchLocation?: boolean;
 }
 
 let exifWorker: Worker | null = null;
@@ -80,6 +83,28 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
 
       // Convert the metadata format to our app's ExifData format
       const exifData = convertMetadataToExifData(metadata, fixCoordinates);
+
+      if (
+        options.fetchLocation === true &&
+        typeof exifData.latitude === 'number' &&
+        typeof exifData.longitude === 'number'
+      ) {
+        exifData.location = { loading: true };
+        try {
+          exifData.location = await getLocationFromCoordinates(
+            exifData.latitude,
+            exifData.longitude
+          );
+        } catch (locError) {
+          if (__DEV__) {
+            console.error('Error fetching location data:', locError);
+          }
+          exifData.location = {
+            loading: false,
+            error: 'Failed to fetch location data',
+          };
+        }
+      }
 
       options.onSuccess?.(exifData);
       return exifData;

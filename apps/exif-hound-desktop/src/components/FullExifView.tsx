@@ -13,11 +13,19 @@ import {
   Tag
 } from 'lucide-react';
 import { ImageData } from '../types';
-import type { ExpandedTags } from 'exifreader';
+import type { ExpandedTags } from 'exif-hound-core';
 import { Button } from './common/Button';
 import { Panel } from './common/Panel';
 import { formatDateTime, formatDateOnly } from '../utils/date';
 import { formatLocation } from '../utils/geocoding';
+import { formatFileType } from '../utils/formatFileType';
+import {
+  formatExifTagForCopy,
+  formatExifTagForDisplay,
+  getExpandedExifTag,
+  resolveColorSpaceLabel,
+} from '../utils/exifTagDisplay';
+import { notify } from '../feedback';
 
 interface Props {
   image: ImageData;
@@ -25,23 +33,30 @@ interface Props {
   onBack: () => void;
 }
 
+interface ExifProperty {
+  key: string;
+  displayValue: string;
+  copyValue: string;
+}
+
 interface ExifGroup {
   title: string;
   icon: React.ReactNode;
-  properties: { key: string; value: string }[];
+  properties: ExifProperty[];
 }
 
 const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
   const [copiedKeys, setCopiedKeys] = useState<Set<string>>(new Set());
 
-  const handleCopy = async (key: string, value: string) => {
+  const handleCopy = async (key: string, copyValue: string) => {
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(copyValue);
       setCopiedKeys(prev => {
         const next = new Set(prev);
         next.add(key);
         return next;
       });
+      notify.success('Copied to clipboard.');
       setTimeout(() => {
         setCopiedKeys(prev => {
           const next = new Set(prev);
@@ -51,208 +66,220 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
       }, 1500);
     } catch (err) {
       if (__DEV__) console.error('Failed to copy text: ', err);
+      notify.error('Clipboard access is unavailable.');
     }
-  };
-
-  const formatValue = (value: unknown): string => {
-    // Format non-string values appropriately
-    if (value === null || value === undefined) {
-      return 'N/A';
-    }
-    if (typeof value === 'object') {
-      return JSON.stringify(value);
-    }
-    return String(value);
   };
 
   const exifGroups = useMemo((): ExifGroup[] => {
-    // Helper function to safely get EXIF values from the expanded structure
-    const getExifValue = (section: string, tag: string) => {
-      try {
-        // Check if the section exists in the raw EXIF data
-        if (rawExif && rawExif[section] && tag in (rawExif[section] as Record<string, unknown>)) {
-          const value = (rawExif[section] as Record<string, unknown>)[tag];
+    const readTag = (
+      label: string,
+      tagCandidates: string[],
+      sections: string[] = ['exif', 'file', 'jfif', 'gps', 'Thumbnail', 'icc']
+    ): ExifProperty => {
+      const tagData = getExpandedExifTag(rawExif, tagCandidates, sections);
+      let displayValue = formatExifTagForDisplay(tagData);
+      const copyValue = formatExifTagForCopy(tagData);
 
-          // Special formatting for date values
-          if (tag.toLowerCase().includes('date') || tag.toLowerCase().includes('time')) {
-            const strValue = formatValue(
-              value && typeof value === 'object' && 'description' in value 
-                ? (value as { description?: unknown }).description 
-                : value
-            );
-            // Don't try to format if it's already "N/A"
-            if (strValue === 'N/A') return strValue;
-            
-            // Use our enhanced date formatting for date/time fields
-            if (tag === 'DateTimeOriginal' || tag === 'CreateDate' || tag === 'ModifyDate' || tag === 'DateTimeDigitized') {
-              return formatDateTime(strValue);
-            } else if (tag === 'DateStamp') {
-              return formatDateOnly(strValue);
-            }
+      const primaryTag = tagCandidates[0];
+      if (
+        primaryTag.toLowerCase().includes('date') ||
+        primaryTag.toLowerCase().includes('time')
+      ) {
+        const strValue = copyValue === 'N/A' ? displayValue : copyValue;
+        if (strValue !== 'N/A') {
+          if (
+            primaryTag === 'DateTimeOriginal' ||
+            primaryTag === 'CreateDate' ||
+            primaryTag === 'ModifyDate' ||
+            primaryTag === 'DateTimeDigitized'
+          ) {
+            displayValue = formatDateTime(strValue);
+          } else if (primaryTag === 'DateStamp') {
+            displayValue = formatDateOnly(strValue);
           }
-          
-          return formatValue(
-            value && typeof value === 'object' && 'description' in value 
-              ? (value as { description?: unknown }).description 
-              : value
-          );
         }
-        return 'N/A';
-      } catch (err) {
-        if (__DEV__) console.error(`Error getting EXIF value for ${section}.${tag}:`, err);
-        return 'N/A';
       }
+
+      return { key: label, displayValue, copyValue };
     };
+
+    const colorSpaceDisplay = resolveColorSpaceLabel(rawExif);
 
     const groups: ExifGroup[] = [
       {
         title: 'Image Information',
         icon: <ImageIcon className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Image Width', value: getExifValue('file', 'Image Width') },
-          { key: 'Image Height', value: getExifValue('file', 'Image Height') },
-          { key: 'Resolution X', value: getExifValue('jfif', 'XResolution') },
-          { key: 'Resolution Y', value: getExifValue('jfif', 'YResolution') },
-          { key: 'Resolution Unit', value: getExifValue('Thumbnail', 'ResolutionUnit') },
-          { key: 'Color Space', value: getExifValue('exif', 'ColorSpace') },
-          { key: 'Bits Per Sample', value: getExifValue('ifd0', 'BitsPerSample') },
-          { key: 'Samples Per Pixel', value: getExifValue('ifd0', 'SamplesPerPixel') },
-          { key: 'Image Description', value: getExifValue('exif', 'ImageDescription') },
-          { key: 'Software', value: getExifValue('exif', 'Software') },
-          { key: 'Artist', value: getExifValue('exif', 'Artist') },
-          { key: 'Copyright', value: getExifValue('exif', 'Copyright') },
-          { key: 'User Comment', value: getExifValue('exif', 'UserComment') },
-          { key: 'Orientation', value: getExifValue('exif', 'Orientation') },
-          { key: 'YCbCr Positioning', value: getExifValue('exif', 'YCbCrPositioning') },
-          { key: 'Compression', value: getExifValue('Thumbnail', 'Compression') }
-        ].filter(prop => prop.value !== 'N/A')
+          readTag('Image Width', ['Image Width'], ['file']),
+          readTag('Image Height', ['Image Height'], ['file']),
+          readTag('Resolution X', ['XResolution'], ['jfif', 'exif']),
+          readTag('Resolution Y', ['YResolution'], ['jfif', 'exif']),
+          readTag('Resolution Unit', ['Resolution Unit', 'ResolutionUnit'], ['jfif', 'exif']),
+          {
+            key: 'Color Space',
+            displayValue: colorSpaceDisplay,
+            copyValue: colorSpaceDisplay,
+          },
+          readTag('Bits Per Sample', ['Bits Per Sample', 'BitsPerSample'], ['file', 'exif']),
+          readTag('Samples Per Pixel', ['Samples Per Pixel', 'SamplesPerPixel'], ['exif', 'file']),
+          readTag('Image Description', ['ImageDescription', 'Image Description']),
+          readTag('Software', ['Software']),
+          readTag('Artist', ['Artist']),
+          readTag('Copyright', ['Copyright']),
+          readTag('User Comment', ['UserComment', 'User Comment']),
+          readTag('Orientation', ['Orientation']),
+          readTag('YCbCr Positioning', ['YCbCrPositioning', 'YCbCr Positioning']),
+          readTag('Compression', ['Compression'], ['exif', 'file', 'jfif']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'Camera Information',
         icon: <Camera className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Make', value: getExifValue('exif', 'Make') },
-          { key: 'Model', value: getExifValue('exif', 'Model') },
-          { key: 'Lens Make', value: getExifValue('exif', 'LensMake') },
-          { key: 'Lens Model', value: getExifValue('exif', 'LensModel') },
-          { key: 'Serial Number', value: getExifValue('exif', 'BodySerialNumber') },
-          { key: 'Camera Owner', value: getExifValue('exif', 'CameraOwnerName') },
-          { key: 'Lens Serial Number', value: getExifValue('exif', 'LensSerialNumber') },
-          { key: 'Camera ID', value: getExifValue('exif', 'CameraID') },
-          { key: 'Lens ID', value: getExifValue('exif', 'LensID') }
-        ].filter(prop => prop.value !== 'N/A')
+          readTag('Make', ['Make']),
+          readTag('Model', ['Model']),
+          readTag('Lens Make', ['LensMake', 'Lens Make']),
+          readTag('Lens Model', ['LensModel', 'Lens Model']),
+          readTag('Serial Number', ['BodySerialNumber']),
+          readTag('Camera Owner', ['CameraOwnerName']),
+          readTag('Lens Serial Number', ['LensSerialNumber']),
+          readTag('Camera ID', ['CameraID']),
+          readTag('Lens ID', ['LensID']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'Exposure Settings',
         icon: <Aperture className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Exposure Time', value: getExifValue('exif', 'ExposureTime') },
-          { key: 'F Number', value: getExifValue('exif', 'FNumber') },
-          { key: 'ISO Speed', value: getExifValue('exif', 'ISOSpeedRatings') },
-          { key: 'Exposure Program', value: getExifValue('exif', 'ExposureProgram') },
-          { key: 'Exposure Mode', value: getExifValue('exif', 'ExposureMode') },
-          { key: 'Exposure Bias', value: getExifValue('exif', 'ExposureBiasValue') },
-          { key: 'Max Aperture', value: getExifValue('exif', 'MaxApertureValue') },
-          { key: 'Metering Mode', value: getExifValue('exif', 'MeteringMode') },
-          { key: 'Light Source', value: getExifValue('exif', 'LightSource') },
-          { key: 'Flash', value: getExifValue('exif', 'Flash') },
-          { key: 'Flash Energy', value: getExifValue('exif', 'FlashEnergy') },
-          { key: 'Subject Distance', value: getExifValue('exif', 'SubjectDistance') },
-          { key: 'Exposure Index', value: getExifValue('exif', 'ExposureIndex') },
-          { key: 'Sensitivity Type', value: getExifValue('exif', 'SensitivityType') },
-          { key: 'Recommended Exposure', value: getExifValue('exif', 'RecommendedExposureIndex') },
-          { key: 'ISO Speed Ratings', value: getExifValue('exif', 'ISOSpeedRatings') }
-        ].filter(prop => prop.value !== 'N/A')
+          readTag('Exposure Time', ['ExposureTime']),
+          readTag('F Number', ['FNumber']),
+          readTag('ISO Speed', ['ISOSpeedRatings']),
+          readTag('Exposure Program', ['ExposureProgram']),
+          readTag('Exposure Mode', ['ExposureMode']),
+          readTag('Exposure Bias', ['ExposureBiasValue']),
+          readTag('Max Aperture', ['MaxApertureValue']),
+          readTag('Metering Mode', ['MeteringMode']),
+          readTag('Light Source', ['LightSource']),
+          readTag('Flash', ['Flash']),
+          readTag('Flash Energy', ['FlashEnergy']),
+          readTag('Subject Distance', ['SubjectDistance']),
+          readTag('Exposure Index', ['ExposureIndex']),
+          readTag('Sensitivity Type', ['SensitivityType']),
+          readTag('Recommended Exposure', ['RecommendedExposureIndex']),
+          readTag('ISO Speed Ratings', ['ISOSpeedRatings']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'Lens Settings',
         icon: <Sliders className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Focal Length', value: getExifValue('exif', 'FocalLength') },
-          { key: 'Focal Length 35mm', value: getExifValue('exif', 'FocalLengthIn35mmFilm') },
-          { key: 'Digital Zoom Ratio', value: getExifValue('exif', 'DigitalZoomRatio') },
-          { key: 'Focus Mode', value: getExifValue('exif', 'FocusMode') },
-          { key: 'Focus Distance', value: getExifValue('exif', 'FocusDistance') },
-          { key: 'Hyperfocal Distance', value: getExifValue('exif', 'HyperfocalDistance') },
-          { key: 'Aperture Value', value: getExifValue('exif', 'ApertureValue') },
-          { key: 'Lens Specification', value: getExifValue('exif', 'LensSpecification') }
-        ].filter(prop => prop.value !== 'N/A')
+          readTag('Focal Length', ['FocalLength']),
+          readTag('Focal Length 35mm', ['FocalLengthIn35mmFilm']),
+          readTag('Digital Zoom Ratio', ['DigitalZoomRatio']),
+          readTag('Focus Mode', ['FocusMode']),
+          readTag('Focus Distance', ['FocusDistance']),
+          readTag('Hyperfocal Distance', ['HyperfocalDistance']),
+          readTag('Aperture Value', ['ApertureValue']),
+          readTag('Lens Specification', ['LensSpecification']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'Image Quality',
         icon: <Tag className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'White Balance', value: getExifValue('exif', 'WhiteBalance') },
-          { key: 'Scene Type', value: getExifValue('exif', 'SceneType') },
-          { key: 'Scene Capture Type', value: getExifValue('exif', 'SceneCaptureType') },
-          { key: 'Contrast', value: getExifValue('exif', 'Contrast') },
-          { key: 'Saturation', value: getExifValue('exif', 'Saturation') },
-          { key: 'Sharpness', value: getExifValue('exif', 'Sharpness') },
-          { key: 'Brightness', value: getExifValue('exif', 'BrightnessValue') },
-          { key: 'Subject Distance Range', value: getExifValue('exif', 'SubjectDistanceRange') },
-          { key: 'Gamma', value: getExifValue('exif', 'Gamma') },
-          { key: 'Gain Control', value: getExifValue('exif', 'GainControl') },
-          { key: 'Custom Rendered', value: getExifValue('exif', 'CustomRendered') },
-          { key: 'Color Filter Array', value: getExifValue('exif', 'CFAPattern') }
-        ].filter(prop => prop.value !== 'N/A')
+          readTag('White Balance', ['WhiteBalance']),
+          readTag('Scene Type', ['SceneType']),
+          readTag('Scene Capture Type', ['SceneCaptureType']),
+          readTag('Contrast', ['Contrast']),
+          readTag('Saturation', ['Saturation']),
+          readTag('Sharpness', ['Sharpness']),
+          readTag('Brightness', ['BrightnessValue']),
+          readTag('Subject Distance Range', ['SubjectDistanceRange']),
+          readTag('Gamma', ['Gamma']),
+          readTag('Gain Control', ['GainControl']),
+          readTag('Custom Rendered', ['CustomRendered']),
+          readTag('Color Filter Array', ['CFAPattern']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'Date & Time',
         icon: <Clock className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'Date Time Original', value: getExifValue('exif', 'DateTimeOriginal') },
-          { key: 'Create Date', value: getExifValue('exif', 'CreateDate') },
-          { key: 'Modify Date', value: getExifValue('exif', 'ModifyDate') },
-          { key: 'Date Time Digitized', value: getExifValue('exif', 'DateTimeDigitized') },
-          { key: 'Sub Sec Time', value: getExifValue('exif', 'SubSecTime') },
-          { key: 'Sub Sec Time Original', value: getExifValue('exif', 'SubSecTimeOriginal') },
-          { key: 'Sub Sec Time Digitized', value: getExifValue('exif', 'SubSecTimeDigitized') },
-          { key: 'Time Zone Offset', value: getExifValue('exif', 'TimeZoneOffset') },
-          { key: 'Date Stamp', value: getExifValue('exif', 'DateStamp') }
-        ].filter(prop => prop.value !== 'N/A')
+          readTag('Date Time Original', ['DateTimeOriginal']),
+          readTag('Create Date', ['CreateDate']),
+          readTag('Modify Date', ['ModifyDate']),
+          readTag('Date Time Digitized', ['DateTimeDigitized']),
+          readTag('Sub Sec Time', ['SubSecTime']),
+          readTag('Sub Sec Time Original', ['SubSecTimeOriginal']),
+          readTag('Sub Sec Time Digitized', ['SubSecTimeDigitized']),
+          readTag('Time Zone Offset', ['TimeZoneOffset']),
+          readTag('Date Stamp', ['DateStamp']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'Location',
         icon: <MapPin className="w-5 h-5 text-app-accent" />,
         properties: [
-          ...(image.exif.location && !image.exif.location.loading ? [
-            { key: 'Location', value: formatLocation(image.exif.location) }
-          ] : []),
-          { key: 'GPS Latitude', value: getExifValue('gps', 'Latitude') },
-          { key: 'GPS Latitude Ref', value: getExifValue('exif', 'GPSLatitudeRef') },
-          { key: 'GPS Longitude', value: getExifValue('gps', 'Longitude') },
-          { key: 'GPS Longitude Ref', value: getExifValue('exif', 'GPSLongitudeRef') },
-          { key: 'GPS Altitude', value: getExifValue('gps', 'Altitude') },
-          { key: 'GPS Altitude Ref', value: getExifValue('gps', 'AltitudeRef') },
-          { key: 'GPS Date Stamp', value: getExifValue('gps', 'DateStamp') },
-          { key: 'GPS Time Stamp', value: getExifValue('gps', 'TimeStamp') },
-          { key: 'GPS Speed', value: getExifValue('gps', 'Speed') },
-          { key: 'GPS Speed Ref', value: getExifValue('gps', 'SpeedRef') },
-          { key: 'GPS Direction', value: getExifValue('gps', 'ImgDirection') },
-          { key: 'GPS Direction Ref', value: getExifValue('gps', 'ImgDirectionRef') },
-          { key: 'GPS Processing Method', value: getExifValue('gps', 'ProcessingMethod') },
-          { key: 'GPS Status', value: getExifValue('gps', 'Status') },
-          { key: 'GPS Measure Mode', value: getExifValue('gps', 'MeasureMode') },
-          { key: 'GPS Satellites', value: getExifValue('gps', 'Satellites') },
-          { key: 'GPS Map Datum', value: getExifValue('gps', 'MapDatum') },
-          { key: 'GPS Differential', value: getExifValue('gps', 'Differential') }
-        ].filter(prop => prop.value !== 'N/A')
+          ...(image.exif.location && !image.exif.location.loading
+            ? [
+                {
+                  key: 'Location',
+                  displayValue: formatLocation(image.exif.location),
+                  copyValue: formatLocation(image.exif.location),
+                },
+              ]
+            : []),
+          readTag('GPS Latitude', ['Latitude'], ['gps', 'exif']),
+          readTag('GPS Latitude Ref', ['GPSLatitudeRef']),
+          readTag('GPS Longitude', ['Longitude'], ['gps', 'exif']),
+          readTag('GPS Longitude Ref', ['GPSLongitudeRef']),
+          readTag('GPS Altitude', ['Altitude'], ['gps', 'exif']),
+          readTag('GPS Altitude Ref', ['AltitudeRef'], ['gps', 'exif']),
+          readTag('GPS Date Stamp', ['DateStamp'], ['gps', 'exif']),
+          readTag('GPS Time Stamp', ['TimeStamp'], ['gps', 'exif']),
+          readTag('GPS Speed', ['Speed'], ['gps', 'exif']),
+          readTag('GPS Speed Ref', ['SpeedRef'], ['gps', 'exif']),
+          readTag('GPS Direction', ['ImgDirection'], ['gps', 'exif']),
+          readTag('GPS Direction Ref', ['ImgDirectionRef'], ['gps', 'exif']),
+          readTag('GPS Processing Method', ['ProcessingMethod'], ['gps', 'exif']),
+          readTag('GPS Status', ['Status'], ['gps', 'exif']),
+          readTag('GPS Measure Mode', ['MeasureMode'], ['gps', 'exif']),
+          readTag('GPS Satellites', ['Satellites'], ['gps', 'exif']),
+          readTag('GPS Map Datum', ['MapDatum'], ['gps', 'exif']),
+          readTag('GPS Differential', ['Differential'], ['gps', 'exif']),
+        ].filter(prop => prop.displayValue !== 'N/A')
       },
       {
         title: 'File Details',
         icon: <FileText className="w-5 h-5 text-app-accent" />,
         properties: [
-          { key: 'File Size', value: `${(image.file.size / 1024).toFixed(1)} KB` },
-          { key: 'File Type', value: image.file.type.split('/')[1].toUpperCase() },
-          { key: 'MIME Type', value: image.file.type },
-          { key: 'Last Modified', value: formatDateTime(new Date(image.file.lastModified).toISOString()) }
+          {
+            key: 'File Size',
+            displayValue: `${(image.file.size / 1024).toFixed(1)} KB`,
+            copyValue: String(image.file.size),
+          },
+          {
+            key: 'File Type',
+            displayValue: formatFileType(image.file.type),
+            copyValue: formatFileType(image.file.type),
+          },
+          {
+            key: 'MIME Type',
+            displayValue: image.file.type || 'N/A',
+            copyValue: image.file.type || 'N/A',
+          },
+          {
+            key: 'Last Modified',
+            displayValue: formatDateTime(new Date(image.file.lastModified).toISOString()),
+            copyValue: new Date(image.file.lastModified).toISOString(),
+          },
         ]
       }
     ];
 
     // Filter out empty groups
     return groups.filter(group => group.properties.length > 0);
-  }, [rawExif, image.file]);
+  }, [rawExif, image.file, image.exif.location]);
 
   const header = (
     <div className="flex items-center gap-2 min-w-0 px-4 py-2 border-b border-app-gray-light/10">
@@ -281,7 +308,7 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
                 <h3 className="font-medium">{group.title}</h3>
               </div>
               <div className="grid grid-cols-1 gap-2">
-                {group.properties.map(({ key, value }) => (
+                {group.properties.map(({ key, displayValue, copyValue }) => (
                   <div 
                     key={key}
                     className="flex items-start justify-between gap-4 py-2 px-3 rounded hover:bg-app-gray-light/10 group"
@@ -292,14 +319,14 @@ const FullExifView: React.FC<Props> = ({ image, rawExif, onBack }) => {
                       </div>
                       <div 
                         className="text-sm text-app-white break-words cursor-pointer whitespace-pre-wrap selectable-value"
-                        onClick={() => handleCopy(key, value)}
+                        onClick={() => handleCopy(key, copyValue)}
                       >
-                        {value}
+                        {displayValue}
                       </div>
                     </div>
                     <Button
                       variant="ghost"
-                      onClick={() => handleCopy(key, value)}
+                      onClick={() => handleCopy(key, copyValue)}
                       className="p-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                       tooltip="Copy to clipboard"
                       aria-label="Copy to clipboard"

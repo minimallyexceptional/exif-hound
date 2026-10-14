@@ -5,7 +5,7 @@ name = "exif-hound"
 # This constant is frozen so Cargo.toml and Cargo.lock require no edits per release.
 version = "0.1.0"
 description = "Exif metadata explorer and map visualization tool"
-authors = ["Exif Hound Team"]
+authors = ["EXIF Hound Team"]
 license = "MIT"
 repository = ""
 edition = "2021"
@@ -33,3 +33,6 @@ tauri-plugin-fs = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-opener = "2"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking"] }
+url = "2"
+once_cell = "1"

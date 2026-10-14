@@ -28,6 +28,42 @@
       "allow": [
         {
           "url": "https://github.com/minimallyexceptional/exif-hound"
+        },
+        {
+          "url": "https://github.com/minimallyexceptional/exif-hound/*"
+        },
+        {
+          "url": "https://github.com/sponsors/minimallyexceptional"
+        },
+        {
+          "url": "https://github.com/sponsors/minimallyexceptional/*"
+        },
+        {
+          "url": "https://github.com/sponsors/*"
+        },
+        {
+          "url": "https://www.openstreetmap.org/*"
+        },
+        {
+          "url": "https://www.openstreetmap.fr/*"
+        },
+        {
+          "url": "https://www.hotosm.org/*"
+        },
+        {
+          "url": "https://opentopomap.org/*"
+        },
+        {
+          "url": "http://viewfinderpanoramas.org/*"
+        },
+        {
+          "url": "https://viewfinderpanoramas.org/*"
+        },
+        {
+          "url": "https://nominatim.openstreetmap.org/*"
+        },
+        {
+          "url": "https://minimallyexceptional.github.io/*"
         }
       ]
     },

@@ -17,11 +17,14 @@ export default function ExifPanel({ image, onShowComparison }: Props) {
 
   const handleViewFullExif = async () => {
     if (!rawExif) {
+      if (!(image.file instanceof File)) {
+        return;
+      }
       try {
         // Dynamically import ExifReader when needed
         const ExifReaderModule = await import('exifreader');
         const ExifReader = ExifReaderModule.default;
-        const tags = await ExifReader.load(image.file as File, { expanded: true });
+        const tags = await ExifReader.load(image.file, { expanded: true });
         if (__DEV__) {
           console.log('Full EXIF tags:', tags);
         }

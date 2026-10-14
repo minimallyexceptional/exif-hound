@@ -16,8 +16,10 @@ describe('node handlers', () => {
     const preprocess = jest.fn(async (_image, report) => { report(0.5, 'Processing'); return { processedBytes: new Uint8Array([4]), manifest: { profile: 'ocr-default-v1' } }; });
     const handler = createImageNodeHandler((id) => ({ imageId: id, imageName: 'poster.jpg', payload: 'blob', sourceBytes: new Uint8Array([1]) }), preprocess);
     const reportProgress = jest.fn();
+    const packet = { imageId: 14, imageName: 'poster.jpg', payload: 'blob', sourceBytes: new Uint8Array([1]), processedBytes: new Uint8Array([4]), preprocessing: { profile: 'ocr-default-v1' } };
     await expect(handler(imageNode, { inputs: new Map(), reportProgress })).resolves.toEqual({
-      data: { imageId: 14, imageName: 'poster.jpg', payload: 'blob', sourceBytes: new Uint8Array([1]), processedBytes: new Uint8Array([4]), preprocessing: { profile: 'ocr-default-v1' } },
+      data: packet,
+      outputs: { image: packet },
     });
     expect(preprocess).toHaveBeenCalledWith(expect.objectContaining({ imageId: 14 }), expect.any(Function));
     expect(reportProgress).toHaveBeenCalledWith(0.5, 'Processing');
@@ -31,9 +33,14 @@ describe('node handlers', () => {
       return { text: '  ', confidence: null, provider: 'paddle' as const, engineVersion: 'PP-OCRv6_small', words: [{ text: 'evidence', confidence: 91, boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }] };
     });
     const handler = createOcrNodeHandler(recognize);
+    const imageInput = { imageId: 14, imageName: 'poster.jpg', payload: 'blob' };
     await expect(handler(ocrNode, {
-      inputs: new Map([['image', { imageId: 14, imageName: 'poster.jpg', payload: 'blob' }]]), reportProgress: progress,
-    })).resolves.toMatchObject({ status: 'no-text', data: { imageId: 14, text: '  ', confidence: null, provider: 'paddle', engineVersion: 'PP-OCRv6_small', words: [{ text: 'evidence', boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }] } });
+      inputs: new Map([['image', imageInput]]), reportProgress: progress,
+    })).resolves.toMatchObject({
+      status: 'no-text',
+      data: { imageId: 14, text: '  ', confidence: null, provider: 'paddle', engineVersion: 'PP-OCRv6_small', words: [{ text: 'evidence', boundingBox: { x: 0.2, y: 0.3, width: 0.1, height: 0.05 } }] },
+      outputs: { image: imageInput, text: expect.objectContaining({ imageId: 14, text: '  ' }) },
+    });
     expect(progress).toHaveBeenCalledWith(0.4, 'Recognizing');
   });
 
@@ -51,8 +58,8 @@ describe('node handlers', () => {
     const identify = jest.fn(async () => ({ candidates: [] }));
     const context = { inputs: new Map([['image', input]]), reportProgress: progress };
 
-    await expect(createImageProvenanceNodeHandler(analyze)(forensicImage, context)).resolves.toEqual({ data: { flags: [] } });
-    await expect(createVisualIdentifierNodeHandler(identify)(identifiers, context)).resolves.toEqual({ data: { candidates: [] } });
+    await expect(createImageProvenanceNodeHandler(analyze)(forensicImage, context)).resolves.toEqual({ data: { flags: [] }, outputs: { image: input, evidence: { flags: [] } } });
+    await expect(createVisualIdentifierNodeHandler(identify)(identifiers, context)).resolves.toEqual({ data: { candidates: [] }, outputs: { image: input, evidence: { candidates: [] } } });
     expect(analyze).toHaveBeenCalledWith(input, forensicImage.settings, progress);
     expect(identify).toHaveBeenCalledWith(input, identifiers.settings, progress);
   });

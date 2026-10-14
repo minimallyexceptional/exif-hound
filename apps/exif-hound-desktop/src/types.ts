@@ -70,3 +70,8 @@ export interface MapSettings {
     url: string;
   };
 }
+
+export interface PrivacySettings {
+  /** When enabled, GPS coordinates are sent to Nominatim for place names on upload and when compiling Evidence. */
+  reverseGeocoding: boolean;
+}

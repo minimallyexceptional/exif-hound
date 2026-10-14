@@ -1,0 +1,2 @@
+name: exif-hound-core
+description: Single domain API facade package; desktop imports core only with controllers and dumb UI

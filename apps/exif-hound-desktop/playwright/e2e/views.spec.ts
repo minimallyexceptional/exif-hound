@@ -7,49 +7,55 @@ test.beforeEach(async ({ page }) => {
   await uploadImages(page, [FIXTURE_IMAGES.fullExif, FIXTURE_IMAGES.noGps]);
 });
 
-test('switches between map, list, and Workbench with no Investigation tab', async ({ page }) => {
+test('switches between map, list, and workbench views', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Location Map' })).toBeVisible();
   await expect(page.locator('header').getByRole('button', { name: 'Map View' })).toHaveClass(/bg-app-white/);
   await switchView(page, 'List View');
   await expect(page.getByRole('heading', { name: 'Image Details' })).toBeVisible();
   await expect(page.locator('header').getByRole('button', { name: 'List View' })).toHaveClass(/bg-app-white/);
-  await expect(page.locator('header').getByRole('button', { name: 'Investigation', exact: true })).toHaveCount(0);
+  await expect(page.locator('header').getByRole('button', { name: 'Investigation' })).toHaveCount(0);
   await switchView(page, 'Workbench');
-  await expect(page.locator('header').getByRole('button', { name: 'Workbench', exact: true })).toHaveClass(/bg-app-white/);
+  await expect(page.locator('header').getByRole('button', { name: 'Workbench' })).toHaveClass(/bg-app-white/);
   await switchView(page, 'Map View');
   await expect(page.getByRole('heading', { name: 'Location Map' })).toBeVisible();
 });
 
+test('opens the Evidence hub', async ({ page }) => {
+  await switchView(page, 'Evidence');
+  await expect(page.getByRole('heading', { name: 'Evidence' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Evidence' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /License plates/i })).toBeVisible();
+});
+
 test('collapses and expands the gallery sidebar', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
-  await page.getByRole('button', { name: 'Collapse gallery' }).click();
-  await expect(page.getByRole('button', { name: 'Expand gallery' })).toBeVisible();
+  const galleryToggle = page.getByTestId('gallery-sidebar-toggle');
+  await galleryToggle.click();
+  await expect(galleryToggle).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('heading', { name: 'Gallery' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Expand gallery' }).click();
-  await expect(page.getByRole('button', { name: 'Collapse gallery' })).toBeVisible();
+  await galleryToggle.click();
+  await expect(galleryToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
 });
 
 test('collapses and expands the EXIF details panel', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Collapse details' }).click();
-  await expect(page.getByRole('button', { name: 'Expand details' })).toBeVisible();
+  const detailsToggle = page.getByTestId('exif-details-toggle');
+  await detailsToggle.click();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Expand details' }).click();
+  await detailsToggle.click();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
 });
 
-test('opens the help menu and its entries work', async ({ page }) => {
-  await page.getByRole('button', { name: 'Help menu' }).click();
-  const menu = page.locator('#help-menu');
-  await expect(menu).toBeVisible();
-  await menu.getByText('Check for Updates').click();
+test('opens About and update status from Settings instead of a header help menu', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Help menu' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'About' })).toBeVisible();
+  await page.getByRole('button', { name: 'Check for Updates' }).click();
   await expect(page.getByTestId('update-status')).toContainText("You're up to date.");
-  await closeSettings(page);
-  await page.getByRole('button', { name: 'Help menu' }).click();
-  await page.locator('#help-menu').getByText('About Exif Hound').click();
-  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await closeSettings(page);
 });
 

@@ -32,9 +32,16 @@ describe('PaddleOcrWorkerFactory', () => {
     expect(engine.dispose).toHaveBeenCalledTimes(1);
   });
 
-  it('does not invent word boxes from Paddle line boxes', async () => {
+  it('maps Paddle line polygons to normalized axis-aligned word boxes', async () => {
     const engine = {
-      predict: jest.fn().mockResolvedValue([{ items: [{ text: 'line words', score: 0.8, poly: [{ x: 1, y: 2 }] }] }]),
+      predict: jest.fn().mockResolvedValue([{
+        image: { width: 100, height: 200 },
+        items: [{
+          text: 'SFJ+3162',
+          score: 0.9,
+          poly: [[10, 40], [90, 40], [90, 80], [10, 80]],
+        }],
+      }]),
       dispose: jest.fn().mockResolvedValue(undefined),
     };
     const factory = new PaddleOcrWorkerFactory({
@@ -43,7 +50,15 @@ describe('PaddleOcrWorkerFactory', () => {
     });
     const worker = await factory.create(['eng'], jest.fn());
 
-    await expect(worker.recognize(new Blob(['image']))).resolves.toMatchObject({ words: [] });
+    await expect(worker.recognize(new Blob(['image']))).resolves.toEqual({
+      text: 'SFJ+3162',
+      confidence: 90,
+      words: [{
+        text: 'SFJ+3162',
+        confidence: 90,
+        boundingBox: { x: 0.1, y: 0.2, width: 0.8, height: 0.2 },
+      }],
+    });
   });
 
   it('rejects languages outside the bundled English model with a clear error', async () => {

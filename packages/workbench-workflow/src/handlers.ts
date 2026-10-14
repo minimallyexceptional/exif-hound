@@ -30,7 +30,8 @@ export function createImageNodeHandler(
     if (typeof imageId !== 'number') throw new Error(`Choose a project image for ${node.id}.`);
     const image = await resolveImage(imageId);
     const prepared = await preprocess(image, context.reportProgress);
-    return { data: { ...image, processedBytes: prepared.processedBytes, preprocessing: prepared.manifest } };
+    const data = { ...image, processedBytes: prepared.processedBytes, preprocessing: prepared.manifest };
+    return { data, outputs: { image: data } };
   };
 }
 
@@ -50,7 +51,7 @@ export function createOcrNodeHandler(recognize: (
       provider: result.provider,
       engineVersion: result.engineVersion,
     };
-    return { data, status: result.text.trim() ? 'success' : 'no-text' };
+    return { data, status: result.text.trim() ? 'success' : 'no-text', outputs: { image, text: data } };
   };
 }
 
@@ -72,7 +73,8 @@ function createForensicNodeHandler(process: ForensicNodeProcessor, title: string
   return async (node, context) => {
     const image = context.inputs.get('image') as ImageNodeInput | undefined;
     if (!image) throw new Error(`${title} needs a connected project image.`);
-    return { data: await process(image, node.settings, context.reportProgress) };
+    const data = await process(image, node.settings, context.reportProgress);
+    return { data, outputs: { image, evidence: data } };
   };
 }
 

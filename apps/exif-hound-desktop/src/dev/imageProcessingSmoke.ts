@@ -1,5 +1,8 @@
-import { preprocessImage } from '../utils/preprocessImage';
-import { OcrMiddleware, PaddleOcrWorkerFactory } from 'ocr-middleware';
+import { configureImageProcessingWorker, preprocessImage } from '../utils/preprocessImage';
+import workerUrl from '../workers/imageProcessingWorker?worker&url';
+
+configureImageProcessingWorker(workerUrl);
+import { OcrMiddleware, PaddleOcrWorkerFactory } from 'exif-hound-core';
 
 const output = document.querySelector<HTMLPreElement>('#result');
 if (!output) throw new Error('Missing smoke output element.');
