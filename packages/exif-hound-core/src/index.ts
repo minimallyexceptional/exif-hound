@@ -4,6 +4,14 @@ export type { DesktopCoreOptions } from './desktop';
 export * from './types';
 export * from './archive/ArchiveNamespace';
 export * from './project/ProjectSessionService';
+export {
+  applyPersistedExif,
+  serializeExif,
+  toImageData,
+  toStoreImage,
+  toStoreState,
+  fromStoreState,
+} from './project/ProjectSessionService';
 export * from './project/ProjectSessionFacade';
 export * from './middleware/ExifMiddlewareFacade';
 export { extractExifData, formatExifMetadata, formatFileSize, formatDate, type ExifMetadata } from 'exif-middleware';

@@ -5,6 +5,26 @@ import path from 'path';
 import fs from 'fs';
 import { contentTypeForOcrAsset, resolvePublicOcrPath } from './src/utils/ocrPublicAsset';
 
+/** Full reload when workspace core dist changes (avoids 504 Outdated Optimize Dep in Tauri WebView). */
+function reloadOnCoreDistChange(): Plugin {
+  const coreDistDir = path.join(packagesDir, 'exif-hound-core/dist');
+  return {
+    name: 'reload-on-core-dist-change',
+    configureServer(server) {
+      server.watcher.add(path.join(coreDistDir, '**/*'));
+      const reload = (file: string) => {
+        if (!file.startsWith(coreDistDir)) return;
+        // Drop stale pre-bundles so the next load does not 504 on old ?v= hashes.
+        const viteCache = path.join(__dirname, 'node_modules', '.vite', 'deps');
+        fs.rmSync(viteCache, { recursive: true, force: true });
+        server.ws.send({ type: 'full-reload' });
+      };
+      server.watcher.on('change', reload);
+      server.watcher.on('add', reload);
+    },
+  };
+}
+
 function servePublicOcrAssets(): Plugin {
   const ocrRoot = path.resolve(__dirname, 'public/ocr');
   return {
@@ -42,7 +62,7 @@ if (updateChannel !== 'stable' && updateChannel !== 'beta' && updateChannel !== 
 }
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [servePublicOcrAssets(), react(), tailwindcss()],
+  plugins: [reloadOnCoreDistChange(), servePublicOcrAssets(), react(), tailwindcss()],
   define: {
     // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
     // (ts-jest/Jest 30 treat files containing import.meta as ESM).
@@ -68,6 +88,8 @@ export default defineConfig({
       // Pre-bundle it so the browser doesn't have to resolve them one by one
       // during the first Playwright page load.
       'lucide-react',
+      // Core dist externalizes leaflet/sql.js/etc.; must pre-bundle for WebKit (star-export/default).
+      // Stale hashes → 504: clear node_modules/.vite on dev start + reload-on-core-dist-change plugin.
       'exif-hound-core',
       'sql.js',
     ],

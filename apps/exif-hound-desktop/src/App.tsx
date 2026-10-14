@@ -23,6 +23,7 @@ import { ProjectStore } from 'exif-hound-core';
 import type { OcrMiddleware, OcrProgress, OcrResult } from 'exif-hound-core';
 import { getArchiveDbProvider } from 'exif-hound-core';
 import { TauriFsPort } from 'exif-hound-core';
+import type { ProjectViewMode, GpsPlaceNamePatch } from 'exif-hound-core';
 import {
   toImageData,
   toStoreImage,
@@ -30,9 +31,7 @@ import {
   fromStoreState,
   serializeExif,
   applyPersistedExif,
-  ProjectViewMode,
   applyGpsPlaceNamePatches,
-  type GpsPlaceNamePatch,
 } from 'exif-hound-core';
 import { pickProjectFolder, resolveProjectFolder } from 'exif-hound-core';
 import { recordRecentProject, getRecentProjects, RecentProject } from './utils/recentProjects';

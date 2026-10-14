@@ -8,7 +8,8 @@ export default defineConfig({
     'workers/image-processing': 'src/workers/image-processing.ts',
   },
   format: ['esm', 'cjs'],
-  dts: true,
+  // Single-file declarations for index (avoid phantom ./desktop-*.js type chunks in Vite).
+  dts: { resolve: false },
   clean: true,
   splitting: false,
   sourcemap: true,
