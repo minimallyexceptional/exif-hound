@@ -25,6 +25,7 @@ interface ColumnDef {
   align?: 'right';
   sortField?: SortField;
   value: (image: ImageData) => string;
+  cellClassName?: (image: ImageData) => string;
 }
 
 /** A toggleable group of spreadsheet columns (Customize Columns panel). */
@@ -40,6 +41,11 @@ const THUMB_WIDTH = 56;
 
 const na = (value: string | number | null | undefined): string =>
   value == null || value === '' ? '—' : String(value);
+
+const placeLabel = (image: ImageData): string => {
+  const formatted = image.exif.location?.formatted;
+  return typeof formatted === 'string' && formatted.trim().length > 0 ? formatted : '—';
+};
 
 const COLUMN_GROUPS: ColumnGroup[] = [
   {
@@ -109,8 +115,15 @@ const COLUMN_GROUPS: ColumnGroup[] = [
     id: 'gps',
     label: 'GPS Data',
     icon: <MapPin className="w-4 h-4" />,
-    defaultEnabled: false,
+    defaultEnabled: true,
     columns: [
+      {
+        id: 'place',
+        label: 'Place',
+        width: 220,
+        value: placeLabel,
+        cellClassName: () => 'selectable-value',
+      },
       { id: 'latitude', label: 'Latitude', width: 120, value: (img) => (img.exif.latitude != null ? `${img.exif.latitude.toFixed(6)}°` : '—') },
       { id: 'longitude', label: 'Longitude', width: 120, value: (img) => (img.exif.longitude != null ? `${img.exif.longitude.toFixed(6)}°` : '—') },
       { id: 'altitude', label: 'Altitude', width: 90, align: 'right', value: (img) => (img.exif.gpsAltitude ? `${img.exif.gpsAltitude}m` : '—') },
@@ -235,6 +248,7 @@ const ImageList: React.FC<Props> = ({ images, selectedImage, onSelect }) => {
       align: column.align,
       sortField: column.sortField,
       value: column.value,
+      cellClassName: column.cellClassName,
     })),
     [activeColumns],
   );

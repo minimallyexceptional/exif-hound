@@ -2,6 +2,12 @@
 
 All notable changes to the EXIF Hound desktop app are documented in this file.
 
+## Unreleased
+
+### Added
+
+- **List view GPS:** Place is the first GPS column (full Nominatim name, or "—") and the GPS Data group is visible by default.
+
 ## 2.6.9
 
 ### Fixed
