@@ -28,5 +28,5 @@ The desktop app (`exif-hound-desktop`) currently has only unit/component tests (
 
 - **Code:** `apps/exif-hound-desktop` — new files under `cypress/`, one new `cypress.config.ts`, package.json scripts; optional `turbo.json` task addition at workspace/app level.
 - **Dependencies:** adds `cypress` (devDependency, ~large binary download on first install), plus `@cypress/webpack-preprocessor` is NOT needed (Vite dev server is used directly, no bundling changes).
-- **Systems:** CI (if configured later) will need a headless browser (Cypress bundles Electron by default); no backend or Tauri build changes.
+- **Systems:** CI (if configured later) will need a headless Chromium browser; no backend or Tauri build changes.
 - **Out of scope:** running Cypress against a compiled Tauri binary (real IPC), Tauri driver plugins, and migrating existing Jest tests.

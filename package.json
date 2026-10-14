@@ -21,7 +21,7 @@
     "tauri:build": "turbo run tauri:build --filter=exif-hound-desktop",
     "test:scripts": "node --test 'scripts/updater/__tests__/*.test.mjs' 'scripts/release/__tests__/*.test.mjs'",
     "test:e2e": "npm run test:e2e --workspace=exif-hound-desktop",
-    "scan:electron": "node scripts/scan-electron.js",
+    "scan:forbidden-desktop-apis": "node scripts/scan-forbidden-desktop-apis.js",
     "scan:domain-imports": "node scripts/scan-direct-domain-imports.js",
     "prepare": "husky"
   },

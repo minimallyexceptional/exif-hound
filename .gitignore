@@ -39,7 +39,25 @@ yarn-error.log*
 *.key.pub
 **/src-tauri/tauri.*.local.conf.json
 
-# IDE
+# IDE / local AI & agent tooling (machine-specific; do not commit)
+.cursor/
+.impeccable/
+.claude/
+.codex/
+.pi/
+.agents/
+.aider/
+.augment/
+.continue/
+.copilot/
+.gemini/
+.kiro/
+.opencode/
+.roo/
+.windsurf/
+.factory/
+.openhands/
+.mcp/
 .idea
 .vscode
 *.swp

@@ -7,7 +7,7 @@
 ## Goals / Non-Goals
 
 **Goals**
-- Run the real UI in a real Chromium/Electron browser with DOM interactions Cypress can drive.
+- Run the real UI in a real Chromium browser with DOM interactions Cypress can drive.
 - Keep the loop fast: no Rust build, no Tauri window; tests run against the Vite dev server.
 - Make Tauri-dependent behavior testable by stubbing the bridge before app code executes.
 - Integrate with the existing Turborepo task graph.
@@ -33,8 +33,8 @@
 ## Risks / Trade-offs
 
 - [App reads `window.__TAURI__` before `onBeforeLoad` runs in edge cases (StrictMode double-mount timing)] → the mock is installed via `onBeforeLoad`, which runs before any bundle script; verified by the smoke spec.
-- [Cypress's bundled Electron lacks WebUSB/file-dialog behavior] → dialog plugin calls are stubbed in the mock registry; native-only flows are out of scope per proposal.
-- [Cypress's bundled Electron hangs on failure screenshots in some Linux desktop environments] → passing runs are unaffected (no screenshots are taken); on affected machines developers debug with `npm run cy:run -- --browser chromium`, which screenshots correctly.
+- [Default Cypress browser lacks WebUSB/file-dialog behavior] → dialog plugin calls are stubbed in the mock registry; native-only flows are out of scope per proposal.
+- [Default Cypress browser hangs on failure screenshots in some Linux desktop environments] → passing runs are unaffected (no screenshots are taken); on affected machines developers debug with `npm run cy:run -- --browser chromium`, which screenshots correctly.
 - [Large first-install download (Cypress binary)] → accepted; it is a devDependency and CI installs once with cache.
 - [Port 5176 conflicts with a manually running `dev` session] → avoided entirely: E2E uses its own port (5276) with `--strictPort`, so it never reuses or races with a developer's dev server.
 

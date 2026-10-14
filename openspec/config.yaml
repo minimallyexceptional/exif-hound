@@ -1,32 +1,79 @@
 schema: spec-driven
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+context: |
+  EXIF Hound — npm-workspaces monorepo (Turborepo), single Tauri 2 desktop app
+  (`apps/exif-hound-desktop`) plus shared packages under `packages/`.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Agent guides (read before planning or implementing):
+  - `apps/exif-hound-desktop/AGENTS.md` — UI, E2E, bootstrap, layering
+  - `packages/exif-hound-core/AGENTS.md` — facades, workers, core boundaries
+  - Each middleware/domain package has its own `AGENTS.md` (symmetric ports pattern)
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  Architecture (non-negotiable for specs and designs):
+  - Desktop UI imports `exif-hound-core` only; no direct middleware or `exifreader`
+    imports (enforced by `npm run scan:domain-imports`).
+  - Domain logic lives in packages; core exposes `ExifHoundCore`, namespaces, and
+    middleware facades. Workers live in `packages/exif-hound-core/src/workers/`.
+  - Middleware packages follow symmetric shape: port → default provider →
+    `*Middleware` class → optional call-time injection (`exif-middleware` is canonical).
+  - Runtime diagram: `apps/exif-hound-desktop/.archyify/.../exif-hound-desktop-runtime.html`.
+
+  Stack and constraints:
+  - Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript; Node >= 20; npm only.
+  - No legacy desktop shell APIs (`npm run scan:forbidden-desktop-apis`).
+  - App source must not use `import.meta`; use Vite `define` globals (`__DEV__`,
+    `__UPDATE_CHANNEL__`) for Jest/Playwright compatibility.
+  - E2E is Playwright against Vite `dev:test` (port 5276), not Cypress/Tauri binary.
+
+  TDD and quality:
+  - Behavior changes require tests in the owning layer (package `tests/` or desktop
+    `src/**/__tests__/`). Do not delete tests to green CI.
+  - Root `npm test` runs Jest for all workspaces; desktop also has Playwright E2E in CI.
+  - Deterministic unit tests: mock Tauri, Nominatim, OCR/heavy libs; no live network.
+
+  OpenSpec workflow:
+  - New product features need an approved change under `openspec/changes/` before app
+    code. Bug fixes, deps/security, docs-only, and narrow maintenance may skip a new
+    change unless behavior expands materially.
+  - Accepted capabilities live in `openspec/specs/`; archive merges delta specs there.
+  - Use existing spec voice: `### Requirement:` with `#### Scenario:` bullets and SHALL.
+
+  Platforms: CI exercises Linux; Tauri release builds are host-platform only (no
+  cross-compile). Call out OS-specific UX or native APIs when a change touches them.
+
+rules:
+  proposal:
+    - Always include Why, What Changes, Impact, and Out of Scope sections.
+    - Name capabilities when adding or materially changing behavior (for delta specs under `specs/<capability>/spec.md`).
+    - State which packages and app areas are affected; cite relevant `AGENTS.md` paths.
+    - Do not propose bypassing core/middleware boundaries or direct desktop→middleware imports.
+  specs:
+    - Use `### Requirement:` and `#### Scenario:` with WHEN/THEN bullets; normative language SHALL/MUST.
+    - Delta specs describe only what this change adds or modifies; avoid restating entire product docs.
+    - Include failure/edge scenarios where behavior is security-, privacy-, or data-integrity relevant.
+    - Align with package ownership (middleware spec vs desktop UI spec vs core orchestration).
+  design:
+    - Document layering (UI → core → middleware → providers), test strategy, and rollback risks.
+    - Skip `design.md` only when the change is trivial and has no architecture or cross-package touch (per spec-driven schema).
+    - Prefer extending injectable ports/facades over new ad hoc imports or duplicated domain logic.
+  tasks:
+    - Use checkbox tasks (`- [ ]`) mapped to concrete paths; group by package or layer.
+    - Order tests before or alongside implementation for behavior changes (TDD-friendly).
+    - Include validation steps: affected `npm test --workspace=…`, `openspec validate --all`, and desktop lint/typecheck when UI changes.
+    - Note fixture regeneration (e.g. Playwright images) when constants change; do not hand-edit binary fixtures.
+
+operations:
+  apply:
+    guidance:
+      - Implement only what `tasks.md` and approved artifacts describe; keep diffs focused.
+      - Add or update tests in the owning workspace before marking tasks complete.
+      - Run affected workspace tests and root `npm test` when multiple packages change.
+      - For desktop UI: `npm run lint --workspace=exif-hound-desktop` and `npm run typecheck --workspace=exif-hound-desktop`.
+      - Rebuild shared packages (`npm run build:packages`) when public package APIs change before desktop dev/build.
+      - Do not commit secrets, real PII in fixtures, or bypass Husky unless explicitly agreed with immediate follow-up fix.
+  archive:
+    guidance:
+      - Merge delta specs into `openspec/specs/` and ensure scenarios match shipped behavior.
+      - Run `openspec validate --all` before finishing archive.
+      - Summarize user-visible impact for CHANGELOG/Unreleased when the change is product-facing.
+      - Move the change to `openspec/changes/archive/` per OpenSpec archive workflow.

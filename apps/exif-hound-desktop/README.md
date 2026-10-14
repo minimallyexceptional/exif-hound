@@ -2,6 +2,8 @@
 
 A powerful desktop application for visualizing and managing EXIF data from your images.
 
+**Contributors and AI agents:** see [AGENTS.md](./AGENTS.md) for architecture boundaries, TDD expectations, and test commands.
+
 ## Features
 
 - **Image Import**: Drag and drop or select multiple images

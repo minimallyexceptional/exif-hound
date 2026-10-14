@@ -37,14 +37,15 @@ Useful commands (run from the repo root):
 | `npm test --workspace=exif-hound-desktop` | Jest unit tests |
 | `npm run test:e2e` | Playwright E2E suite |
 | `npm run tauri:build` | Local production build (current platform) |
-| `npm run scan:electron` | Fails if Electron references sneak back in |
+| `npm run scan:forbidden-desktop-apis` | Fails if legacy desktop shell APIs sneak back in |
 
 ## Repository rules
 
 These are enforced by convention and, where possible, by CI:
 
-1. **No Electron.** The app is Tauri-only. `npm run scan:electron` exits
-   non-zero if Electron references are reintroduced.
+1. **Tauri-only desktop shell.** Do not reintroduce legacy preload/IPC patterns
+   (`BrowserWindow`, `contextBridge`, `ipcMain`, etc.). `npm run scan:forbidden-desktop-apis`
+   exits non-zero if forbidden API references appear in scanned source files.
 2. **No `import.meta` in source files** — Jest/Playwright compatibility. Use
    the Vite `define` globals instead: `__DEV__`, `__APP_VERSION__`, and
    `__UPDATE_CHANNEL__`.
