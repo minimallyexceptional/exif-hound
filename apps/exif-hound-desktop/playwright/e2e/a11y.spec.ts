@@ -22,13 +22,9 @@ test('keeps a visible focus ring defined for keyboard navigation', async ({ page
   expect(hasRule).toBe(true);
 });
 
-test('help and settings controls expose aria state', async ({ page }) => {
+test('settings control exposes an accessible name', async ({ page }) => {
   await bootApp(page);
-  const help = page.getByRole('button', { name: 'Help menu' });
-  await expect(help).toHaveAttribute('aria-haspopup', 'menu');
-  await expect(help).toHaveAttribute('aria-expanded', 'false');
-  await help.click();
-  await expect(page.getByRole('button', { name: 'Help menu' })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: 'Open settings' })).toBeVisible();
 });
 
 test.describe('mobile viewport', () => {
@@ -45,6 +41,7 @@ test.describe('mobile viewport', () => {
     await expect(page.getByTestId('mobile-menu')).toContainText(/Map View/);
     await expect(page.getByTestId('mobile-menu')).toContainText(/List View/);
     await expect(page.getByTestId('mobile-menu')).not.toContainText(/Investigation/);
+    await expect(page.getByTestId('mobile-menu')).toContainText(/Workbench/);
     await expect(page.getByTestId('mobile-menu')).toContainText(/Export/);
     await expect(page.getByTestId('mobile-menu')).toContainText(/Settings/);
     await close.click();

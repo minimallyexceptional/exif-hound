@@ -1,5 +1,12 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Workaround for webkit2gtk 2.54.x DMABUF renderer crashing on some
+    // Wayland compositors (e.g. Hyprland) with `Error 71 (Protocol error)`
+    // / "Failed to create GBM buffer". Debug/dev builds only so release
+    // binaries keep the (faster) DMABUF path.
+    #[cfg(all(debug_assertions, target_os = "linux"))]
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())

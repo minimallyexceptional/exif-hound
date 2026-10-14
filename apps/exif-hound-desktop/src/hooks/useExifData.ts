@@ -1,5 +1,5 @@
 import { ExifData } from '../types';
-import { ExifMetadata } from 'exif-middleware';
+import { ExifMetadata } from 'exif-hound-core';
 import { fixCoordinates } from '../utils/diagnostics';
 import { getLocationFromCoordinates } from '../utils/geocoding';
 import exifWorkerUrl from '../workers/exifWorker?worker&url';
@@ -83,27 +83,26 @@ export const useExifData = (options: UseExifDataOptions = {}) => {
       // Convert the metadata format to our app's ExifData format
       const exifData = convertMetadataToExifData(metadata, fixCoordinates);
 
-      // Always set initial loading state for location
-      if (options.fetchLocation !== false &&
-          typeof exifData.latitude === 'number' &&
-          typeof exifData.longitude === 'number') {
+      if (
+        options.fetchLocation === true &&
+        typeof exifData.latitude === 'number' &&
+        typeof exifData.longitude === 'number'
+      ) {
         exifData.location = { loading: true };
-
-        // Fetch location data in background (don't await)
-        getLocationFromCoordinates(exifData.latitude, exifData.longitude)
-          .then(locationData => {
-            // This would need to be handled by the caller to update state
-            exifData.location = locationData;
-          })
-          .catch(locError => {
-            if (__DEV__) {
-              console.error('Error fetching location data:', locError);
-            }
-            exifData.location = {
-              loading: false,
-              error: 'Failed to fetch location data'
-            };
-          });
+        try {
+          exifData.location = await getLocationFromCoordinates(
+            exifData.latitude,
+            exifData.longitude
+          );
+        } catch (locError) {
+          if (__DEV__) {
+            console.error('Error fetching location data:', locError);
+          }
+          exifData.location = {
+            loading: false,
+            error: 'Failed to fetch location data',
+          };
+        }
       }
 
       options.onSuccess?.(exifData);

@@ -24,7 +24,7 @@ test.describe('Splash screen entrypoint', () => {
     await page.getByRole('button', { name: 'Create project' }).click();
 
     // Existing entrypoint: app shell with the empty-state upload panel.
-    await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'EXIF Hound', exact: true })).toBeVisible();
     await expect(page.getByText('Upload images to start tracking')).toBeVisible();
     await expect(page.getByTestId('splash-logomark')).toHaveCount(0);
   });

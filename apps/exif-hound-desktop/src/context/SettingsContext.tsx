@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MapSettings } from '../types';
+import { MapSettings, PrivacySettings } from '../types';
+import { readJsonStorage, writeJsonStorage } from '../utils/settingsStorage';
 
 interface SettingsContextType {
   mapSettings: MapSettings;
   updateMapSettings: (settings: Partial<MapSettings>) => void;
+  privacySettings: PrivacySettings;
+  updatePrivacySettings: (settings: Partial<PrivacySettings>) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -16,23 +19,34 @@ const defaultMapSettings: MapSettings = {
   }
 };
 
+const defaultPrivacySettings: PrivacySettings = {
+  reverseGeocoding: false,
+};
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [mapSettings, setMapSettings] = useState<MapSettings>(() => {
-    const saved = localStorage.getItem('mapSettings');
-    const savedSettings = saved ? JSON.parse(saved) : {};
+    const savedSettings = readJsonStorage<Partial<MapSettings>>('mapSettings', {});
     return {
       ...defaultMapSettings,
       ...savedSettings,
       customTiles: {
         ...defaultMapSettings.customTiles,
-        ...(savedSettings.customTiles || {})
-      }
+        ...(savedSettings.customTiles || {}),
+      },
     };
   });
 
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() =>
+    readJsonStorage<PrivacySettings>('privacySettings', defaultPrivacySettings)
+  );
+
   useEffect(() => {
-    localStorage.setItem('mapSettings', JSON.stringify(mapSettings));
+    writeJsonStorage('mapSettings', mapSettings);
   }, [mapSettings]);
+
+  useEffect(() => {
+    writeJsonStorage('privacySettings', privacySettings);
+  }, [privacySettings]);
 
   const updateMapSettings = (settings: Partial<MapSettings>) => {
     setMapSettings(prev => ({
@@ -45,8 +59,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  const updatePrivacySettings = (settings: Partial<PrivacySettings>) => {
+    setPrivacySettings(prev => ({ ...prev, ...settings }));
+  };
+
   return (
-    <SettingsContext.Provider value={{ mapSettings, updateMapSettings }}>
+    <SettingsContext.Provider
+      value={{
+        mapSettings,
+        updateMapSettings,
+        privacySettings,
+        updatePrivacySettings,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

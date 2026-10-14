@@ -1,6 +1,17 @@
 // Add Jest-DOM custom matchers
 import '@testing-library/jest-dom';
 
+jest.mock('@tauri-apps/plugin-updater', () => ({
+  check: jest.fn(async () => null),
+  Update: class MockUpdate {
+    async download() {}
+    async install() {}
+  },
+}));
+jest.mock('@tauri-apps/plugin-process', () => ({
+  relaunch: jest.fn(async () => undefined),
+}));
+
 if (typeof ResizeObserver === 'undefined') {
   (globalThis as typeof globalThis & { ResizeObserver?: typeof ResizeObserver }).ResizeObserver = class {
     observe() {}
@@ -8,6 +19,24 @@ if (typeof ResizeObserver === 'undefined') {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 }
+
+// jsdom has no layout; render all virtual rows so grid integration tests see cell text.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: (options: { count: number; estimateSize?: () => number }) => {
+    const rowHeight = options.estimateSize?.() ?? 48;
+    const count = options.count ?? 0;
+    return {
+      getTotalSize: () => count * rowHeight,
+      getVirtualItems: () => Array.from({ length: count }, (_, index) => ({
+        key: String(index),
+        index,
+        start: index * rowHeight,
+        size: rowHeight,
+      })),
+      measureElement: () => {},
+    };
+  },
+}));
 
 // Shim for the Vite `define`d __DEV__ constant (see vite.config.ts).
 // Kept false in tests to mirror production behavior and silence dev logging.

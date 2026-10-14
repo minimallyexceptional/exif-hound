@@ -6,9 +6,9 @@
  * Expected staging layout (one directory per platform target):
  *
  *   staging/
- *     darwin-aarch64/  Exif Hound.app.tar.gz (+ .sig, .dmg)
- *     windows-x86_64/  Exif Hound_2.7.0_x64-setup.exe (+ .sig, .msi)
- *     linux-x86_64/    Exif Hound_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm)
+ *     darwin-aarch64/  EXIF Hound.app.tar.gz (+ .sig, .dmg)
+ *     windows-x86_64/  EXIF Hound_2.7.0_x64-setup.exe (+ .sig, .msi)
+ *     linux-x86_64/    EXIF Hound_2.7.0_amd64.AppImage (+ .sig, .deb, .rpm)
  *
  * The manifest references GitHub Release download URLs — binaries are hosted
  * there while clients fetch the small manifest from the project's GitHub

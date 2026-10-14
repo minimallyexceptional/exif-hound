@@ -19,6 +19,7 @@
 
 @layer base {
   :root {
+    color-scheme: dark;
     --app-black: #000000;
     --app-dark: #121212;
     --app-gray: #1a1a1a;
@@ -32,9 +33,15 @@
     --app-danger: #fca5a5;
     --app-danger-bg: #450a0a;
     --app-modal-scrim: rgba(0, 0, 0, 0.55);
+    --app-select-menu-selected-bg: #ffffff;
+    --app-select-menu-selected-text: #111827;
+    --port-image: #7dd3fc;
+    --port-text: #fbbf24;
+    --port-evidence: #c4b5fd;
   }
 
   :root[data-theme="light"] {
+    color-scheme: light;
     --app-black: #ffffff;
     --app-dark: #f8f9fa;
     --app-gray: #e9ecef;
@@ -48,6 +55,11 @@
     --app-danger: #b91c1c;
     --app-danger-bg: #fee2e2;
     --app-modal-scrim: rgba(0, 0, 0, 0.55);
+    --app-select-menu-selected-bg: #ffffff;
+    --app-select-menu-selected-text: #111827;
+    --port-image: #0369a1;
+    --port-text: #b45309;
+    --port-evidence: #6d28d9;
   }
 
   body {
@@ -99,6 +111,96 @@
     background-color: var(--app-gray);
     border: 1px solid var(--glass-border);
     @apply rounded-lg;
+  }
+
+  .app-control {
+    background-color: var(--app-gray);
+    color: var(--app-white);
+    border: 1px solid var(--app-gray-light);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .app-control::placeholder {
+    color: var(--app-accent-dim);
+  }
+
+  .app-control:hover:not(:disabled) {
+    border-color: var(--app-gray-lighter);
+  }
+
+  .app-control:focus {
+    outline: none;
+    border-color: var(--app-accent);
+  }
+
+  .app-control:focus-visible {
+    outline: 2px solid var(--app-accent-dim);
+    outline-offset: 2px;
+  }
+
+  .app-control:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .app-control-block {
+    margin-top: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .app-control-select {
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23858585' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 1rem;
+  }
+
+  :root[data-theme="light"] .app-control-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  .app-control-select-compact {
+    max-width: 14rem;
+    min-width: 0;
+    padding: 0.375rem 2rem 0.375rem 0.625rem;
+  }
+
+  .app-select-menu {
+    background-color: var(--app-gray);
+    color: var(--app-white);
+    border: 1px solid var(--app-gray-light);
+    border-radius: 0.5rem;
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.2),
+      0 4px 6px -4px rgba(0, 0, 0, 0.15);
+  }
+
+  .app-select-menu-item {
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.625rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .app-select-menu-item[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  .app-select-menu-item:hover:not([aria-disabled='true']):not([aria-selected='true']) {
+    background-color: var(--app-gray-light);
+  }
+
+  .app-select-menu-item[aria-selected='true'] {
+    background-color: var(--app-select-menu-selected-bg);
+    color: var(--app-select-menu-selected-text);
+    font-weight: 600;
   }
 }
 
@@ -226,16 +328,28 @@ a:focus-visible,
   }
 }
 
-/* Input styles with better contrast */
-input {
+/* Legacy unclassed inputs still pick up theme tokens; prefer .app-control in UI code. */
+input:not([class*="app-control"]),
+select:not([class*="app-control"]) {
   background-color: var(--app-gray);
   color: var(--app-white);
   border: 1px solid var(--app-gray-light);
 }
 
-input:focus {
+input:not([class*="app-control"]):focus,
+select:not([class*="app-control"]):focus {
   outline: none;
   border-color: var(--app-accent);
+}
+
+select:not([class*="app-control"]):focus-visible {
+  outline: 2px solid var(--app-accent-dim);
+  outline-offset: 2px;
+}
+
+select:not([class*="app-control"]) option {
+  background-color: var(--app-gray);
+  color: var(--app-white);
 }
 
 /* Export modal shadow lift */
@@ -273,7 +387,44 @@ input:focus {
   --xy-handle-background-color: var(--app-accent);
   --xy-handle-border-color: var(--app-gray);
   --xy-controls-button-background-color: var(--app-gray);
+  --xy-controls-button-background-color-hover: var(--app-gray-light);
   --xy-controls-button-color: var(--app-white);
   --xy-controls-button-border-color: var(--app-gray-light);
   --xy-minimap-background-color: var(--app-gray);
+}
+
+.react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--app-gray-light);
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+.react-flow__controls-button {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-bottom-color: var(--app-gray-light);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--app-gray-light);
+}
+
+.react-flow__controls-button:focus-visible {
+  outline: 2px solid var(--app-accent-dim);
+  outline-offset: 2px;
+}
+
+[data-sonner-toaster] {
+  --normal-bg: var(--app-gray);
+  --normal-border: var(--glass-border);
+  --normal-text: var(--app-white);
+  --success-bg: var(--app-gray);
+  --success-border: var(--glass-border);
+  --success-text: var(--app-white);
+  --error-bg: var(--app-danger-bg);
+  --error-border: var(--app-danger);
+  --error-text: var(--app-danger);
+  --border-radius: 0.75rem;
+  font-family: inherit;
 }

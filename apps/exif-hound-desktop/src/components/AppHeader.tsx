@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, CircleHelp, Info, RefreshCw, Star, PanelsTopLeft } from 'lucide-react';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import React, { useState } from 'react';
+import { Upload, List, Map as MapIcon, Download, Settings as SettingsIcon, Menu, X, RefreshCw, Star, PanelsTopLeft, Shield } from 'lucide-react';
+import { openExternalUrl } from '../utils/openExternalUrl';
 import { Button } from './common/Button';
-import ThemeToggle from './ThemeToggle';
 import { Panel } from './common/Panel';
 import Logomark from './common/Logomark';
-import { isTauriEnvironment } from '../utils/fileSystem';
 import { GITHUB_REPOSITORY_URL } from '../constants/github';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 
-type ViewMode = 'map' | 'list' | 'workbench';
+type ViewMode = 'map' | 'list' | 'workbench' | 'evidence';
 
 interface Props {
   imagesCount: number;
@@ -17,7 +16,7 @@ interface Props {
   onExport: () => void;
   onOpenSettings: () => void;
   onSetView: (view: ViewMode) => void;
-  /** Manual update check (Help -> Check for Updates). */
+  /** Manual update check from the mobile menu. */
   onCheckForUpdates: () => void;
 }
 
@@ -31,29 +30,13 @@ export const AppHeader: React.FC<Props> = ({
   onCheckForUpdates,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
 
   const handleStarOnGitHub = () => {
-    if (!isTauriEnvironment()) {
-      window.open(GITHUB_REPOSITORY_URL, '_blank', 'noopener,noreferrer');
-      setIsMobileMenuOpen(false);
-      return;
-    }
-
-    void openUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
-      console.error('Unable to open the Exif Hound GitHub repository:', error);
+    void openExternalUrl(GITHUB_REPOSITORY_URL).catch((error: unknown) => {
+      console.error(`Unable to open the ${APP_DISPLAY_NAME} GitHub repository:`, error);
     });
     setIsMobileMenuOpen(false);
   };
-
-  useEffect(() => {
-    if (!isHelpMenuOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsHelpMenuOpen(false);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [isHelpMenuOpen]);
 
   const mobileMenu = (
     <div data-testid="mobile-menu" className="fixed inset-0 z-50 lg:hidden">
@@ -81,6 +64,8 @@ export const AppHeader: React.FC<Props> = ({
                   Export
                 </Button>
               )}
+
+              <div className="border-t border-app-gray-light/30 pt-4" role="presentation" />
 
               {imagesCount > 0 && <>
                 <Button
@@ -110,12 +95,15 @@ export const AppHeader: React.FC<Props> = ({
               >
                 Workbench
               </Button>
-              
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-app-white">Theme</span>
-                <ThemeToggle />
-              </div>
+              <Button
+                variant={viewMode === 'evidence' ? 'primary' : 'secondary'}
+                icon={<Shield className="w-4 h-4" />}
+                onClick={() => { onSetView('evidence'); setIsMobileMenuOpen(false); }}
+                fullWidth
+              >
+                Evidence
+              </Button>
 
               <Button
                 variant="ghost"
@@ -158,7 +146,7 @@ export const AppHeader: React.FC<Props> = ({
             <Logomark className="w-9 h-9" />
             <div>
               <h1 className="text-xl font-bold text-app-white whitespace-nowrap">
-                Exif Hound
+                {APP_DISPLAY_NAME}
               </h1>
               <p className="text-xs text-app-accent-dim hidden sm:block">
                 Tracking digital footprints in every image
@@ -167,9 +155,12 @@ export const AppHeader: React.FC<Props> = ({
           </div>
 
           {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-4">
-            {/* Primary Actions */}
-            <div className="flex items-center">
+          <div className="hidden lg:flex min-w-0 flex-1 items-center justify-end gap-4 pl-8">
+            <div
+              className="flex items-center gap-2 rounded-lg border border-app-gray-light/40 bg-app-dark/50 p-1"
+              role="group"
+              aria-label="Import and export"
+            >
               <Button
                 variant="primary"
                 icon={<Upload className="w-4 h-4" />}
@@ -177,11 +168,7 @@ export const AppHeader: React.FC<Props> = ({
               >
                 Import
               </Button>
-            </div>
-
-            {/* Secondary Actions */}
-              <div className="flex items-center gap-2 border-l border-r border-app-gray-light/30 px-4">
-                {imagesCount > 0 && (
+              {imagesCount > 0 && (
                 <Button
                   variant="secondary"
                   icon={<Download className="w-4 h-4" />}
@@ -189,9 +176,14 @@ export const AppHeader: React.FC<Props> = ({
                 >
                   Export
                 </Button>
-                )}
+              )}
+            </div>
 
-                {imagesCount > 0 && <>
+            <div className="w-5 shrink-0" aria-hidden="true" />
+
+            <div className="flex items-center gap-2" role="group" aria-label="Views">
+              {imagesCount > 0 && (
+                <>
                   <Button
                     variant={viewMode === 'map' ? 'primary' : 'secondary'}
                     icon={<MapIcon className="w-4 h-4" />}
@@ -207,75 +199,32 @@ export const AppHeader: React.FC<Props> = ({
                   >
                     List View
                   </Button>
-                </>}
+                </>
+              )}
 
-                <Button
-                  variant={viewMode === 'workbench' ? 'primary' : 'secondary'}
-                  icon={<PanelsTopLeft className="w-4 h-4" />}
-                  onClick={() => onSetView('workbench')}
-                >
-                  Workbench
-                </Button>
-                
-              </div>
-
-            {/* System Actions */}
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              {/* Help menu: manual update check + About */}
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  icon={<CircleHelp className="w-5 h-5" />}
-                  onClick={() => setIsHelpMenuOpen(prev => !prev)}
-                  aria-label="Help menu"
-                  aria-expanded={isHelpMenuOpen}
-                  aria-haspopup="menu"
-                  aria-controls="help-menu"
-                />
-                {isHelpMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      aria-hidden="true"
-                      onClick={() => setIsHelpMenuOpen(false)}
-                    />
-                    <Panel className="absolute right-0 top-11 z-50 w-56">
-                      <div id="help-menu" role="menu" className="p-2 space-y-1">
-                        <button
-                          role="menuitem"
-                          onClick={() => {
-                            onCheckForUpdates();
-                            setIsHelpMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-app-gray-light text-app-white text-sm transition-colors"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          Check for Updates
-                        </button>
-                        <button
-                          role="menuitem"
-                          onClick={() => {
-                            onOpenSettings();
-                            setIsHelpMenuOpen(false);
-                          }}
-                          className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg hover:bg-app-gray-light text-app-white text-sm transition-colors"
-                        >
-                          <Info className="w-4 h-4" />
-                          About Exif Hound
-                        </button>
-                      </div>
-                    </Panel>
-                  </>
-                )}
-              </div>
               <Button
-                variant="ghost"
-                icon={<SettingsIcon className="w-5 h-5" />}
-                onClick={onOpenSettings}
-                aria-label="Open settings"
-              />
+                variant={viewMode === 'workbench' ? 'primary' : 'secondary'}
+                icon={<PanelsTopLeft className="w-4 h-4" />}
+                onClick={() => onSetView('workbench')}
+              >
+                Workbench
+              </Button>
+
+              <Button
+                variant={viewMode === 'evidence' ? 'primary' : 'secondary'}
+                icon={<Shield className="w-4 h-4" />}
+                onClick={() => onSetView('evidence')}
+              >
+                Evidence
+              </Button>
             </div>
+
+            <Button
+              variant="ghost"
+              icon={<SettingsIcon className="w-5 h-5" />}
+              onClick={onOpenSettings}
+              aria-label="Open settings"
+            />
           </div>
 
           {/* Mobile Menu Button */}

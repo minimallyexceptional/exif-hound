@@ -157,4 +157,51 @@ describe('WorkflowRunner', () => {
     expect(calls).toEqual(['provenance']);
     expect(persisted).toEqual(['provenance']);
   });
+
+  it('routes the image packet through a transform bypass without re-running the image handler', async () => {
+    const packet = { imageId: 1, imageName: 'source.png', processedBytes: new Uint8Array([9]) };
+    const ocrResult = { text: 'found' };
+    const provenanceResult = { indicators: [] };
+    const imageHandler = jest.fn(async () => ({ data: packet, outputs: { image: packet } }));
+    let provenanceInput: unknown;
+    const persisted: Array<{ id: string; data: unknown }> = [];
+    const graph: WorkflowGraph = {
+      formatVersion: 1, name: 'Bypass chain',
+      nodes: [
+        { id: 'image', type: 'image', position: { x: 0, y: 0 }, settings: { imageId: 1 } },
+        { id: 'ocr', type: 'ocr', position: { x: 1, y: 0 }, settings: { language: 'eng' } },
+        { id: 'provenance', type: 'provenance', position: { x: 2, y: 0 }, settings: {} },
+        { id: 'text', type: 'text', position: { x: 3, y: 0 }, settings: {} },
+        { id: 'evidence', type: 'evidence', position: { x: 3, y: 1 }, settings: {} },
+      ],
+      edges: [
+        { id: 'image-ocr', source: 'image', sourcePort: 'image', target: 'ocr', targetPort: 'image' },
+        { id: 'ocr-image', source: 'ocr', sourcePort: 'image', target: 'provenance', targetPort: 'image' },
+        { id: 'ocr-text', source: 'ocr', sourcePort: 'text', target: 'text', targetPort: 'text' },
+        { id: 'provenance-evidence', source: 'provenance', sourcePort: 'evidence', target: 'evidence', targetPort: 'evidence' },
+      ],
+    };
+
+    await new WorkflowRunner().run(graph, {
+      handlers: {
+        image: imageHandler,
+        ocr: async (_node, context) => {
+          expect(context.inputs.get('image')).toBe(packet);
+          return { data: ocrResult, outputs: { image: packet, text: ocrResult } };
+        },
+        provenance: async (_node, context) => {
+          provenanceInput = context.inputs.get('image');
+          return { data: provenanceResult, outputs: { image: packet, evidence: provenanceResult } };
+        },
+      },
+      persistResult: async (node, result) => { persisted.push({ id: node.id, data: result.data }); },
+    });
+
+    expect(imageHandler).toHaveBeenCalledTimes(1);
+    expect(provenanceInput).toBe(packet);
+    expect(persisted).toEqual([
+      { id: 'ocr', data: ocrResult },
+      { id: 'provenance', data: provenanceResult },
+    ]);
+  });
 });

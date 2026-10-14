@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, Copy, ScanText } from 'lucide-react';
-import type { OcrResultRecord } from 'investigation-archive';
+import type { OcrResultRecord } from 'exif-hound-core';
 import { ImageData } from '../types';
 import { Button } from './common/Button';
+import { notify } from '../feedback';
 
 interface Props {
   image: ImageData;
@@ -17,9 +18,11 @@ const OcrResultsView: React.FC<Props> = ({ image, result, onBack }) => {
     try {
       await navigator.clipboard.writeText(result.text);
       setCopyState('copied');
+      notify.success('Extracted text copied to clipboard.');
       window.setTimeout(() => setCopyState('idle'), 1800);
     } catch {
       setCopyState('error');
+      notify.error('Clipboard access is unavailable.');
     }
   };
 
@@ -48,8 +51,6 @@ const OcrResultsView: React.FC<Props> = ({ image, result, onBack }) => {
             </Button>
           </div>
           <div className="selectable-value whitespace-pre-wrap break-words p-5 font-mono text-sm leading-7 text-app-white sm:p-7">{result.text}</div>
-          {copyState === 'error' && <p className="border-t border-app-gray-light/30 px-5 py-3 text-sm text-red-400" role="alert">Could not copy text. Check clipboard access and try again.</p>}
-          {copyState === 'copied' && <p className="border-t border-app-gray-light/30 px-5 py-3 text-sm text-app-accent" role="status">Extracted text copied to clipboard.</p>}
         </article>
       </div>
     </section>
