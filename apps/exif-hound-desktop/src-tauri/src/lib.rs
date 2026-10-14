@@ -1,5 +1,14 @@
+mod security;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Workaround for webkit2gtk 2.54.x DMABUF renderer crashing on some
+    // Wayland compositors (e.g. Hyprland) with `Error 71 (Protocol error)`
+    // / "Failed to create GBM buffer". Debug/dev builds only so release
+    // binaries keep the (faster) DMABUF path.
+    #[cfg(all(debug_assertions, target_os = "linux"))]
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -14,6 +23,12 @@ pub fn run() {
             force_exit,
             kill_process,
             resolve_project_folder,
+            register_trusted_project_roots,
+            register_remote_image_hosts,
+            register_custom_tile_hosts,
+            fetch_remote_image_bytes,
+            fetch_map_tile_bytes,
+            fetch_nominatim_bytes,
             save_workflow_template,
             list_workflow_templates
         ])
@@ -35,7 +50,11 @@ pub fn run() {
 }
 
 #[tauri::command]
-fn resolve_project_folder(app: tauri::AppHandle, path: String) -> Result<String, String> {
+fn resolve_project_folder(
+    app: tauri::AppHandle,
+    path: String,
+    picked_in_dialog: bool,
+) -> Result<String, String> {
     use tauri_plugin_fs::FsExt;
 
     let canonical = canonical_project_folder(&path)
@@ -43,6 +62,17 @@ fn resolve_project_folder(app: tauri::AppHandle, path: String) -> Result<String,
 
     if !canonical.is_dir() {
         return Err("The selected path is not a folder.".into());
+    }
+
+    if !security::is_project_folder_allowed(&canonical, picked_in_dialog) {
+        return Err(
+            "Project folder access is limited to folders chosen in the picker or recent projects."
+                .into(),
+        );
+    }
+
+    if picked_in_dialog {
+        security::remember_session_dialog_root(&canonical);
     }
 
     // The dialog may have scoped the unnormalized spelling. Grant the actual
@@ -56,7 +86,37 @@ fn resolve_project_folder(app: tauri::AppHandle, path: String) -> Result<String,
         .ok_or_else(|| "The selected folder path is not valid UTF-8.".into())
 }
 
-fn canonical_project_folder(path: &str) -> std::io::Result<std::path::PathBuf> {
+#[tauri::command]
+fn register_trusted_project_roots(roots: Vec<String>) -> Result<(), String> {
+    security::register_trusted_project_roots(roots)
+}
+
+#[tauri::command]
+fn register_remote_image_hosts(hosts: Vec<String>) -> Result<(), String> {
+    security::register_remote_image_hosts(hosts)
+}
+
+#[tauri::command]
+fn register_custom_tile_hosts(hosts: Vec<String>) -> Result<(), String> {
+    security::register_custom_tile_hosts(hosts)
+}
+
+#[tauri::command]
+fn fetch_remote_image_bytes(url: String) -> Result<Vec<u8>, String> {
+    security::fetch_remote_image_bytes(&url)
+}
+
+#[tauri::command]
+fn fetch_map_tile_bytes(url: String) -> Result<Vec<u8>, String> {
+    security::fetch_map_tile_bytes(&url)
+}
+
+#[tauri::command]
+fn fetch_nominatim_bytes(url: String) -> Result<Vec<u8>, String> {
+    security::fetch_nominatim_bytes(&url)
+}
+
+pub(crate) fn canonical_project_folder(path: &str) -> std::io::Result<std::path::PathBuf> {
     dunce::canonicalize(path).or_else(|original_error| {
         // A Linux folder picker can return backslashes in an otherwise POSIX
         // path. Only repair it when the literal path does not exist; a real

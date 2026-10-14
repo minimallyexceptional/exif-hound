@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { bootApp, closeSettings, openSettings, switchView, uploadImages } from '../support/app';
+import { bootApp, closeSettings, openSettings, uploadImages } from '../support/app';
 import { FIXTURE_IMAGES, FIXTURE_IMPORT } from '../support/fixtures';
 
 test('accepts an image through the header file input and selects it', async ({ page }) => {
@@ -8,6 +8,7 @@ test('accepts an image through the header file input and selects it', async ({ p
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.fullExif.name}"]`)).toBeAttached();
   await expect(page.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
   await expect(page.getByText(FIXTURE_IMAGES.fullExif.name, { exact: true })).toBeVisible();
+  await expect(page.getByText('Imported 1 image')).toBeVisible();
 });
 
 test('handles multiple files at once', async ({ page }) => {
@@ -16,10 +17,8 @@ test('handles multiple files at once', async ({ page }) => {
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.fullExif.name}"]`)).toBeAttached();
   await expect(page.locator(`img[alt="${FIXTURE_IMAGES.noGps.name}"]`)).toBeAttached();
   await expect(page.getByText('Model', { exact: true }).locator('..').locator('div').last()).toHaveText('Hound-2');
-  await switchView(page, 'List View');
-  const grid = page.getByRole('grid', { name: 'Image metadata spreadsheet' });
-  await expect(grid.getByText(FIXTURE_IMAGES.fullExif.name, { exact: true })).toBeVisible();
-  await expect(grid.getByText(FIXTURE_IMAGES.noGps.name, { exact: true })).toBeVisible();
+  await expect(page.locator('header').getByRole('button', { name: 'Investigation' })).toHaveCount(0);
+  await expect(page.getByText('Imported 2 images')).toBeVisible();
 });
 
 test('rejects non-image files', async ({ page }) => {

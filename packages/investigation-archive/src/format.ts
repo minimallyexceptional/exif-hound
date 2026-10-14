@@ -12,7 +12,7 @@ export const IMAGES_DIR = 'images';
 export const DATABASE_FILE = 'data.db';
 export const DB_PATH = `${DATA_DIR}/${DATABASE_FILE}`;
 
-export const SCHEMA_FORMAT_VERSION = 7;
+export const SCHEMA_FORMAT_VERSION = 8;
 
 export type ImportType = 'kml' | 'csv';
 

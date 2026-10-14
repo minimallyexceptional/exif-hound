@@ -1,46 +1,86 @@
-import React, { useId, useState } from 'react';
+import React, { useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { placeTooltip, type TooltipPosition } from './tooltipPlacement';
 
 interface TooltipProps {
   content: string;
   children: React.ReactNode;
-  position?: 'top' | 'bottom' | 'left' | 'right';
+  position?: TooltipPosition;
+  className?: string;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
-  position = 'top'
+  position = 'top',
+  className = '',
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [ready, setReady] = useState(false);
   const tooltipId = useId();
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
 
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2'
+  useLayoutEffect(() => {
+    if (!isVisible) {
+      setReady(false);
+      return;
+    }
+    if (!triggerRef.current || !tooltipRef.current) return;
+
+    const updatePosition = () => {
+      const trigger = triggerRef.current;
+      const tooltip = tooltipRef.current;
+      if (!trigger || !tooltip) return;
+      const placed = placeTooltip(
+        trigger.getBoundingClientRect(),
+        { width: tooltip.offsetWidth, height: tooltip.offsetHeight },
+        position,
+        { width: window.innerWidth, height: window.innerHeight },
+      );
+      setCoords({ top: placed.top, left: placed.left });
+      setReady(true);
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isVisible, content, position]);
+
+  const hide = () => {
+    setIsVisible(false);
+    setReady(false);
   };
 
   return (
     <span
-      className="relative inline-block"
+      ref={triggerRef}
+      className={`inline-flex max-w-full ${className}`.trim()}
       onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
+      onMouseLeave={hide}
       onFocusCapture={() => setIsVisible(true)}
-      onBlurCapture={() => setIsVisible(false)}
-      onKeyDown={(event) => { if (event.key === 'Escape') setIsVisible(false); }}
+      onBlurCapture={hide}
+      onKeyDown={(event) => { if (event.key === 'Escape') hide(); }}
     >
       {React.isValidElement(children) ? React.cloneElement(children as React.ReactElement<{ 'aria-describedby'?: string }>, {
         'aria-describedby': isVisible ? tooltipId : undefined,
       }) : children}
-      {isVisible && (
+      {isVisible && createPortal(
         <span
+          ref={tooltipRef}
           id={tooltipId}
           role="tooltip"
-          className={`pointer-events-none absolute z-50 max-w-64 rounded border border-app-gray-light bg-app-gray px-2 py-1 text-xs text-app-white shadow-lg ${positionClasses[position]}`}
+          style={{ top: coords.top, left: coords.left }}
+          className={`pointer-events-none fixed z-[80] max-w-64 rounded border border-app-gray-light bg-app-gray px-2 py-1 text-left text-xs leading-relaxed text-app-white shadow-lg ${ready ? '' : 'invisible'}`}
         >
           {content}
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   );

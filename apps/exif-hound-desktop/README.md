@@ -1,4 +1,4 @@
-# Exif Hound
+# EXIF Hound
 
 A powerful desktop application for visualizing and managing EXIF data from your images.
 

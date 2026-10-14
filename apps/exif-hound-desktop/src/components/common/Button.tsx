@@ -1,5 +1,6 @@
 import React from 'react';
 import { Tooltip } from './Tooltip';
+import type { TooltipPosition } from './tooltipPlacement';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
@@ -7,6 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
   size?: 'sm' | 'md' | 'lg';
   tooltip?: string;
+  tooltipPosition?: TooltipPosition;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -17,6 +19,7 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   className = '',
   tooltip,
+  tooltipPosition,
   ...props
 }) => {
   const baseClasses = 'flex items-center justify-center rounded-lg transition-all duration-300';
@@ -50,7 +53,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   if (tooltip) {
     return (
-      <Tooltip content={tooltip}>
+      <Tooltip content={tooltip} position={tooltipPosition} className={fullWidth ? 'w-full' : undefined}>
         {button}
       </Tooltip>
     );

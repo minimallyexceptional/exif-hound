@@ -66,6 +66,12 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     // Default parent folder for bootApp's implicit project creation.
     'plugin:dialog|open': '/tmp/e2e-projects',
     resolve_project_folder: '__selected_folder__',
+    register_trusted_project_roots: null,
+    register_remote_image_hosts: null,
+    register_custom_tile_hosts: null,
+    fetch_remote_image_bytes: [],
+    fetch_map_tile_bytes: [],
+    fetch_nominatim_bytes: [],
     list_workflow_templates: [],
     save_workflow_template: null,
     ...options.commands,
@@ -187,7 +193,7 @@ export async function bootApp(page: Page, options: BootOptions = {}): Promise<vo
     await page.getByLabel('Project name').fill('E2E Project');
     await page.getByRole('button', { name: 'Choose parent folder' }).click();
     await page.getByRole('button', { name: 'Create project' }).click();
-    await expect(page.getByRole('heading', { name: 'Exif Hound', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'EXIF Hound', exact: true })).toBeVisible();
   }
 }
 
@@ -212,7 +218,7 @@ export async function closeSettings(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toHaveCount(0);
 }
 
-export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Workbench'): Promise<void> {
+export async function switchView(page: Page, name: 'Map View' | 'List View' | 'Workbench' | 'Evidence'): Promise<void> {
   await page.locator('header').getByRole('button', { name, exact: true }).click();
 }
 

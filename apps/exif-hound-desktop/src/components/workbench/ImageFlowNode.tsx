@@ -5,7 +5,7 @@ import { NodeFrame } from './NodeFrame';
 
 const ImageFlowNode: React.FC<NodeProps & { data: WorkbenchFlowData }> = (props) => (
   <NodeFrame {...props} type="image" output="image">
-    <div className="p-2">
+    <div className="p-3">
       {props.data.image ? (
         <>
           <div className="aspect-[16/10] overflow-hidden rounded-lg bg-app-black/40">

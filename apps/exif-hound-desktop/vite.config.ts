@@ -1,8 +1,27 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import fs from 'fs';
+import { contentTypeForOcrAsset, resolvePublicOcrPath } from './src/utils/ocrPublicAsset';
+
+function servePublicOcrAssets(): Plugin {
+  const ocrRoot = path.resolve(__dirname, 'public/ocr');
+  return {
+    name: 'serve-public-ocr-assets',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const file = resolvePublicOcrPath(req.url ?? '', ocrRoot);
+        if (!file) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', contentTypeForOcrAsset(file));
+        fs.createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
 
 const isDev = process.env.TAURI_DEBUG === 'true';
 
@@ -23,7 +42,7 @@ if (updateChannel !== 'stable' && updateChannel !== 'beta' && updateChannel !== 
 }
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [servePublicOcrAssets(), react(), tailwindcss()],
   define: {
     // __DEV__ replaces import.meta.env.DEV so source files stay Jest-compatible
     // (ts-jest/Jest 30 treat files containing import.meta as ESM).
@@ -49,33 +68,36 @@ export default defineConfig({
       // Pre-bundle it so the browser doesn't have to resolve them one by one
       // during the first Playwright page load.
       'lucide-react',
-      'investigation-archive',
+      'exif-hound-core',
       'sql.js',
     ],
   },
   resolve: {
+    dedupe: ['leaflet'],
     alias: [
+      { find: 'exif-hound-core/desktop', replacement: path.join(packagesDir, 'exif-hound-core/dist/desktop.js') },
+      { find: 'exif-hound-core', replacement: path.join(packagesDir, 'exif-hound-core/dist/index.js') },
       { find: 'exif-middleware', replacement: path.join(packagesDir, 'exif-middleware/dist') },
-      { find: 'investigation-archive', replacement: path.join(packagesDir, 'investigation-archive/dist') },
-      { find: 'image-forensics-middleware', replacement: path.join(packagesDir, 'image-forensics-middleware/dist') },
       { find: 'image-processing-middleware', replacement: path.join(packagesDir, 'image-processing-middleware/dist') },
     ],
   },
   
-  // Vite config for Tauri
+  // Vite config for Tauri (must match src-tauri/tauri.conf.json devUrl)
   clearScreen: false,
   server: {
-    port: 5173,
-    strictPort: false, // Allow fallback ports
+    port: 5176,
+    strictPort: true,
+    host: '127.0.0.1',
     watch: {
-      // Don't trigger reload for these files
-      ignored: ['**/node_modules/**', '**/.git/**']
+      ignored: ['**/node_modules/**', '**/.git/**', '**/src-tauri/**'],
     },
     hmr: {
-      // Make HMR available for Tauri even when using a different port
-      host: 'localhost',
+      // WebView loads http://127.0.0.1:5176 — HMR must use the same host, not
+      // "localhost", or WebSocket may hit a different Vite instance on ::1.
+      host: '127.0.0.1',
+      port: 5176,
       protocol: 'ws',
-    }
+    },
   },
   envPrefix: ['VITE_', 'TAURI_'],
   build: {

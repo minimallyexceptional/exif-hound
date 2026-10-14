@@ -11,10 +11,9 @@ This block is written and re-added by `turbo` before repository-scoped commands 
 
 ## Repository overview
 
-Exif Hound is a single consolidated desktop application (no pro/community editions, no Electron). It is an npm-workspaces monorepo orchestrated by Turborepo:
+EXIF Hound is a single consolidated desktop application (no pro/community editions, no Electron). It is an npm-workspaces monorepo orchestrated by Turborepo:
 
 - `apps/exif-hound-desktop` — the main app: Tauri 2 + React 19 + Vite + Tailwind CSS 4 + TypeScript. Leaflet for mapping, exifreader for metadata parsing, a Web Worker (`src/workers/exifWorker.ts`) for EXIF extraction, visx for analysis visualizations.
-- `apps/exif-hound-website` — marketing website.
 - `packages/exif-middleware` — shared EXIF middleware package (consumed by the desktop app via a Vite alias to its `dist` build; build packages before running the desktop app).
 
 Key constraints:

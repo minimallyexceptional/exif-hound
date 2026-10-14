@@ -3,6 +3,14 @@ import { render, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ImageUploader from '../../components/ImageUploader';
 import { useExifData } from '../../hooks/useExifData';
+import { SettingsProvider } from '../../context/SettingsContext';
+
+const renderUploader = (onImageUpload: jest.Mock) =>
+  render(
+    <SettingsProvider>
+      <ImageUploader onImageUpload={onImageUpload} inputId="test-input" />
+    </SettingsProvider>
+  );
 
 // Mock the EXIF worker
 jest.mock('../../workers/exifWorker', () => ({
@@ -27,6 +35,7 @@ const createMockFile = (name: string, size: number = 1000000): File => {
 describe('Upload Pipeline Performance', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
 
     // Mock the processExifData function
     mockUseExifData.mockReturnValue({
@@ -54,7 +63,7 @@ describe('Upload Pipeline Performance', () => {
       createMockFile('test5.jpg')
     ];
 
-    const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
+    const { container } = renderUploader(onImageUpload);
 
     const input = container.querySelector('input[type="file"]');
 
@@ -84,7 +93,7 @@ describe('Upload Pipeline Performance', () => {
     const onImageUpload = jest.fn();
     const file = createMockFile('large-image.jpg', 10000000);
 
-    const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
+    const { container } = renderUploader(onImageUpload);
 
     const input = container.querySelector('input[type="file"]');
 
@@ -105,10 +114,11 @@ describe('Upload Pipeline Performance', () => {
   });
 
   test('should add images with loading location state initially', async () => {
+    localStorage.setItem('privacySettings', JSON.stringify({ reverseGeocoding: true }));
     const onImageUpload = jest.fn();
     const file = createMockFile('test.jpg');
 
-    const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
+    const { container } = renderUploader(onImageUpload);
 
     const input = container.querySelector('input[type="file"]');
 
@@ -162,7 +172,7 @@ describe('Upload Pipeline Performance', () => {
       cleanup: jest.fn()
     });
 
-    const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
+    const { container } = renderUploader(onImageUpload);
 
     const input = container.querySelector('input[type="file"]');
 
@@ -181,17 +191,22 @@ describe('Upload Pipeline Performance', () => {
     expect(maxConcurrent).toBeGreaterThan(1); // But should use some concurrency
   });
 
-  test('should update location data progressively in background', async () => {
+  test('should include resolved location when reverse geocoding is enabled', async () => {
+    localStorage.setItem('privacySettings', JSON.stringify({ reverseGeocoding: true }));
     const onImageUpload = jest.fn();
     const file = createMockFile('test.jpg');
 
-    // Mock location update after initial load
-    let resolveLocation!: (value: { country: string; city: string }) => void;
-    const locationPromise = new Promise<{ country: string; city: string }>(resolve => {
-      resolveLocation = resolve;
+    mockUseExifData.mockReturnValue({
+      processExifData: jest.fn().mockResolvedValue({
+        dateTimeOriginal: '2023-01-01T12:00:00.000Z',
+        latitude: 40.7128,
+        longitude: -74.0060,
+        location: { loading: false, country: 'Test Country', city: 'Test City' },
+      }),
+      cleanup: jest.fn(),
     });
 
-    const { container } = render(<ImageUploader onImageUpload={onImageUpload} inputId="test-input" />);
+    const { container } = renderUploader(onImageUpload);
 
     const input = container.querySelector('input[type="file"]');
 
@@ -200,26 +215,14 @@ describe('Upload Pipeline Performance', () => {
       fireEvent.change(input);
     }
 
-    // First call should have loading location
     await waitFor(() => {
-      expect(onImageUpload).toHaveBeenCalledWith(
-        expect.objectContaining({
-          exif: expect.objectContaining({
-            location: { loading: true }
-          })
-        })
-      );
+      expect(onImageUpload.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
-    // Simulate location data arriving later
-    resolveLocation({
+    const lastUploaded = onImageUpload.mock.calls[onImageUpload.mock.calls.length - 1]?.[0];
+    expect(lastUploaded?.exif.location).toMatchObject({
+      city: 'Test City',
       country: 'Test Country',
-      city: 'Test City'
     });
-
-    await locationPromise;
-
-    // Should eventually update with actual location data
-    // This would be handled by the parent component updating state
   });
 });

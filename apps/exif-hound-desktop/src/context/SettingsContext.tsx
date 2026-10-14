@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MapSettings } from '../types';
+import { MapSettings, PrivacySettings } from '../types';
+import { readJsonStorage, writeJsonStorage } from '../utils/settingsStorage';
 
 export interface AppPreferences {
   automaticUpdateChecks: boolean;
@@ -10,6 +11,8 @@ interface SettingsContextType {
   updateMapSettings: (settings: Partial<MapSettings>) => void;
   appPreferences: AppPreferences;
   updateAppPreferences: (prefs: Partial<AppPreferences>) => void;
+  privacySettings: PrivacySettings;
+  updatePrivacySettings: (settings: Partial<PrivacySettings>) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -28,6 +31,10 @@ const defaultMapSettings: MapSettings = {
   }
 };
 
+const defaultPrivacySettings: PrivacySettings = {
+  reverseGeocoding: false,
+};
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [appPreferences, setAppPreferences] = useState<AppPreferences>(() => {
     try {
@@ -39,25 +46,32 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [mapSettings, setMapSettings] = useState<MapSettings>(() => {
-    const saved = localStorage.getItem('mapSettings');
-    const savedSettings = saved ? JSON.parse(saved) : {};
+    const savedSettings = readJsonStorage<Partial<MapSettings>>('mapSettings', {});
     return {
       ...defaultMapSettings,
       ...savedSettings,
       customTiles: {
         ...defaultMapSettings.customTiles,
-        ...(savedSettings.customTiles || {})
-      }
+        ...(savedSettings.customTiles || {}),
+      },
     };
   });
 
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() =>
+    readJsonStorage<PrivacySettings>('privacySettings', defaultPrivacySettings)
+  );
+
   useEffect(() => {
-    localStorage.setItem('mapSettings', JSON.stringify(mapSettings));
+    writeJsonStorage('mapSettings', mapSettings);
   }, [mapSettings]);
 
   useEffect(() => {
     localStorage.setItem(APP_PREFERENCES_KEY, JSON.stringify(appPreferences));
   }, [appPreferences]);
+
+  useEffect(() => {
+    writeJsonStorage('privacySettings', privacySettings);
+  }, [privacySettings]);
 
   const updateMapSettings = (settings: Partial<MapSettings>) => {
     setMapSettings(prev => ({
@@ -74,8 +88,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setAppPreferences(prev => ({ ...prev, ...prefs }));
   };
 
+  const updatePrivacySettings = (settings: Partial<PrivacySettings>) => {
+    setPrivacySettings(prev => ({ ...prev, ...settings }));
+  };
+
   return (
-    <SettingsContext.Provider value={{ mapSettings, updateMapSettings, appPreferences, updateAppPreferences }}>
+    <SettingsContext.Provider
+      value={{
+        mapSettings,
+        updateMapSettings,
+        appPreferences,
+        updateAppPreferences,
+        privacySettings,
+        updatePrivacySettings,
+      }}
+    >
       {children}
     </SettingsContext.Provider>
   );

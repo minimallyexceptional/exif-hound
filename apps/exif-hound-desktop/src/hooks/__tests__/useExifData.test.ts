@@ -4,21 +4,27 @@
 
 // We're using simple import syntax to avoid TypeScript/ESLint issues with mocking
 import { renderHook } from '@testing-library/react';
-import type { ExifMetadata } from 'exif-middleware';
+import type { ExifMetadata } from 'exif-hound-core';
 import type { ExifWorkerResponse } from '../../workers/exifWorker';
 
 // Mock all dependencies
-jest.mock('exif-middleware', () => ({
-  extractExifData: jest.fn()
-}), { virtual: true });
+jest.mock('exif-hound-core', () => ({
+  ...jest.requireActual('exif-hound-core'),
+  extractExifData: jest.fn(),
+}));
 
 jest.mock('../../utils/diagnostics', () => ({
   fixCoordinates: jest.fn((lat, lng) => [lat, lng])
 }));
 
+jest.mock('../../utils/geocoding', () => ({
+  getLocationFromCoordinates: jest.fn(),
+}));
+
 // Get references to mocked functions
-const mockExtractExifData = jest.requireMock('exif-middleware').extractExifData;
+const mockExtractExifData = jest.requireMock('exif-hound-core').extractExifData;
 const mockFixCoordinates = jest.requireMock('../../utils/diagnostics').fixCoordinates;
+const mockGetLocationFromCoordinates = jest.requireMock('../../utils/geocoding').getLocationFromCoordinates;
 
 // After all mocks are set up, import the component under test
 import { useExifData } from '../useExifData';
@@ -126,11 +132,12 @@ describe('useExifData hook', () => {
     expect(mockFixCoordinates).toHaveBeenCalledWith(37.7749, -122.4194);
   });
 
-  it('should not perform reverse geocoding network calls', async () => {
+  it('should not fetch location by default', async () => {
     const mockFile = createMockFile();
     mockFile.arrayBuffer = jest.fn().mockResolvedValue(mockArrayBuffer);
     const { result } = renderHook(() => useExifData());
     const exifData = await result.current.processExifData(mockFile);
+    expect(mockGetLocationFromCoordinates).not.toHaveBeenCalled();
     expect(exifData.location).toBeNull();
   });
 
@@ -174,6 +181,26 @@ describe('useExifData hook', () => {
     // Assert
     expect(onErrorMock).toHaveBeenCalled();
     expect(exifData.error).toBe('Failed to read EXIF data from image');
+  });
+
+  it('should handle errors while fetching location data', async () => {
+    // Setup
+    const mockFile = createMockFile();
+    mockFile.arrayBuffer = jest.fn().mockResolvedValue(mockArrayBuffer);
+
+    // Mock location fetch error
+    mockGetLocationFromCoordinates.mockRejectedValue(new Error('Location fetch failed'));
+
+    const { result } = renderHook(() => useExifData({ fetchLocation: true }));
+
+    // Execute
+    const exifData = await result.current.processExifData(mockFile);
+
+    // Assert
+    expect(exifData.location).toEqual({
+      loading: false,
+      error: 'Failed to fetch location data'
+    });
   });
 
   it('should call onSuccess callback with the processed data', async () => {

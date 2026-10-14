@@ -4,7 +4,13 @@
  * the investigator explicitly loads them.
  */
 
+import { fetchBytesViaRust, syncRemoteImageHosts } from './rustNetwork';
+
 const ALLOWED_HOSTS_KEY = 'remoteImageAllowedHosts';
+
+async function pushAllowedHostsToRust(): Promise<void> {
+  await syncRemoteImageHosts([...readAllowedRemoteHosts()]);
+}
 
 export class RemoteImageUrlError extends Error {
   constructor(message: string) {
@@ -56,6 +62,15 @@ export function allowRemoteHost(host: string): void {
   const hosts = readAllowedRemoteHosts();
   hosts.add(normalized);
   writeAllowedRemoteHosts(hosts);
+  void pushAllowedHostsToRust();
+}
+
+export function revokeRemoteHost(host: string): void {
+  const normalized = host.toLowerCase();
+  const hosts = readAllowedRemoteHosts();
+  hosts.delete(normalized);
+  writeAllowedRemoteHosts(hosts);
+  void pushAllowedHostsToRust();
 }
 
 export function allowRemoteHostsForUrls(urls: string[]): string[] {
@@ -69,7 +84,10 @@ export function allowRemoteHostsForUrls(urls: string[]): string[] {
       added.push(host);
     }
   }
-  if (added.length > 0) writeAllowedRemoteHosts(hosts);
+  if (added.length > 0) {
+    writeAllowedRemoteHosts(hosts);
+    void pushAllowedHostsToRust();
+  }
   return added;
 }
 
@@ -81,13 +99,17 @@ export async function fetchRemoteImageBlob(url: string): Promise<Blob> {
   if (!isRemoteHostAllowed(host)) {
     throw new RemoteImageUrlError(`Loading images from ${host} is not enabled.`);
   }
-  const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
-  if (!response.ok) {
-    throw new RemoteImageUrlError(`Could not load image (${response.status}).`);
+  try {
+    const bytes = await fetchBytesViaRust('fetch_remote_image_bytes', url);
+    const blob = new Blob([Uint8Array.from(bytes)]);
+    if (blob.type && !blob.type.startsWith('image/')) {
+      throw new RemoteImageUrlError('The remote URL did not return an image.');
+    }
+    return blob;
+  } catch (error) {
+    if (error instanceof RemoteImageUrlError) throw error;
+    throw new RemoteImageUrlError(
+      error instanceof Error ? error.message : 'Could not load remote image.',
+    );
   }
-  const blob = await response.blob();
-  if (!blob.type.startsWith('image/')) {
-    throw new RemoteImageUrlError('The remote URL did not return an image.');
-  }
-  return blob;
 }

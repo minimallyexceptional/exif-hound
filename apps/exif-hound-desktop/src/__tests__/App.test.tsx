@@ -43,8 +43,8 @@ describe('Gallery Sidebar behavior', () => {
     );
 
     // Sidebar toggle button should describe state
-    const toggle = screen.getByRole('button', { name: /expand gallery/i });
-    expect(toggle).toBeInTheDocument();
+    const toggle = screen.getByTestId('gallery-sidebar-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     // Sidebar content should not be visible or accessible
     expect(screen.queryByRole('button', { name: 'Thumb 1' })).toBeNull();

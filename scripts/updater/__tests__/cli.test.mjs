@@ -127,7 +127,7 @@ test('validate rejects a legacy edition artifact', async () => {
   manifest.platforms['darwin-aarch64'].url =
     'https://github.com/acme/exif-hound/releases/download/v2.7.0/Exif%20Hound%20Pro.app.tar.gz';
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
-  await assertCliRejects(() => validateManifestCli(), /consolidated Exif Hound app/);
+  await assertCliRejects(() => validateManifestCli(), /consolidated EXIF Hound app/);
 });
 
 test('validate rejects a manifest whose version does not match --version', async () => {

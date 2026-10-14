@@ -3,6 +3,7 @@ import { Plus, FolderOpen } from 'lucide-react';
 import { Button } from './common/Button';
 import Logomark from './common/Logomark';
 import { RecentProject } from '../utils/recentProjects';
+import { APP_DISPLAY_NAME } from '../constants/brand';
 
 interface SplashScreenProps {
   onStart: () => void;
@@ -50,7 +51,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onStart, onOpen, onResume, 
   return (
     <div
       className="h-screen w-full bg-app-black flex flex-col justify-center lg:justify-stretch lg:flex-row gap-4 lg:gap-6 overflow-hidden p-4 lg:p-6"
-      aria-label="Exif Hound"
+      aria-label={APP_DISPLAY_NAME}
     >
       {/* Left pane — the logomark + version, framed */}
       <div className="flex-1 lg:flex-none lg:w-[45%] flex items-center justify-center p-4 lg:p-8">
